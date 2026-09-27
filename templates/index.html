@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Pagina principal</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+{% block body %}
+<p>Bienvenido a ANCESTRA, la plataforma que te conecta con tus raíces y te permite explorar tu historia familiar de manera interactiva. Descubre tus antepasados, explora tu árbol genealógico y comparte tus hallazgos con familiares y amigos.</p>
+{% endblock %}
+
+{% block js %}
+{% endblock %}

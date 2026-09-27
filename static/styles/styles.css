@@ -1,0 +1,78 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+}
+
+body {
+  background: #ffffff;
+}
+
+/* ===== Parte café ===== */
+.header {
+  background: #c0561e;
+  height: 110px;
+}
+
+/* ===== Parte blanca ===== */
+.content {
+  background: #ffffff;
+  border-radius: 16px 16px 0 0;
+  margin-top: -20px;
+  padding: 20px 24px;
+  position: relative;
+}
+
+/* ===== Navbar (barra verde) ===== */
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #9ec230;
+  border-radius: 30px;
+  padding: 10px 20px;
+}
+
+.nav__item {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.nav__item--active {
+  background: #6f7a1e;
+  color: #ffffff;
+}
+
+.nav__search {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 6px 14px;
+  flex: 1;
+  max-width: 280px;
+}
+
+.nav__search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.nav__search button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+}
