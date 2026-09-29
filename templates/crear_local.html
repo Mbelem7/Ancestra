@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Crear Local - Ancestra</title>
+{% endblock %}
+
+{% block body %}
+<div class="container content mt-5 mb-5">
+    
+    <div class="d-flex justify-content-center mb-4">
+        <h2 class="titulo-seccion">Registrar Nuevo Local</h2>
+    </div>
+
+    <div class="formulario-admin">
+        <form action="#" method="POST">
+            
+            <!-- Campo: Nombre del Local (El título del cuadrito) -->
+            <div class="form-group">
+                <label class="form-label" for="nombre_local">Nombre del Local</label>
+                <input type="text" id="nombre_local" name="nombre_local" class="form-input" placeholder="Ej: Mercado de Artesanías" required>
+            </div>
+
+            <!-- Campo: Información 1 (Descripción / Qué venden) -->
+            <div class="form-group">
+                <label class="form-label" for="descripcion">Descripción Breve</label>
+                <input type="text" id="descripcion" name="descripcion" class="form-input" placeholder="Ej: Venta de cerámica y textiles" required>
+            </div>
+
+            <!-- Campo: Información 2 (Dirección) -->
+            <div class="form-group">
+                <label class="form-label" for="direccion">Dirección</label>
+                <input type="text" id="direccion" name="direccion" class="form-input" placeholder="Ej: De la iglesia 2c al sur" required>
+            </div>
+            
+            <!-- Campo: Información 3 (Contacto u Horario) -->
+            <div class="form-group">
+                <label class="form-label" for="contacto">Contacto / Horario</label>
+                <input type="text" id="contacto" name="contacto" class="form-input" placeholder="Ej: 8:00 AM - 5:00 PM">
+            </div>
+
+            <!-- Coordenadas en el mapa (Agrupadas en una sola fila) -->
+            <div class="form-group mt-4">
+                <label class="form-label">Ubicación en el Mapa (Porcentajes)</label>
+                <div class="d-flex gap-3">
+                    <div style="flex: 1;">
+                        <input type="number" name="pos_x" class="form-input" placeholder="Izquierda (Ej: 45)" min="0" max="100" required>
+                        <small style="color: #666;">Distancia desde la izquierda (%)</small>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="number" name="pos_y" class="form-input" placeholder="Arriba (Ej: 80)" min="0" max="100" required>
+                        <small style="color: #666;">Distancia desde arriba (%)</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="d-flex justify-content-end gap-3 mt-5">
+                <a href="/mapa" class="btn-cancelar">Cancelar</a>
+                <button type="submit" class="btn-guardar">Guardar Local</button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}

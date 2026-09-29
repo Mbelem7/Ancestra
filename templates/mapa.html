@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Mapa - Ancestra</title>
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+    
+    <!-- Barra superior para el botón de admin (alineado a la derecha) -->
+    <div class="barra-superior-galeria justify-content-end">
+        <!-- {# {% if current_user.is_admin %} #} -->
+        <a href="/crear-local" class="btn-crear-admin">
+            + Nuevo Local
+        </a>
+        <!-- {# {% endif %} #} -->
+    </div>
+
+    <!-- Contenedor principal del mapa -->
+    <div class="mapa-contenedor shadow-sm">
+        
+        <!-- Local 1 -->
+        <div class="pin-local" style="top: 50%; left: 25%;">
+            <div class="pin-titulo">Local 1</div>
+            <!-- Ícono de pin (SVG) -->
+            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            
+            <!-- Cuadro de información (Tooltip) -->
+            <div class="pin-tooltip">
+                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 1</h4>
+                <p style="margin:0; font-size:0.85rem; color:#555;">Información detallada sobre este punto. Abierto de 8am a 5pm.</p>
+            </div>
+        </div>
+
+        <!-- Local 2 -->
+        <div class="pin-local" style="top: 80%; left: 45%;">
+            <div class="pin-titulo">Local 2</div>
+            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <div class="pin-tooltip">
+                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 2</h4>
+                <p style="margin:0; font-size:0.85rem; color:#555;">Detalles del segundo local. Excelente ubicación.</p>
+            </div>
+        </div>
+
+        <!-- Local 3 -->
+        <div class="pin-local" style="top: 45%; left: 60%;">
+            <div class="pin-titulo">Local 3</div>
+            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <div class="pin-tooltip">
+                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 3</h4>
+                <p style="margin:0; font-size:0.85rem; color:#555;">Aquí puedes encontrar productos artesanales.</p>
+            </div>
+        </div>
+
+        <!-- Local 4 -->
+        <div class="pin-local" style="top: 85%; left: 75%;">
+            <div class="pin-titulo">Local 4</div>
+            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <div class="pin-tooltip">
+                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 4</h4>
+                <p style="margin:0; font-size:0.85rem; color:#555;">Punto de encuentro y área de descanso.</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

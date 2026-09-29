@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Biblioteca - Ancestra</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <!-- Contenedor que empuja el botón a la derecha, debajo de la lupa -->
+ <div class="contenedor-btn-admin">
+    <a href="/crear-documento" class="btn-crear-admin">
+        + Nuevo Documento
+    </a>
+</div>
+    <!-- Título de la sección -->
+    <h2 class="titulo-seccion">Recomendaciones</h2>
+
+    <!-- Cuadrícula de documentos con CSS puro -->
+    <div class="grid-biblioteca">
+        
+        <!-- Documento 1 -->
+        <div class="tarjeta-biblioteca">
+            <div class="biblioteca-img-placeholder">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="biblioteca-contenido">
+                <div>
+                    <h3 class="titulo-documento">Titulo del documento</h3>
+                    <div class="texto-datos">
+                        Dato 1<br>
+                        Dato 2<br>
+                        Dato 3
+                    </div>
+                </div>
+                <a href="#" class="btn-ver">Ver</a>
+            </div>
+        </div>
+
+        <!-- Documento 2 -->
+        <div class="tarjeta-biblioteca">
+            <div class="biblioteca-img-placeholder">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="biblioteca-contenido">
+                <div>
+                    <h3 class="titulo-documento">Titulo del documento</h3>
+                    <div class="texto-datos">
+                        Dato 1<br>
+                        Dato 2<br>
+                        Dato 3
+                    </div>
+                </div>
+                <a href="#" class="btn-ver">Ver</a>
+            </div>
+        </div>
+        
+        <!-- Documento 3 -->
+        <div class="tarjeta-biblioteca">
+            <div class="biblioteca-img-placeholder">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="biblioteca-contenido">
+                <div>
+                    <h3 class="titulo-documento">Titulo del documento</h3>
+                    <div class="texto-datos">
+                        Dato 1<br>
+                        Dato 2<br>
+                        Dato 3
+                    </div>
+                </div>
+                <a href="#" class="btn-ver">Ver</a>
+            </div>
+        </div>
+
+        <!-- Documento 4 -->
+        <div class="tarjeta-biblioteca">
+            <div class="biblioteca-img-placeholder">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="biblioteca-contenido">
+                <div>
+                    <h3 class="titulo-documento">Titulo del documento</h3>
+                    <div class="texto-datos">
+                        Dato 1<br>
+                        Dato 2<br>
+                        Dato 3
+                    </div>
+                </div>
+                <a href="#" class="btn-ver">Ver</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+{% endblock %}

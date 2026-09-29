@@ -16,12 +16,13 @@
         <div class="header__pattern header__pattern--right"></div>
     </header>
 
-    <div class="content">
+<div class="content">
         <nav class="navbar"> 
-            <button class="nav__item nav__item--active">Home</button>
-             <button class="nav__item">Biblioteca</button>
-             <button class="nav__item">Galería</button>
-            <button class="nav__item">Mapa</button> 
+            <a href="{{ url_for('index') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'index' else '' }}">Home</a>
+            <a href="{{ url_for('biblioteca') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'biblioteca' else '' }}">Biblioteca</a>
+            <a href="{{ url_for('galeria') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'galeria' else '' }}">Galería</a>
+            <a href="{{ url_for('mapa') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'mapa' else '' }}">Mapa</a>
+            <a href="{{ url_for('crear') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'crear' else '' }}">Crear</a>
 
          <form class="nav__search" role="search">
          <input type="search" placeholder="Buscar..." aria-label="Buscar">
@@ -32,8 +33,35 @@
           </svg>
          </button>
          </form>
+         <button id="btn-dark-mode" class="nav__item" style="cursor: pointer; background: none; border: none; font-size: 1.2rem;">
+    🌙
+</button>
         </nav>
     </div>
+
+    <script>
+    const toggleBtn = document.getElementById('btn-dark-mode');
+    const body = document.body;
+    
+    // Revisar si el usuario ya tenía el modo oscuro activado antes
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        body.classList.add('dark-mode');
+        toggleBtn.textContent = '☀️'; // Cambia el ícono a un sol
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        body.classList.toggle('dark-mode');
+        
+        // Guardar la preferencia y cambiar el ícono
+        if (body.classList.contains('dark-mode')) {
+            localStorage.setItem('darkMode', 'enabled');
+            toggleBtn.textContent = '☀️';
+        } else {
+            localStorage.setItem('darkMode', 'disabled');
+            toggleBtn.textContent = '🌙';
+        }
+    });
+</script>
     {% block body %}
     {% endblock %}
 

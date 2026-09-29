@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Subir Imagen - Ancestra</title>
+{% endblock %}
+
+{% block body %}
+<div class="container content mt-5 mb-5">
+    
+    <div class="d-flex justify-content-center mb-4">
+        <h2 class="titulo-seccion">Agregar Nueva Imagen</h2>
+    </div>
+
+    <!-- Reutilizamos las clases del formulario-admin -->
+    <div class="formulario-admin">
+        <form action="#" method="POST" enctype="multipart/form-data">
+            
+            <!-- Campo: Título -->
+            <div class="form-group">
+                <label class="form-label" for="titulo">Título de la imagen</label>
+                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Danza de las Inditas" required>
+            </div>
+
+            <!-- Campo: Categoría (Álbum) -->
+            <div class="form-group">
+                <label class="form-label" for="album">Álbum / Categoría</label>
+                <!-- Menú desplegable -->
+                <select id="album" name="album" class="form-input" required>
+                    <option value="" disabled selected>Selecciona un álbum...</option>
+                    <option value="lugares">Lugares Típicos</option>
+                    <option value="tradiciones">Tradiciones</option>
+                    <option value="otros">Otros</option>
+                </select>
+            </div>
+
+            <!-- Campo: Descripción -->
+            <div class="form-group">
+                <label class="form-label" for="descripcion">Descripción breve (Opcional)</label>
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="2" placeholder="Agrega un pequeño contexto..."></textarea>
+            </div>
+
+            <!-- Campo: Subir el archivo -->
+            <div class="form-group">
+                <label class="form-label" for="imagen">Seleccionar Imagen</label>
+                <input type="file" id="imagen" name="imagen" class="form-input" accept="image/*" required>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="d-flex justify-content-end gap-3 mt-4">
+                <a href="{{ url_for('galeria') }}" class="btn-cancelar">Cancelar</a>
+                <button type="submit" class="btn-guardar">Subir Imagen</button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}
