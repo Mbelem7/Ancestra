@@ -9,7 +9,35 @@
 {% endblock %}
 
 {% block body %}
-<p>Bienvenido a ANCESTRA, la plataforma que te conecta con tus raíces y te permite explorar tu historia familiar de manera interactiva. Descubre tus antepasados, explora tu árbol genealógico y comparte tus hallazgos con familiares y amigos.</p>
+<div class="container">
+    <!-- Sección: ¿Tienes una cuenta? -->
+    <div class="contenedor-cuenta">
+        <h2 class="titulo-ancestra">¿Tienes una cuenta?</h2>
+        <div class="d-flex flex-column mt-4">
+            <a href="/registro" class="btn-cuenta">Registrate</a>
+            <a href="/login" class="btn-cuenta mb-0">Iniciar sesión</a>
+        </div>
+    </div>
+
+    <!-- Sección: Cuadrícula de Juegos -->
+    <div class="grid-juegos">
+        <a href="/juego/1" class="tarjeta-juego">
+            <h3 class="titulo-ancestra">Juego 1</h3>
+        </a>
+        
+        <a href="/juego/2" class="tarjeta-juego">
+            <h3 class="titulo-ancestra">Juego 2</h3>
+        </a>
+        
+        <a href="/juego/3" class="tarjeta-juego">
+            <h3 class="titulo-ancestra">Juego 3</h3>
+        </a>
+        
+        <a href="/juego/4" class="tarjeta-juego">
+            <h3 class="titulo-ancestra">Juego 4</h3>
+        </a>
+    </div>
+</div>
 {% endblock %}
 
 {% block js %}

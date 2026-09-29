@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Crear Documento - Ancestra</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="container content mt-5 mb-5">
+    
+    <div class="d-flex justify-content-center mb-4">
+        <h2 class="titulo-seccion">Agregar Nuevo Documento</h2>
+    </div>
+
+    <!-- Contenedor del formulario centrado -->
+    <div class="formulario-admin">
+        <form action="#" method="POST" enctype="multipart/form-data">
+            
+            <!-- Campo: Título -->
+            <div class="form-group">
+                <label class="form-label" for="titulo">Título del documento</label>
+                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Libro de Historia Mangue" required>
+            </div>
+
+            <!-- Campo: Dato 1 -->
+            <div class="form-group">
+                <label class="form-label" for="dato1">Dato 1 (Autor o Categoría)</label>
+                <input type="text" id="dato1" name="dato1" class="form-input" placeholder="Ej: Dr. Pérez">
+            </div>
+
+            <!-- Campo: Descripción (Textarea) -->
+            <div class="form-group">
+                <label class="form-label" for="descripcion">Descripción (Dato 2 y 3)</label>
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" placeholder="Breve descripción del documento..."></textarea>
+            </div>
+
+            <!-- Campo: Subir Imagen/Portada -->
+            <div class="form-group">
+                <label class="form-label" for="imagen">Subir Portada (Imagen)</label>
+                <input type="file" id="imagen" name="imagen" class="form-input" accept="image/*">
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="d-flex justify-content-end gap-3 mt-4">
+                <a href="{{ url_for('biblioteca') }}" class="btn-cancelar">Cancelar</a>
+                <button type="submit" class="btn-guardar">Guardar Documento</button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+{% endblock %}
