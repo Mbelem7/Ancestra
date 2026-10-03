@@ -50,6 +50,19 @@ def crear_imagen():
 def crear_local():
     return render_template('crear_local.html')
 
+@app.route('/editar-documento')
+def editar_documento():
+    # Más adelante aquí podrán recibir el ID del documento, ej: /editar-documento/<int:id>
+    return render_template('editar_documento.html')
+
+@app.route('/editar-imagen')
+def editar_imagen():
+    return render_template('editar_imagen.html')
+
+@app.route('/editar-local')
+def editar_local():
+    return render_template('editar_lugar.html')
+
 from sqlalchemy import text
 
 @app.route('/test-conexion')

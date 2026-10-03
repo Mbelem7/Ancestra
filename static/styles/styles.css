@@ -11,8 +11,52 @@ body {
 
 /* ===== Parte café ===== */
 .header {
-  background: #c0561e;
-  height: 110px;
+    background: #c0561e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    min-height: 120px; /* Le damos altura al header para que el patrón se luzca */
+    overflow: hidden;
+}
+
+.header__title {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%); /* Este es el truco mágico para el centro exacto */
+    margin: 0;
+    z-index: 10;
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    color: #000000;
+}
+
+body.dark-mode .header__title {
+    color: #ffffff;
+}
+
+.header-mapa {
+    background-color: #BECC29; /* Color para el mapa */
+}
+
+.header-galeria {
+    background-color: #FFC565; /* Color para la galería */
+}
+
+.header-biblioteca {
+    background-color: #10C6D9; /* Color para la biblioteca */
+}
+
+
+.header-index {
+    background-color: #F22C0C; /* Color para la página de inicio */
+}
+
+.header-crear {
+    background-color: #B84F0E; /* Color para la página de crear */
 }
 
 /* ===== Parte blanca ===== */
@@ -301,7 +345,7 @@ body.dark-mode .nav__item--active {
 }
 
 .btn-ver {
-    background-color: #9d9696;
+    background-color: #10C6D9;
     color: #000;
     border: none;
     border-radius: 8px;
@@ -641,7 +685,7 @@ body.dark-mode .carrusel-item.lateral {
     transform: translateY(-2px); 
 }
 
-}/* =========================================
+/* =========================================
    --- MAPA Y PINES ---
    ========================================= */
 
@@ -925,4 +969,70 @@ body.dark-mode .texto-descripcion {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(-5px);
+}
+
+.btn-editar {
+    background-color: #4a4a4a; /* Gris oscuro elegante */
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 0;
+    font-weight: 600;
+    width: 130px;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.btn-editar svg {
+    margin-bottom: 2px; /* Pequeño ajuste óptico para alinear el ícono con el texto */
+}
+
+.btn-editar:hover {
+    background-color: #2c2c2c; /* Se oscurece al pasar el mouse */
+    transform: scale(1.02); /* Pequeño efecto de crecimiento */
+}
+
+/* Adaptación para el Modo Oscuro */
+body.dark-mode .btn-editar {
+    background-color: #7a7a7a;
+    color: #ffffff;
+}
+
+body.dark-mode .btn-editar:hover {
+    background-color: #9d9696;
+}
+
+/* =========================================
+   --- PATRONES LATERALES INDÍGENAS ---
+   ========================================= */
+
+/* Configuración base para ambos lados */
+.header__pattern {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 60px; /* Ancho de la franja */
+    background-repeat: repeat-y; /* Repite el patrón de arriba hacia abajo */
+    background-size: 40px 100px; /* Tamaño de cada "triángulo" */
+}
+
+/* Patrón Izquierdo (Línea recta a la derecha, pico a la izquierda con punto) */
+.header__pattern--left {
+    left: 0;
+    background-position: left center;
+    /* Dibujo SVG en código con opacidad baja (0.25) para que se fusione con tu fondo dinámico */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="100" viewBox="0 0 40 100"><g opacity="0.25" fill="none" stroke="%23000000" stroke-width="4"><polyline points="38,0 4,50 38,100"/><line x1="38" y1="0" x2="38" y2="100"/><circle cx="15" cy="50" r="6" fill="%23000000" stroke="none"/></g></svg>');
+}
+
+/* Patrón Derecho (Línea recta a la izquierda, pico a la derecha con punto) */
+.header__pattern--right {
+    right: 0;
+    background-position: right center;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="100" viewBox="0 0 40 100"><g opacity="0.25" fill="none" stroke="%23000000" stroke-width="4"><polyline points="2,0 36,50 2,100"/><line x1="2" y1="0" x2="2" y2="100"/><circle cx="25" cy="50" r="6" fill="%23000000" stroke="none"/></g></svg>');
+}
+
+/* Ajuste del título en Modo Oscuro */
+body.dark-mode .header__title {
+    color: #ffffff;
 }
