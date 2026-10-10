@@ -2,17 +2,12 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy 
 from dotenv import load_dotenv
 import os
+from sqlalchemy import create_engine
 
 app = Flask(__name__)
 
 load_dotenv()
 
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-db = SQLAlchemy(app) 
 
 @app.route("/")
 def index():
@@ -63,16 +58,77 @@ def editar_imagen():
 def editar_local():
     return render_template('editar_lugar.html')
 
-from sqlalchemy import text
 
-@app.route('/test-conexion')
-def test_conexion():
-    try:
 
-        db.session.execute(text('SELECT 1'))
-        return "Conexión a Supabase exitosa."
-    except Exception as e:
-        return f"Error en la conexión: {str(e)}"
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+    
+# from sqlalchemy.pool import NullPool
+
+
+# 1. Obtener las variables
+USER = os.getenv("user")
+PASSWORD = os.getenv("password")
+HOST = os.getenv("host")
+PORT = os.getenv("port")
+DBNAME = os.getenv("dbname")
+
+# 2. Construir la URL de conexión de Supabase
+DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
+
+# 3. Pasársela a la configuración de Flask
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 4. Inicializar la base de datos con tu app
+db = SQLAlchemy(app)
+
+# Test rápido para ver si conecta al arrancar Flask (opcional, equivalente a tu bloque try/except)
+with app.app_context():
+    try:
+        db.engine.connect()
+        print("¡Conexión a Supabase exitosa, rey!")
+    except Exception as e:
+        print(f"Error al conectar a Supabase: {e}")
+
+
+class Lugar(db.Model):
+    # Asegurate de que el nombre coincida con tu tabla (LUGAR en mayúscula según la imagen)
+    __tablename__ = 'LUGAR' 
+    
+    id_lugar = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String, nullable=True)
+    descripcion = db.Column(db.String, nullable=True)
+    direccion = db.Column(db.String, nullable=True)
+    contacto = db.Column(db.Integer, nullable=True)
+    
+    # Manejo de fechas automáticas delegadas a PostgreSQL
+    fecha_creacion = db.Column(db.DateTime, server_default=db.func.now())
+    
+    # Fíjate cómo vinculamos la variable de Python con la columna que tiene espacios en Supabase
+    fecha_modificacion = db.Column('fecha modificacion', db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+    administrador_id = None
+
+    def __repr__(self):
+        return f'<Lugar {self.nombre}>'
+
+@app.route('/test-db')
+def test_db():
+    # Creamos un nuevo objeto usando los campos exactos de tu tabla
+    nuevo_lugar = Lugar(
+        nombre="Plaza de Magdalena",
+        descripcion="Barrio histórico de la comunidad de Monimbó.",
+        direccion="De la iglesia San Jerónimo 2c al sur",
+        contacto=88888888,
+        administrador_id=1  # Suponiendo que el admin con ID 1 existe
+    )
+    
+    try:
+        db.session.add(nuevo_lugar)
+        db.session.commit()
+        return "¡Lugar guardado con éxito en Supabase, rey! Andá a revisar la tabla LUGAR."
+    except Exception as e:
+        db.session.rollback()
+        return f"Falló el guardado: {e}"
