@@ -1,7 +1,22 @@
 {% extends "layout.html" %}
 
 {% block title %}
-<title>Crear - Ancestra</title>
+<title>Crear</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+
+
+<!-- 2. BLOQUE TITULO_HEADER: Esto es para el texto grande del header -->
+{% block titulo_header %}
+Crear
+{% endblock %}
+
+{% block clase_header %}
+header-crear
 {% endblock %}
 
 {% block body %}

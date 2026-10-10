@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Editar Local - Ancestra</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+{% block titulo_header %}
+Editar Local
+{% endblock %}
+
+<!-- Usamos el color de fondo del mapa -->
+{% block clase_header %}
+header-mapa
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+    
+    <!-- BARRA SUPERIOR: Botón de regresar al mapa -->
+    <div class="barra-superior-galeria mb-4">
+        <a href="{{ url_for('mapa') }}" class="btn-cancelar" style="border-radius: 50px; text-decoration: none; padding: 5px 15px; display: inline-block;">
+            ← Volver al Mapa
+        </a>
+    </div>
+
+    <!-- CONTENEDOR DEL FORMULARIO -->
+    <div class="formulario-edicion shadow-sm">
+        <h2 class="titulo-seccion mb-4" style="text-align: center;">Actualizar Ubicación</h2>
+        
+        <form action="#" method="POST" class="form-ancestra">
+            
+            <!-- Campo: Nombre del Local -->
+            <div class="form-group">
+                <label for="titulo" class="form-label">Nombre del Local / Punto</label>
+                {# Cuando conecten Supabase: value="{{ local.nombre }}" #}
+                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Mercado de Artesanías" value="Local 1" required>
+            </div>
+
+            <!-- Campo: Descripción (Tooltip) -->
+            <div class="form-group">
+                <label for="descripcion" class="form-label">Información Detallada (Tooltip)</label>
+                {# En el futuro esta variable irá aquí adentro #}
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="3" placeholder="Horarios, qué venden, detalles...">Información detallada sobre este punto. Abierto de 8am a 5pm.</textarea>
+            </div>
+
+            <!-- Campos: Coordenadas en el mapa (Top y Left en porcentajes) -->
+            <!-- Usamos Flexbox para poner ambos campos en la misma línea -->
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="pos_top" class="form-label">Posición Vertical (Top %)</label>
+                    <input type="number" id="pos_top" name="pos_top" class="form-input" placeholder="Ej: 50" value="50" min="0" max="100">
+                    <small style="color: #666; font-size: 0.8rem; margin-top: 4px;">Distancia desde arriba</small>
+                </div>
+                
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="pos_left" class="form-label">Posición Horizontal (Left %)</label>
+                    <input type="number" id="pos_left" name="pos_left" class="form-input" placeholder="Ej: 25" value="25" min="0" max="100">
+                    <small style="color: #666; font-size: 0.8rem; margin-top: 4px;">Distancia desde la izquierda</small>
+                </div>
+                
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="form-acciones mt-4">
+                <button type="submit" class="btn-guardar">💾 Guardar Cambios</button>
+                <a href="{{ url_for('mapa') }}" class="btn-cancelar">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

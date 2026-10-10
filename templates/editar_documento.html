@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Editar Documento - Ancestra</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+<!-- El título dinámico del header -->
+{% block titulo_header %}
+Editar Documento
+{% endblock %}
+
+<!-- Usamos el mismo color de fondo que la biblioteca para mantener la coherencia -->
+{% block clase_header %}
+header-biblioteca
+{% endblock %}
+
+{% block body %}
+<!-- El enctype="multipart/form-data" es obligatorio para poder subir archivos (PDFs, imágenes) -->
+        <form action="#" method="POST" enctype="multipart/form-data" class="form-ancestra">
+            
+            <!-- Campo: Título -->
+            <div class="form-group">
+                <label for="titulo" class="form-label">Título del Documento</label>
+                {# value="{{ documento.titulo }}" es un ejemplo de cómo Jinja cargará el dato viejo cuando se conecte a la BD #}
+                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Historia Chorotega" value="Historia Antigua (Ejemplo)" required>
+            </div>
+
+            <!-- Campo: Autor o Fuente -->
+            <div class="form-group">
+                <label for="autor" class="form-label">Autor / Fuente</label>
+                <input type="text" id="autor" name="autor" class="form-input" placeholder="Ej: Universidad Nacional" value="Archivo Municipal">
+            </div>
+
+            <!-- Campo: Descripción -->
+            <div class="form-group">
+                <label for="descripcion" class="form-label">Descripción</label>
+                {# Aquí adentro también irá la variable de Jinja en el futuro #}
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" placeholder="Breve resumen del contenido...">Este documento contiene los registros del censo de 1920...</textarea>
+            </div>
+
+            <!-- Campo: Reemplazar Archivo -->
+            <div class="form-group">
+                <label for="archivo" class="form-label">Reemplazar Archivo PDF (Opcional)</label>
+                <div class="archivo-actual mb-2">
+                    <span style="font-size: 0.85rem; color: #555;">Archivo actual: <strong>documento_1920.pdf</strong></span>
+                </div>
+                <input type="file" id="archivo" name="archivo" class="form-input-file" accept=".pdf,.doc,.docx">
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="form-acciones mt-4">
+                <button type="submit" class="btn-guardar">💾 Guardar Cambios</button>
+                <a href="{{ url_for('biblioteca') }}" class="btn-cancelar">Cancelar</a>
+            </div>
+        </form>
+{% endblock %}

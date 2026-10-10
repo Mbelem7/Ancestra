@@ -1,16 +1,31 @@
 {% extends "layout.html" %}
 
 {% block title %}
-<title>Mapa - Ancestra</title>
+<title>Mapa</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+
+
+<!-- 2. BLOQUE TITULO_HEADER: Esto es para el texto grande del header -->
+{% block titulo_header %}
+Mapa
+{% endblock %}
+
+{% block clase_header %}
+header-mapa
 {% endblock %}
 
 {% block body %}
 <div class="container content">
     
     <!-- Barra superior para el botón de admin (alineado a la derecha) -->
-    <div class="barra-superior-galeria justify-content-end">
+    <div class="barra-superior-galeria">
         <!-- {# {% if current_user.is_admin %} #} -->
-        <a href="/crear-local" class="btn-crear-admin">
+        <a href="/crear-local" class="btn-crear-admin" style="margin: 0; display: inline-block;">
             + Nuevo Local
         </a>
         <!-- {# {% endif %} #} -->
@@ -27,6 +42,11 @@
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
             </svg>
+
+            <br>
+            <a href="{{ url_for('editar_local') }}" class="btn-editar">
+                ✏️ Editar
+            </a>
             
             <!-- Cuadro de información (Tooltip) -->
             <div class="pin-tooltip">
@@ -42,6 +62,12 @@
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
             </svg>
+
+            <br>
+            <a href="{{ url_for('editar_local') }}" class="btn-editar">
+                ✏️ Editar
+            </a>
+
             <div class="pin-tooltip">
                 <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 2</h4>
                 <p style="margin:0; font-size:0.85rem; color:#555;">Detalles del segundo local. Excelente ubicación.</p>
@@ -55,6 +81,12 @@
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
             </svg>
+
+            <br>
+            <a href="{{ url_for('editar_local') }}" class="btn-editar">
+                ✏️ Editar
+            </a>
+
             <div class="pin-tooltip">
                 <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 3</h4>
                 <p style="margin:0; font-size:0.85rem; color:#555;">Aquí puedes encontrar productos artesanales.</p>
@@ -68,6 +100,12 @@
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
             </svg>
+
+            <br>
+            <a href="{{ url_for('editar_local') }}" class="btn-editar">
+                ✏️ Editar
+            </a>
+             
             <div class="pin-tooltip">
                 <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 4</h4>
                 <p style="margin:0; font-size:0.85rem; color:#555;">Punto de encuentro y área de descanso.</p>

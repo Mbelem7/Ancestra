@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Editar Imagen - Ancestra</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+{% block titulo_header %}
+Editar Imagen
+{% endblock %}
+
+<!-- Usamos el color de fondo de la galería -->
+{% block clase_header %}
+header-galeria
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+    
+    <!-- BARRA SUPERIOR: Botón de regresar a la galería -->
+    <div class="barra-superior-galeria mb-4">
+        <a href="{{ url_for('galeria') }}" class="btn-cancelar" style="border-radius: 50px; text-decoration: none; padding: 5px 15px; display: inline-block;">
+            ← Volver a la Galería
+        </a>
+    </div>
+
+    <!-- CONTENEDOR DEL FORMULARIO -->
+    <div class="formulario-edicion shadow-sm">
+        <h2 class="titulo-seccion mb-4" style="text-align: center;">Actualizar Fotografía</h2>
+        
+        <form action="#" method="POST" enctype="multipart/form-data" class="form-ancestra">
+            
+            <!-- Campo: Título -->
+            <div class="form-group">
+                <label for="titulo" class="form-label">Título de la Imagen</label>
+                {# El value real será algo como value="{{ imagen.titulo }}" #}
+                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Danza folclórica" value="Procesión de San Jerónimo" required>
+            </div>
+
+            <!-- Campo: Álbum / Categoría -->
+            <div class="form-group">
+                <label for="album" class="form-label">Álbum</label>
+                <select id="album" name="album" class="form-input">
+                    <!-- Las opciones coinciden con los álbumes de tu galeria.html -->
+                    <option value="Lugares típicos">Lugares típicos</option>
+                    <option value="Tradiciones" selected>Tradiciones</option>
+                    <option value="Otros">Otros</option>
+                </select>
+            </div>
+
+            <!-- Campo: Descripción -->
+            <div class="form-group">
+                <label for="descripcion" class="form-label">Descripción o Historia</label>
+                {# Aquí también irá la variable en el futuro #}
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" placeholder="Detalles o contexto de la fotografía...">Fotografía histórica tomada durante las festividades patronales en Masaya...</textarea>
+            </div>
+
+            <!-- Campo: Reemplazar Imagen -->
+            <div class="form-group">
+                <label for="imagen" class="form-label">Reemplazar Fotografía (Opcional)</label>
+                
+                <!-- Miniatura de la imagen actual como referencia visual -->
+                <div class="archivo-actual mb-3" style="text-align: center; padding: 10px; background-color: #f1f1f1; border-radius: 8px;">
+                    <span style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 8px;">Imagen actual:</span>
+                    <!-- Cuando conecten la BD, aquí irá la ruta real de la imagen en el src -->
+                    <div style="width: 80px; height: 80px; background-color: #ddd; border-radius: 5px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                        📸
+                    </div>
+                </div>
+
+                <!-- accept="image/*" fuerza al navegador a buscar solo archivos de imagen -->
+                <input type="file" id="imagen" name="imagen" class="form-input-file" accept="image/png, image/jpeg, image/webp">
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="form-acciones mt-4">
+                <button type="submit" class="btn-guardar">💾 Guardar Cambios</button>
+                <a href="{{ url_for('galeria') }}" class="btn-cancelar">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

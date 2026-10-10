@@ -353,6 +353,19 @@ def crear_local():
 def crear():
     return render_template('crear.html')
 
+@app.route('/editar-documento')
+def editar_documento():
+    # Más adelante aquí podrán recibir el ID del documento, ej: /editar-documento/<int:id>
+    return render_template('editar_documento.html')
+
+@app.route('/editar-imagen')
+def editar_imagen():
+    return render_template('editar_imagen.html')
+
+@app.route('/editar-local')
+def editar_local():
+    return render_template('editar_lugar.html')
+
 
 #############################################################################
 # CONEXIÓN A LA BASE DE DATOS
@@ -361,11 +374,11 @@ from sqlalchemy import text
 @app.route('/test-conexion')
 def test_conexion():
     try:
+
         db.session.execute(text('SELECT 1'))
-        return "¡Todo nítido, rey! 🚀 Conexión a Supabase exitosa."
+        return "Conexión a Supabase exitosa."
     except Exception as e:
         return f"Error en la conexión: {str(e)}"
-
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,7 +1,22 @@
 {% extends "layout.html" %}
 
 {% block title %}
-<title>Galería - Ancestra</title>
+<title>Galería</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+
+
+<!-- 2. BLOQUE TITULO_HEADER: Esto es para el texto grande del header -->
+{% block titulo_header %}
+Galería
+{% endblock %}
+
+{% block clase_header %}
+header-galeria
 {% endblock %}
 
 {% block body %}
@@ -65,18 +80,70 @@
     <!-- ==========================================
          VISTA 2: CUADRÍCULA DEL ÁLBUM
          ========================================== -->
-    <div id="vista-cuadricula" style="display: none;">
+ <div id="vista-cuadricula" style="display: none;">
         <h2 class="titulo-seccion mb-4" id="titulo-cuadricula">Álbum</h2>
         <div class="galeria-grid">
-            <div class="galeria-item" onclick="abrirCarrusel()"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-            <div class="galeria-item" onclick="abrirCarrusel()"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-            <div class="galeria-item" onclick="abrirCarrusel()"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-            <div class="galeria-item" onclick="abrirCarrusel()"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-            <div class="galeria-item" onclick="abrirCarrusel()"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-            <div class="galeria-item" onclick="abrirCarrusel()"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
+            
+            <!-- IMAGEN 1 -->
+            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
+                <!-- Tu imagen / svg -->
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
+                
+                <br> <!-- Salto de línea para separar la imagen del botón -->
+                
+                <!-- BOTÓN DE EDITAR (El stopPropagation evita que se abra el carrusel) -->
+                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
+                    ✏️ Editar
+                </a>
+            </div>
+
+            <!-- IMAGEN 2 -->
+            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
+                <br>
+                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
+                    ✏️ Editar
+                </a>
+            </div>
+
+            <!-- IMAGEN 3 -->
+            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
+                <br>
+                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
+                    ✏️ Editar
+                </a>
+            </div>
+
+            <!-- IMAGEN 4 -->
+            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
+                <br>
+                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
+                    ✏️ Editar
+                </a>
+            </div>
+
+            <!-- IMAGEN 5 -->
+            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
+                <br>
+                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
+                    ✏️ Editar
+                </a>
+            </div>
+
+            <!-- IMAGEN 6 -->
+            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
+                <br>
+                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
+                    ✏️️ Editar
+                </a>
+            </div>
+
         </div>
     </div>
-
     <!-- ==========================================
          VISTA 3: CARRUSEL ENFOCADO
          ========================================== -->
