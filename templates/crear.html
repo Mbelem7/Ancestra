@@ -8,9 +8,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 {% endblock %}
 
-
-
-<!-- 2. BLOQUE TITULO_HEADER: Esto es para el texto grande del header -->
 {% block titulo_header %}
 Crear
 {% endblock %}
@@ -21,133 +18,37 @@ header-crear
 
 {% block body %}
 <div class="container content">
-    
-    <!-- Barra superior para botón de regresar -->
+
+    <!-- Acceso a las plantillas ya creadas -->
     <div class="barra-superior-galeria mb-3">
-        <div id="btn-regresar-container" style="visibility: hidden;">
-            <button class="btn-cancelar" onclick="volverAOpciones()" style="border: none; cursor: pointer;">
-                ← Regresar
-            </button>
-        </div>
-        <!-- Espacio vacío a la derecha para mantener el flexbox equilibrado -->
-        <div></div>
+        <a href="/mis-plantillas" class="btn-crear-admin" style="margin: 0; display: inline-block;">
+            📋 Mis plantillas
+        </a>
     </div>
 
-    <!-- ==========================================
-         VISTA 1: SELECCIÓN DE OPCIÓN (4 TARJETAS)
-         ========================================== -->
+    <!-- VISTA: SELECCIÓN DEL TIPO DE JUEGO -->
     <div id="vista-opciones">
         <div class="opciones-grid">
-            <!-- Cada tarjeta llama a la función de JS enviando su nombre -->
-            <div class="opcion-card" onclick="abrirPersonalizacion('OPCION 1')">
-                <span>OPCION 1</span>
+            <div class="opcion-card" onclick="irAJuego('/juegos/verdadero-falso/crear')">
+                <span>Verdadero y Falso</span>
             </div>
-            <div class="opcion-card" onclick="abrirPersonalizacion('OPCION 2')">
-                <span>OPCION 2</span>
+            <div class="opcion-card" onclick="irAJuego('/juegos/completar/crear')">
+                <span>Completar</span>
             </div>
-            <div class="opcion-card" onclick="abrirPersonalizacion('OPCION 3')">
-                <span>OPCION 3</span>
+            <div class="opcion-card" onclick="irAJuego('/juegos/union/crear')">
+                <span>Unir con línea</span>
             </div>
-            <div class="opcion-card" onclick="abrirPersonalizacion('OPCION 4')">
-                <span>OPCION 4</span>
+            <div class="opcion-card" onclick="irAJuego('/juegos/multiple/crear')">
+                <span>Selección múltiple</span>
             </div>
         </div>
-    </div>
-
-    <!-- ==========================================
-         VISTA 2: PERSONALIZACIÓN (FORMULARIO DE 3 COLUMNAS)
-         ========================================== -->
-    <div id="vista-personalizacion" style="display: none;">
-        
-        <!-- Cabecera: Título y texto de descripción -->
-        <div class="personalizacion-header mb-5">
-            <h2 id="titulo-personalizacion" class="titulo-opcion">OPCION 4</h2>
-            <p class="texto-descripcion">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur.
-            </p>
-        </div>
-
-        <!-- Formulario: 3 Columnas -->
-        <form action="#" method="POST">
-            <div class="preguntas-grid">
-                
-                <!-- Columna 1 -->
-                <div class="pregunta-columna">
-                    <label class="form-label">Pregunta 1</label>
-                    <input type="text" name="pregunta_1" class="input-gris">
-                    
-                    <label class="form-label">Respuesta 1</label>
-                    <input type="text" name="resp_1_1" class="input-gris">
-                    
-                    <label class="form-label">Respuesta 2</label>
-                    <input type="text" name="resp_1_2" class="input-gris">
-                    
-                    <button type="button" class="btn-añadir-respuesta">Añadir respuesta</button>
-                </div>
-
-                <!-- Columna 2 -->
-                <div class="pregunta-columna">
-                    <label class="form-label">Pregunta 2</label>
-                    <input type="text" name="pregunta_2" class="input-gris">
-                    
-                    <label class="form-label">Respuesta 1</label>
-                    <input type="text" name="resp_2_1" class="input-gris">
-                    
-                    <label class="form-label">Respuesta 2</label>
-                    <input type="text" name="resp_2_2" class="input-gris">
-                    
-                    <button type="button" class="btn-añadir-respuesta">Añadir respuesta</button>
-                </div>
-
-                <!-- Columna 3 -->
-                <div class="pregunta-columna">
-                    <label class="form-label">Pregunta 3</label>
-                    <input type="text" name="pregunta_3" class="input-gris">
-                    
-                    <label class="form-label">Respuesta 1</label>
-                    <input type="text" name="resp_3_1" class="input-gris">
-                    
-                    <label class="form-label">Respuesta 2</label>
-                    <input type="text" name="resp_3_2" class="input-gris">
-                    
-                    <button type="button" class="btn-añadir-respuesta">Añadir respuesta</button>
-                </div>
-
-            </div>
-
-            <!-- Botón de guardar al final del formulario -->
-            <div class="d-flex justify-content-end mt-5">
-                <button type="submit" class="btn-guardar">Guardar Plantilla</button>
-            </div>
-        </form>
-
     </div>
 
 </div>
 
-<!-- Funciones dinámicas para cambiar vistas -->
 <script>
-    function abrirPersonalizacion(nombreOpcion) {
-        // Oculta las 4 tarjetas y muestra el formulario
-        document.getElementById('vista-opciones').style.display = 'none';
-        document.getElementById('vista-personalizacion').style.display = 'block';
-        
-        // Actualiza el título dinámicamente con la opción seleccionada
-        document.getElementById('titulo-personalizacion').innerText = nombreOpcion;
-        
-        // Muestra el botón de regresar
-        document.getElementById('btn-regresar-container').style.visibility = 'visible';
-    }
-
-    function volverAOpciones() {
-        // Oculta el formulario y vuelve a las 4 tarjetas
-        document.getElementById('vista-personalizacion').style.display = 'none';
-        document.getElementById('vista-opciones').style.display = 'block';
-        
-        // Oculta el botón de regresar
-        document.getElementById('btn-regresar-container').style.visibility = 'hidden';
+    function irAJuego(url) {
+        window.location.href = url;
     }
 </script>
 {% endblock %}

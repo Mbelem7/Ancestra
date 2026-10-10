@@ -2,19 +2,19 @@ from app import db
 from sqlalchemy import text
 
 
-def insertar_persona(nombre1, nombre2, apellido1, apellido2,
+def insertar_persona(nombre_1, nombre_2, apellido_1, apellido_2,
                      fecha_nacimiento, correo, tipo, estado, contrasena,
                      fecha_creacion, fecha_modificacion):
     # contrasena debe llegar ya encriptada (hash), nunca en texto plano
 
     resultado = db.session.execute(
         text("""
-            INSERT INTO PERSONA
+            INSERT INTO persona
             (
-                nombre1,
-                nombre2,
-                apellido1,
-                apellido2,
+                nombre_1,
+                nombre_2,
+                apellido_1,
+                apellido_2,
                 fecha_nacimiento,
                 correo,
                 tipo,
@@ -25,10 +25,10 @@ def insertar_persona(nombre1, nombre2, apellido1, apellido2,
             )
             VALUES
             (
-                :nombre1,
-                :nombre2,
-                :apellido1,
-                :apellido2,
+                :nombre_1,
+                :nombre_2,
+                :apellido_1,
+                :apellido_2,
                 :fecha_nacimiento,
                 :correo,
                 :tipo,
@@ -40,10 +40,10 @@ def insertar_persona(nombre1, nombre2, apellido1, apellido2,
             RETURNING id_persona
         """),
         {
-            'nombre1': nombre1,
-            'nombre2': nombre2,
-            'apellido1': apellido1,
-            'apellido2': apellido2,
+            'nombre_1': nombre_1,
+            'nombre_2': nombre_2,
+            'apellido_1': apellido_1,
+            'apellido_2': apellido_2,
             'fecha_nacimiento': fecha_nacimiento,
             'correo': correo,
             'tipo': tipo,
@@ -68,17 +68,17 @@ def obtener_personas():
         text("""
             SELECT
                 id_persona,
-                nombre1,
-                nombre2,
-                apellido1,
-                apellido2,
+                nombre_1,
+                nombre_2,
+                apellido_1,
+                apellido_2,
                 fecha_nacimiento,
                 correo,
                 tipo,
                 estado,
                 fecha_creacion,
                 fecha_modificacion
-            FROM PERSONA
+            FROM persona
         """)
     )
 
@@ -93,17 +93,17 @@ def obtener_una_persona(id_persona):
         text("""
             SELECT
                 id_persona,
-                nombre1,
-                nombre2,
-                apellido1,
-                apellido2,
+                nombre_1,
+                nombre_2,
+                apellido_1,
+                apellido_2,
                 fecha_nacimiento,
                 correo,
                 tipo,
                 estado,
                 fecha_creacion,
                 fecha_modificacion
-            FROM PERSONA
+            FROM persona
             WHERE id_persona = :id_persona
         """),
         {
@@ -123,13 +123,13 @@ def obtener_persona_por_correo(correo):
         text("""
             SELECT
                 id_persona,
-                nombre1,
-                apellido1,
+                nombre_1,
+                apellido_1,
                 correo,
                 tipo,
                 estado,
                 contraseña
-            FROM PERSONA
+            FROM persona
             WHERE correo = :correo
         """),
         {
@@ -144,10 +144,10 @@ def obtener_persona_por_correo(correo):
 
 def actualizar_persona(
     id_persona,
-    nombre1,
-    nombre2,
-    apellido1,
-    apellido2,
+    nombre_1,
+    nombre_2,
+    apellido_1,
+    apellido_2,
     fecha_nacimiento,
     correo,
     tipo,
@@ -157,12 +157,12 @@ def actualizar_persona(
 
     db.session.execute(
         text("""
-            UPDATE PERSONA
+            UPDATE persona
             SET
-                nombre1 = :nombre1,
-                nombre2 = :nombre2,
-                apellido1 = :apellido1,
-                apellido2 = :apellido2,
+                nombre_1 = :nombre_1,
+                nombre_2 = :nombre_2,
+                apellido_1 = :apellido_1,
+                apellido_2 = :apellido_2,
                 fecha_nacimiento = :fecha_nacimiento,
                 correo = :correo,
                 tipo = :tipo,
@@ -171,10 +171,10 @@ def actualizar_persona(
             WHERE id_persona = :id_persona
         """),
         {
-            'nombre1': nombre1,
-            'nombre2': nombre2,
-            'apellido1': apellido1,
-            'apellido2': apellido2,
+            'nombre_1': nombre_1,
+            'nombre_2': nombre_2,
+            'apellido_1': apellido_1,
+            'apellido_2': apellido_2,
             'fecha_nacimiento': fecha_nacimiento,
             'correo': correo,
             'tipo': tipo,
@@ -192,7 +192,7 @@ def actualizar_contrasena(id_persona, contrasena, fecha_modificacion):
 
     db.session.execute(
         text("""
-            UPDATE PERSONA
+            UPDATE persona
             SET
                 contraseña = :contrasena,
                 fecha_modificacion = :fecha_modificacion
@@ -201,6 +201,23 @@ def actualizar_contrasena(id_persona, contrasena, fecha_modificacion):
         {
             'contrasena': contrasena,
             'fecha_modificacion': fecha_modificacion,
+            'id_persona': id_persona
+        }
+    )
+
+    db.session.commit()
+
+
+def eliminar_persona(id_persona):
+    # Solo se usa para deshacer un registro que quedó a medias
+    # (se creó la persona pero falló la creación de su perfil de docente o estudiante)
+
+    db.session.execute(
+        text("""
+            DELETE FROM persona
+            WHERE id_persona = :id_persona
+        """),
+        {
             'id_persona': id_persona
         }
     )

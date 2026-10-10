@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Plantilla creada</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Tarjeta centrada con el código en grande */
+    .tarjeta-codigo {
+        max-width: 640px;
+        margin: 40px auto;
+        padding: 40px 32px;
+        text-align: center;
+        background: #fafcf6;
+        color: #222;
+        border: 2px solid #c9d6b0;
+        border-radius: 16px;
+    }
+    .tarjeta-codigo .titulo-exito { font-size: 1.2rem; margin: 0 0 10px; }
+    .tarjeta-codigo .instruccion  { margin: 0 0 28px; color: #444; }
+
+    .codigo-acceso {
+        display: inline-block;
+        font-size: clamp(2rem, 8vw, 3.2rem);
+        font-weight: 700;
+        letter-spacing: 12px;
+        padding: 18px 24px 18px 36px;   /* más a la izquierda para compensar el espacio final de las letras */
+        background: #e4f1cf;
+        color: #2f4a0c;
+        border: 3px dashed #5a7a1e;
+        border-radius: 14px;
+        user-select: all;               /* un clic selecciona todo el código */
+        margin-bottom: 28px;
+    }
+
+    .tarjeta-codigo .acciones {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .btn-copiar {
+        background: #fff;
+        color: #5a7a1e;
+        border: 2px solid #5a7a1e;
+        border-radius: 20px;
+        padding: 10px 22px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    .btn-copiar:hover { background: #5a7a1e; color: #fff; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+¡Plantilla creada!
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+    <div class="tarjeta-codigo">
+        <p class="titulo-exito">Tu plantilla "<strong>{{ nombre }}</strong>" ya está lista.</p>
+        <p class="instruccion">Comparte este código con tus estudiantes para que puedan jugarla:</p>
+
+        <div class="codigo-acceso" id="codigo">{{ codigo_acceso }}</div>
+
+        <div class="acciones">
+            <button type="button" class="btn-copiar" id="btn-copiar">📋 Copiar código</button>
+            <a href="/crear" class="btn-guardar" style="text-decoration:none;">Crear otra plantilla</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('btn-copiar').addEventListener('click', async function () {
+        const boton = this;
+        const codigo = document.getElementById('codigo').textContent.trim();
+        try {
+            await navigator.clipboard.writeText(codigo);
+            boton.textContent = '✔ ¡Copiado!';
+        } catch (error) {
+            // Si el navegador no deja copiar solo, se selecciona el código para copiarlo con Ctrl+C
+            const rango = document.createRange();
+            rango.selectNodeContents(document.getElementById('codigo'));
+            const seleccion = window.getSelection();
+            seleccion.removeAllRanges();
+            seleccion.addRange(rango);
+            boton.textContent = 'Presiona Ctrl+C';
+        }
+        setTimeout(function () { boton.textContent = '📋 Copiar código'; }, 2500);
+    });
+</script>
+{% endblock %}

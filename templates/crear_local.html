@@ -4,6 +4,11 @@
 <title>Crear Local - Ancestra</title>
 {% endblock %}
 
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
 {% block body %}
 <div class="container content mt-5 mb-5">
     
@@ -12,44 +17,50 @@
     </div>
 
     <div class="formulario-admin">
-        <form action="#" method="POST">
+
+        <!-- Errores de validación que manda el backend -->
+        {% if erroresL %}
+        <ul style="color: red;">
+            {% for error in erroresL %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form action="/crear-local" method="POST" id="form-local">
             
             <!-- Campo: Nombre del Local (El título del cuadrito) -->
             <div class="form-group">
-                <label class="form-label" for="nombre_local">Nombre del Local</label>
-                <input type="text" id="nombre_local" name="nombre_local" class="form-input" placeholder="Ej: Mercado de Artesanías" required>
+                <label class="form-label" for="nombre">Nombre del Local</label>
+                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" placeholder="Ej: Mercado de Artesanías" required>
             </div>
 
-            <!-- Campo: Información 1 (Descripción / Qué venden) -->
+            <!-- Campo: Descripción / Qué venden -->
             <div class="form-group">
                 <label class="form-label" for="descripcion">Descripción Breve</label>
-                <input type="text" id="descripcion" name="descripcion" class="form-input" placeholder="Ej: Venta de cerámica y textiles" required>
+                <input type="text" id="descripcion" name="descripcion" class="form-input" maxlength="500" placeholder="Ej: Venta de cerámica y textiles" required>
             </div>
 
-            <!-- Campo: Información 2 (Dirección) -->
+            <!-- Campo: Dirección -->
             <div class="form-group">
                 <label class="form-label" for="direccion">Dirección</label>
-                <input type="text" id="direccion" name="direccion" class="form-input" placeholder="Ej: De la iglesia 2c al sur" required>
+                <input type="text" id="direccion" name="direccion" class="form-input" maxlength="200" placeholder="Ej: De la iglesia 2c al sur" required>
             </div>
             
-            <!-- Campo: Información 3 (Contacto u Horario) -->
+            <!-- Campo: Contacto (solo números) -->
             <div class="form-group">
-                <label class="form-label" for="contacto">Contacto / Horario</label>
-                <input type="text" id="contacto" name="contacto" class="form-input" placeholder="Ej: 8:00 AM - 5:00 PM">
+                <label class="form-label" for="contacto">Teléfono de contacto</label>
+                <input type="text" id="contacto" name="contacto" class="form-input" maxlength="8" inputmode="numeric" pattern="[0-9]+" placeholder="Ej: 88888888" required>
             </div>
 
-            <!-- Coordenadas en el mapa (Agrupadas en una sola fila) -->
+            <!-- Ubicación: se elige haciendo clic en el mapa -->
             <div class="form-group mt-4">
-                <label class="form-label">Ubicación en el Mapa (Porcentajes)</label>
-                <div class="d-flex gap-3">
-                    <div style="flex: 1;">
-                        <input type="number" name="pos_x" class="form-input" placeholder="Izquierda (Ej: 45)" min="0" max="100" required>
-                        <small style="color: #666;">Distancia desde la izquierda (%)</small>
-                    </div>
-                    <div style="flex: 1;">
-                        <input type="number" name="pos_y" class="form-input" placeholder="Arriba (Ej: 80)" min="0" max="100" required>
-                        <small style="color: #666;">Distancia desde arriba (%)</small>
-                    </div>
+                <label class="form-label">Ubicación en el Mapa</label>
+                <div id="mapa-selector" style="height: 350px; border-radius: 8px;"></div>
+                <small style="color: #666;">Haz clic en el mapa para marcar dónde está el local. Puedes volver a hacer clic para moverlo.</small>
+                <div class="d-flex gap-3 mt-2">
+                    <input type="text" id="latitud" name="latitud" class="form-input" placeholder="Latitud" readonly style="flex: 1;">
+                    <input type="text" id="longitud" name="longitud" class="form-input" placeholder="Longitud" readonly style="flex: 1;">
                 </div>
             </div>
 
@@ -63,4 +74,38 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Masaya, Nicaragua (centro inicial del mapa)
+    const mapa = L.map('mapa-selector').setView([11.9744, -86.0942], 14);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; Colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(mapa);
+
+    let marcador = null;
+
+    // Cada clic en el mapa coloca (o mueve) el pin y llena latitud y longitud
+    mapa.on('click', function (e) {
+        if (marcador) {
+            marcador.setLatLng(e.latlng);
+        } else {
+            marcador = L.marker(e.latlng).addTo(mapa);
+        }
+        document.getElementById('latitud').value = e.latlng.lat.toFixed(6);
+        document.getElementById('longitud').value = e.latlng.lng.toFixed(6);
+    });
+
+    // Los campos de solo lectura no se validan solos, por eso se revisa aquí
+    document.getElementById('form-local').addEventListener('submit', function (e) {
+        if (!document.getElementById('latitud').value) {
+            e.preventDefault();
+            alert('Haz clic en el mapa para marcar la ubicación del local.');
+        }
+    });
+</script>
 {% endblock %}

@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Crear plantilla - Unir con línea</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+
+{% block titulo_header %}
+Unir con línea
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+
+    <div class="barra-superior-galeria mb-3">
+        <a href="/crear" class="btn-cancelar" style="text-decoration:none;">← Regresar</a>
+    </div>
+
+    {% if erroresP %}
+     <ul style="color:red;">
+        {% for error in erroresP %}
+        <li>{{ error }}</li>
+        {% endfor %}
+     </ul>
+    {% endif %}
+
+    <form action="/juegos/union/crear" method="POST" id="form-plantilla">
+
+        <!-- DATOS DE LA PLANTILLA -->
+        <div class="personalizacion-header mb-5">
+            <label class="form-label">Nombre de la plantilla</label>
+            <input type="text" name="nombre" class="input-gris" maxlength="100" required>
+
+            <label class="form-label">Descripción</label>
+            <textarea name="descripcion" class="input-gris" maxlength="500" required></textarea>
+
+            <p class="texto-descripcion">
+                Cada pareja tiene un elemento de la izquierda y su pareja correcta a la derecha.
+                Al jugar, los elementos de la derecha aparecerán desordenados y el estudiante
+                tendrá que unirlos con el de la izquierda que les corresponde.
+            </p>
+        </div>
+
+        <!-- PAREJAS (se agregan dinámicamente) -->
+        <div id="preguntas-container"></div>
+
+        <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn-añadir-respuesta" onclick="agregarPregunta()">
+                + Añadir pareja
+            </button>
+        </div>
+
+        <div class="d-flex justify-content-end mt-5">
+            <button type="submit" class="btn-guardar">Guardar Plantilla</button>
+        </div>
+    </form>
+
+</div>
+
+<!-- Plantilla oculta de una pareja, se clona con JS -->
+<template id="plantilla-pregunta">
+    <div class="pregunta-columna pregunta-bloque mb-4">
+        <div class="d-flex justify-content-between">
+            <label class="form-label pregunta-titulo">Pareja</label>
+            <button type="button" class="btn-cancelar btn-eliminar-pregunta" style="border:none;cursor:pointer;">
+                Eliminar
+            </button>
+        </div>
+
+        <label class="form-label">Elemento izquierdo</label>
+        <input type="text" class="input-gris enunciado" maxlength="200" required>
+
+        <label class="form-label">Elemento derecho (su pareja)</label>
+        <input type="text" class="input-gris respuesta-correcta" maxlength="200" required>
+    </div>
+</template>
+
+<script>
+    let contadorPreguntas = 0;
+
+    function agregarPregunta() {
+        contadorPreguntas++;
+
+        const tpl = document.getElementById('plantilla-pregunta').content.cloneNode(true);
+        const bloque = tpl.querySelector('.pregunta-bloque');
+        bloque.dataset.indice = contadorPreguntas;
+        bloque.querySelector('.pregunta-titulo').innerText = 'Pareja ' + contadorPreguntas;
+
+        bloque.querySelector('.enunciado').name = 'pregunta_' + contadorPreguntas + '_enunciado';
+        bloque.querySelector('.respuesta-correcta').name = 'pregunta_' + contadorPreguntas + '_respuesta';
+
+        bloque.querySelector('.btn-eliminar-pregunta').addEventListener('click', function () {
+            bloque.remove();
+        });
+
+        document.getElementById('preguntas-container').appendChild(tpl);
+    }
+
+    document.getElementById('form-plantilla').addEventListener('submit', function (e) {
+        const bloques = document.querySelectorAll('.pregunta-bloque');
+        if (bloques.length < 2) {
+            e.preventDefault();
+            alert('Agrega al menos 2 parejas (con solo 1 no hay nada que unir).');
+        }
+    });
+
+    agregarPregunta();
+    agregarPregunta();
+</script>
+{% endblock %}

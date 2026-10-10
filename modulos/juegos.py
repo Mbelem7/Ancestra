@@ -7,7 +7,7 @@ def insertar_juego(nombre, descripcion, tipo, fecha_creacion,
 
     resultado = db.session.execute(
         text("""
-            INSERT INTO JUEGO
+            INSERT INTO juego
             (
                 nombre,
                 descripcion,
@@ -60,7 +60,7 @@ def obtener_juegos():
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM JUEGO
+            FROM juego
         """)
     )
 
@@ -83,8 +83,8 @@ def obtener_juegos_predeterminados():
                 j.fecha_modificacion,
                 j.administrador_id,
                 j.estado
-            FROM JUEGO j
-            LEFT JOIN PLANTILLA p ON p.juego_id = j.id_juego
+            FROM juego j
+            LEFT JOIN plantilla p ON p.juego_id = j.id_juego
             WHERE p.id_plantilla IS NULL
         """)
     )
@@ -107,7 +107,7 @@ def obtener_un_juego(id_juego):
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM JUEGO
+            FROM juego
             WHERE id_juego = :id_juego
         """),
         {
@@ -132,7 +132,7 @@ def actualizar_juego(
 
     db.session.execute(
         text("""
-            UPDATE JUEGO
+            UPDATE juego
             SET
                 nombre = :nombre,
                 descripcion = :descripcion,

@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Docentes</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    .tarjeta-tabla { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 20px; margin: 24px 0; overflow-x: auto; }
+    .tabla-docentes { width: 100%; border-collapse: collapse; }
+    .tabla-docentes th { text-align: left; padding: 10px; border-bottom: 2px solid #c9d6b0; }
+    .tabla-docentes td { padding: 10px; border-bottom: 1px solid #e3e8d6; vertical-align: middle; }
+    .estado { font-size: 0.8rem; font-weight: 700; padding: 3px 12px; border-radius: 12px; }
+    .estado.pendiente { background: #fff4d6; color: #7a5b00; }
+    .estado.verificado { background: #e4f1cf; color: #3d5a10; }
+    .estado.rechazado { background: #fdf0ee; color: #7b241c; }
+    .acciones-fila { display: flex; gap: 8px; flex-wrap: wrap; }
+    .acciones-fila form { margin: 0; }
+    .btn-tabla { border-radius: 16px; padding: 6px 14px; font-weight: 700; font-size: 0.85rem; cursor: pointer; border: 2px solid #5a7a1e; background: #5a7a1e; color: #fff; }
+    .btn-tabla.secundario { background: #fff; color: #5a7a1e; }
+    .btn-tabla.peligro { background: #fff; color: #c0392b; border-color: #c0392b; }
+    .vacio { text-align: center; margin: 40px 0; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Docentes
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{# d: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1, apellido_2, fecha_nacimiento, correo, estado) #}
+<div class="container content">
+    <div class="tarjeta-tabla">
+        {% if docentes %}
+        <table class="tabla-docentes">
+            <thead>
+                <tr><th>Nombre</th><th>Correo</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+                {% for d in docentes %}
+                <tr>
+                    <td>{{ d[3] }} {{ d[5] }}</td>
+                    <td>{{ d[8] }}</td>
+                    <td><span class="estado {{ d[1] }}">{{ d[1] }}</span></td>
+                    <td>
+                        <div class="acciones-fila">
+                            {% if d[1] != 'verificado' %}
+                            <form action="{{ url_for('admin_docente_estado', id_docente=d[0]) }}" method="POST">
+                                <input type="hidden" name="estado" value="verificado">
+                                <button type="submit" class="btn-tabla">✔ Aprobar</button>
+                            </form>
+                            {% endif %}
+                            {% if d[1] != 'rechazado' %}
+                            <form action="{{ url_for('admin_docente_estado', id_docente=d[0]) }}" method="POST">
+                                <input type="hidden" name="estado" value="rechazado">
+                                <button type="submit" class="btn-tabla peligro">✘ Rechazar</button>
+                            </form>
+                            {% endif %}
+                            {% if d[1] == 'verificado' %}
+                            <form action="{{ url_for('admin_docente_estado', id_docente=d[0]) }}" method="POST">
+                                <input type="hidden" name="estado" value="pendiente">
+                                <button type="submit" class="btn-tabla secundario">Volver a pendiente</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="vacio">Todavía no hay docentes registrados.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

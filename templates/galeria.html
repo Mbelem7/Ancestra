@@ -20,6 +20,19 @@ header-galeria
 {% endblock %}
 
 {% block body %}
+
+{# Dibuja una imagen o un video según el tipo del archivo.
+   f: (id_archivo, nombre, descripcion, url, categoria_id, tipo,
+       fecha_creacion, fecha_modificacion, administrador_id, estado) #}
+{% macro media(f) %}
+    {% set ruta = url_for('static', filename=f[3].split('static/')[1]) %}
+    {% if f[5] == 'video' %}
+    <video src="{{ ruta }}" class="media-archivo" style="width:100%; height:100%; object-fit:cover;" muted preload="metadata"></video>
+    {% else %}
+    <img src="{{ ruta }}" alt="{{ f[1] }}" class="media-archivo" style="width:100%; height:100%; object-fit:cover;">
+    {% endif %}
+{% endmacro %}
+
 <div class="container content">
     
     <!-- BARRA SUPERIOR: Regresar (Izquierda) y Crear (Derecha) -->
@@ -43,37 +56,28 @@ header-galeria
         </div>
 
     <!-- ==========================================
-         VISTA 1: ÁLBUMES (COLLAGE)
+         VISTA 1: ÁLBUMES (COLLAGE) - uno por categoría
          ========================================== -->
     <div id="vista-albumes">
         <h2 class="titulo-seccion mb-4">Galería de Álbumes</h2>
         
         <div class="albumes-container">
-            <div class="album-card" onclick="abrirCuadricula('Lugares típicos')">
+            {% for cat in categ %}
+            {# cat: (id_categoria, nombre_categoria) #}
+            {% set fotos = imag | selectattr(4, 'equalto', cat[0]) | list %}
+            <div class="album-card" data-id="{{ cat[0] }}" data-nombre="{{ cat[1] }}" onclick="abrirCuadricula(this)">
                 <div class="collage-grid">
+                    {% for f in fotos[:3] %}
+                    <div class="collage-item {% if loop.first %}grande{% endif %}">{{ media(f) }}</div>
+                    {% else %}
                     <div class="collage-item grande"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-                    <div class="collage-item"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-                    <div class="collage-item vertical"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
+                    {% endfor %}
                 </div>
-                <p class="album-titulo">Lugares típicos</p>
+                <p class="album-titulo">{{ cat[1] }}</p>
             </div>
-
-            <div class="album-card" onclick="abrirCuadricula('Tradiciones')">
-                <div class="collage-grid">
-                    <div class="collage-item"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-                    <div class="collage-item grande"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-                    <div class="collage-item"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-                </div>
-                <p class="album-titulo">Tradiciones</p>
-            </div>
-
-            <div class="album-card" onclick="abrirCuadricula('Otros')">
-                <div class="collage-grid">
-                    <div class="collage-item vertical"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-                    <div class="collage-item grande"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-                </div>
-                <p class="album-titulo">Otros</p>
-            </div>
+            {% else %}
+            <p>Todavía no hay álbumes (categorías) creados.</p>
+            {% endfor %}
         </div>
     </div>
 
@@ -82,65 +86,22 @@ header-galeria
          ========================================== -->
  <div id="vista-cuadricula" style="display: none;">
         <h2 class="titulo-seccion mb-4" id="titulo-cuadricula">Álbum</h2>
+        <p id="album-vacio" style="display: none;">Este álbum todavía no tiene imágenes ni videos.</p>
         <div class="galeria-grid">
-            
-            <!-- IMAGEN 1 -->
-            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
-                <!-- Tu imagen / svg -->
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
-                
-                <br> <!-- Salto de línea para separar la imagen del botón -->
-                
+
+            {# Se dibujan TODOS los archivos; el JS muestra solo los de la categoría elegida #}
+            {% for item in imag %}
+            <div class="galeria-item" data-categoria="{{ item[4] }}" onclick="abrirCarrusel(this)" style="text-align: center; padding-bottom: 10px;">
+                {{ media(item) }}
+
+                <p style="margin: 4px 0; font-size: 0.85rem;">{{ item[1] }}</p>
+
                 <!-- BOTÓN DE EDITAR (El stopPropagation evita que se abra el carrusel) -->
-                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
+                <a href="{{ url_for('editar_imagen', id_archivo=item[0]) }}" class="btn-editar" onclick="event.stopPropagation();">
                     ✏️ Editar
                 </a>
             </div>
-
-            <!-- IMAGEN 2 -->
-            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
-                <br>
-                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
-                    ✏️ Editar
-                </a>
-            </div>
-
-            <!-- IMAGEN 3 -->
-            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
-                <br>
-                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
-                    ✏️ Editar
-                </a>
-            </div>
-
-            <!-- IMAGEN 4 -->
-            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
-                <br>
-                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
-                    ✏️ Editar
-                </a>
-            </div>
-
-            <!-- IMAGEN 5 -->
-            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
-                <br>
-                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
-                    ✏️ Editar
-                </a>
-            </div>
-
-            <!-- IMAGEN 6 -->
-            <div class="galeria-item" onclick="abrirCarrusel()" style="text-align: center; padding-bottom: 10px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
-                <br>
-                <a href="{{ url_for('editar_imagen') }}" class="btn-editar" onclick="event.stopPropagation();">
-                    ✏️️ Editar
-                </a>
-            </div>
+            {% endfor %}
 
         </div>
     </div>
@@ -149,19 +110,33 @@ header-galeria
          ========================================== -->
     <div id="vista-carrusel" style="display: none;">
         <div class="carrusel-container">
-            <div class="carrusel-item lateral"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-            <div class="carrusel-item central"><svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
-            <div class="carrusel-item lateral"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle></svg></div>
+            <div class="carrusel-item lateral" id="carrusel-izq" onclick="moverCarrusel(-1)"></div>
+            <div class="carrusel-item central" id="carrusel-centro"></div>
+            <div class="carrusel-item lateral" id="carrusel-der" onclick="moverCarrusel(1)"></div>
         </div>
     </div>
 
 
 <!-- Funciones dinámicas para cambiar vistas y botones -->
 <script>
-    function abrirCuadricula(nombreAlbum) {
+    let itemsAlbum = [];   // archivos del álbum que se está viendo
+    let indiceActual = 0;  // cuál está en el centro del carrusel
+
+    function abrirCuadricula(tarjeta) {
+        const idCategoria = tarjeta.dataset.id;
+
         document.getElementById('vista-albumes').style.display = 'none';
         document.getElementById('vista-cuadricula').style.display = 'block';
-        document.getElementById('titulo-cuadricula').innerText = nombreAlbum;
+        document.getElementById('titulo-cuadricula').innerText = tarjeta.dataset.nombre;
+
+        // Mostrar solo los archivos de esta categoría
+        itemsAlbum = [];
+        document.querySelectorAll('.galeria-item').forEach(function (item) {
+            const esDeEsteAlbum = item.dataset.categoria === idCategoria;
+            item.style.display = esDeEsteAlbum ? '' : 'none';
+            if (esDeEsteAlbum) itemsAlbum.push(item);
+        });
+        document.getElementById('album-vacio').style.display = itemsAlbum.length ? 'none' : 'block';
         
         // Muestra el botón de regresar y le dice que vuelva a los álbumes
         document.getElementById('btn-regresar-container').style.visibility = 'visible';
@@ -178,7 +153,10 @@ header-galeria
         document.getElementById('btn-regresar-container').style.visibility = 'hidden';
     }
 
-    function abrirCarrusel() {
+    function abrirCarrusel(item) {
+        indiceActual = itemsAlbum.indexOf(item);
+        pintarCarrusel();
+
         document.getElementById('vista-cuadricula').style.display = 'none';
         document.getElementById('vista-carrusel').style.display = 'block';
         
@@ -196,6 +174,35 @@ header-galeria
         let btnRegresar = document.getElementById('btn-regresar-accion');
         btnRegresar.setAttribute('onclick', 'volverAAlbumes()');
         btnRegresar.innerText = '←';
+    }
+
+    // Llena los 3 lugares del carrusel: anterior, actual y siguiente
+    function pintarCarrusel() {
+        function poner(idSlot, item, esCentral) {
+            const slot = document.getElementById(idSlot);
+            slot.innerHTML = '';
+            if (!item) return;
+            const media = item.querySelector('.media-archivo').cloneNode(true);
+            if (esCentral) {
+                media.style.objectFit = 'contain';
+                if (media.tagName === 'VIDEO') {
+                    media.controls = true;
+                    media.muted = false;
+                }
+            }
+            slot.appendChild(media);
+        }
+        poner('carrusel-izq', itemsAlbum[indiceActual - 1], false);
+        poner('carrusel-centro', itemsAlbum[indiceActual], true);
+        poner('carrusel-der', itemsAlbum[indiceActual + 1], false);
+    }
+
+    // Clic en el lateral izquierdo (-1) o derecho (+1)
+    function moverCarrusel(paso) {
+        const nuevo = indiceActual + paso;
+        if (nuevo < 0 || nuevo >= itemsAlbum.length) return;
+        indiceActual = nuevo;
+        pintarCarrusel();
     }
 </script>
 {% endblock %}

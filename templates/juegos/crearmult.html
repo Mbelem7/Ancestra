@@ -1,0 +1,259 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Crear plantilla - Selección múltiple</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Cada pregunta va en su propia tarjeta, para que no se mezcle con la siguiente */
+    .pregunta-bloque {
+        border: 2px solid #c9d6b0;
+        border-radius: 14px;
+        padding: 18px 20px;
+        background: #fafcf6;
+        margin-bottom: 28px;
+    }
+    .pregunta-bloque.sin-correcta { border-color: #c0392b; background: #fdf0ee; }
+
+    /* Cuadro de ayuda: explica cómo marcar la respuesta */
+    .ayuda-correcta {
+        background: #eef4e2;
+        border-left: 5px solid #5a7a1e;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 22px;
+        font-size: 0.95rem;
+    }
+
+    /* Títulos de las columnas de respuestas */
+    .cabecera-respuestas {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        margin: 16px 0 6px;
+        padding: 0 8px;
+    }
+    .cabecera-respuestas .col-marca  { width: 110px; text-align: center; }
+    .cabecera-respuestas .col-texto  { flex: 1; }
+    .cabecera-respuestas .col-estado { width: 100px; }
+
+    /* Una respuesta: círculo + texto + etiqueta de lo que quedará guardado */
+    .respuesta-fila {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 8px;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        margin-bottom: 8px;
+    }
+    .respuesta-fila .col-radio { width: 110px; display: flex; justify-content: center; margin: 0; }
+    .respuesta-fila .radio-correcta { width: 24px; height: 24px; accent-color: #5a7a1e; cursor: pointer; margin: 0; }
+    .respuesta-fila .respuesta-texto { flex: 1; width: auto; margin: 0; }
+    .respuesta-fila .badge-estado { width: 100px; font-size: 0.8rem; font-weight: 700; color: #8a8a8a; }
+
+    /* La respuesta marcada se pinta de verde */
+    .respuesta-fila.es-correcta { background: #e4f1cf; border-color: #5a7a1e; }
+    .respuesta-fila.es-correcta .badge-estado { color: #3d5a10; }
+
+    /* Botón chico para añadir una respuesta DENTRO de la pregunta */
+    .btn-mini-respuesta {
+        background: #fff;
+        color: #5a7a1e;
+        border: 2px solid #5a7a1e;
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        margin-top: 6px;
+    }
+    .btn-mini-respuesta:hover { background: #5a7a1e; color: #fff; }
+
+    /* Zona separada para añadir otra pregunta */
+    .zona-nueva-pregunta { border-top: 3px solid #c9d6b0; margin-top: 8px; padding-top: 22px; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Selección múltiple
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+
+    <div class="barra-superior-galeria mb-3">
+        <a href="/crear" class="btn-cancelar" style="text-decoration:none;">← Regresar</a>
+    </div>
+
+    {% if erroresP %}
+    <ul style="color:red;">
+        {% for error in erroresP %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form action="/juegos/multiple/crear" method="POST" id="form-plantilla">
+
+        <div class="personalizacion-header mb-5">
+            <label class="form-label">Nombre de la plantilla</label>
+            <input type="text" name="nombre" class="input-gris" maxlength="100" required>
+
+            <label class="form-label">Descripción</label>
+            <textarea name="descripcion" class="input-gris" maxlength="500" required></textarea>
+        </div>
+
+        <div class="ayuda-correcta">
+            <strong>¿Cómo se arma cada pregunta?</strong><br>
+            1. Escribe la pregunta.<br>
+            2. Escribe las opciones.<br>
+            3. Marca con el círculo cuál es la <strong>CORRECTA</strong> (solo una).<br>
+            Las demás se guardan automáticamente como <strong>INCORRECTAS</strong>.
+        </div>
+
+        <div id="preguntas-container"></div>
+
+        <div class="zona-nueva-pregunta">
+            <button type="button" class="btn-añadir-respuesta" onclick="agregarPregunta()">
+                + Añadir otra pregunta
+            </button>
+        </div>
+
+        <div class="d-flex justify-content-end mt-5">
+            <button type="submit" class="btn-guardar">Guardar Plantilla</button>
+        </div>
+    </form>
+
+</div>
+
+<template id="plantilla-pregunta">
+    <div class="pregunta-columna pregunta-bloque">
+        <div class="d-flex justify-content-between">
+            <label class="form-label pregunta-titulo">Pregunta</label>
+            <button type="button" class="btn-cancelar btn-eliminar-pregunta" style="border:none;cursor:pointer;">
+                Eliminar pregunta
+            </button>
+        </div>
+        <textarea class="input-gris enunciado" maxlength="300" required placeholder="Escribe la pregunta..."></textarea>
+
+        <div class="cabecera-respuestas">
+            <span class="col-marca">¿Correcta?</span>
+            <span class="col-texto">Opciones</span>
+            <span class="col-estado"></span>
+        </div>
+        <div class="respuestas-container"></div>
+
+        <button type="button" class="btn-mini-respuesta btn-añadir-respuesta-individual">
+            + Añadir opción
+        </button>
+    </div>
+</template>
+
+<template id="plantilla-respuesta">
+    <div class="respuesta-fila">
+        <label class="col-radio" title="Marcar como opción correcta">
+            <input type="radio" class="radio-correcta">
+        </label>
+        <input type="text" class="input-gris respuesta-texto" maxlength="200"
+               placeholder="Escribe una opción" required>
+        <span class="badge-estado">✘ Incorrecta</span>
+    </div>
+</template>
+
+<script>
+    let contadorPreguntas = 0;
+
+    // Pinta de verde la respuesta marcada y escribe en cada fila cómo quedará guardada
+    function actualizarMarcas(bloque) {
+        bloque.querySelectorAll('.respuesta-fila').forEach(function (fila) {
+            const marcada = fila.querySelector('.radio-correcta').checked;
+            fila.classList.toggle('es-correcta', marcada);
+            fila.querySelector('.badge-estado').textContent = marcada ? '✔ Correcta' : '✘ Incorrecta';
+        });
+        bloque.classList.remove('sin-correcta');
+    }
+
+    function agregarPregunta() {
+        contadorPreguntas++;
+
+        const tplPregunta = document.getElementById('plantilla-pregunta').content.cloneNode(true);
+        const bloque = tplPregunta.querySelector('.pregunta-bloque');
+        bloque.dataset.indice = contadorPreguntas;
+        bloque.querySelector('.pregunta-titulo').innerText = 'Pregunta ' + contadorPreguntas;
+        bloque.querySelector('.enunciado').name = 'pregunta_' + contadorPreguntas + '_enunciado';
+
+        bloque.querySelector('.btn-eliminar-pregunta').addEventListener('click', function () {
+            bloque.remove();
+        });
+
+        bloque.querySelector('.btn-añadir-respuesta-individual').addEventListener('click', function () {
+            agregarRespuesta(bloque, contadorPreguntas);
+        });
+
+        // Cada vez que se marca un círculo, se actualizan los colores y las etiquetas
+        bloque.querySelector('.respuestas-container').addEventListener('change', function () {
+            actualizarMarcas(bloque);
+        });
+
+        document.getElementById('preguntas-container').appendChild(tplPregunta);
+
+        // Selección múltiple empieza con 3 opciones
+        agregarRespuesta(bloque, contadorPreguntas);
+        agregarRespuesta(bloque, contadorPreguntas);
+        agregarRespuesta(bloque, contadorPreguntas);
+    }
+
+    function agregarRespuesta(bloque, indicePregunta) {
+        const contenedor = bloque.querySelector('.respuestas-container');
+        const numRespuesta = contenedor.querySelectorAll('.respuesta-fila').length + 1;
+
+        const tplRespuesta = document.getElementById('plantilla-respuesta').content.cloneNode(true);
+        const radio = tplRespuesta.querySelector('.radio-correcta');
+        const texto = tplRespuesta.querySelector('.respuesta-texto');
+
+        radio.name = 'correcta_pregunta_' + indicePregunta;
+        radio.value = numRespuesta;
+        texto.name = 'pregunta_' + indicePregunta + '_respuesta_' + numRespuesta;
+
+        contenedor.appendChild(tplRespuesta);
+    }
+
+    document.getElementById('form-plantilla').addEventListener('submit', function (e) {
+        const bloques = document.querySelectorAll('.pregunta-bloque');
+
+        if (bloques.length === 0) {
+            e.preventDefault();
+            alert('Agrega al menos una pregunta antes de guardar.');
+            return;
+        }
+
+        for (const bloque of bloques) {
+            const opciones = bloque.querySelectorAll('.respuesta-fila').length;
+            if (opciones < 2) {
+                e.preventDefault();
+                alert('Cada pregunta necesita al menos 2 opciones: ' + bloque.querySelector('.pregunta-titulo').innerText);
+                return;
+            }
+            const marcada = bloque.querySelector('.radio-correcta:checked');
+            if (!marcada) {
+                e.preventDefault();
+                bloque.classList.add('sin-correcta');
+                bloque.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                alert('Falta marcar cuál es la opción correcta en: ' + bloque.querySelector('.pregunta-titulo').innerText);
+                return;
+            }
+        }
+    });
+
+    agregarPregunta();
+</script>
+{% endblock %}

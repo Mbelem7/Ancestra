@@ -3,17 +3,17 @@ from sqlalchemy import text, bindparam
 
 
 #AGREGA UN NUEVO ARCHIVO
-def insertar_archivo(nombre, descripcion, URL, categoria, tipo,
+def insertar_archivo(nombre, descripcion, url, categoria, tipo,
                      fecha_creacion, fecha_modificacion,
                      administrador_id, estado):
 
     resultado = db.session.execute(
         text("""
-            INSERT INTO ARCHIVOS
+            INSERT INTO archivo
             (
                 nombre,
                 descripcion,
-                URL,
+                url,
                 categoria_id,
                 tipo,
                 fecha_creacion,
@@ -25,7 +25,7 @@ def insertar_archivo(nombre, descripcion, URL, categoria, tipo,
             (
                 :nombre,
                 :descripcion,
-                :URL,
+                :url,
                 :categoria,
                 :tipo,
                 :fecha_creacion,
@@ -38,7 +38,7 @@ def insertar_archivo(nombre, descripcion, URL, categoria, tipo,
         {
             'nombre': nombre,
             'descripcion': descripcion,
-            'URL': URL,
+            'url': url,
             'categoria': categoria,
             'tipo': tipo,
             'fecha_creacion': fecha_creacion,
@@ -64,14 +64,14 @@ def obtener_archivos():
                 id_archivo,
                 nombre,
                 descripcion,
-                URL,
+                url,
                 categoria_id,
                 tipo,
                 fecha_creacion,
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM ARCHIVOS
+            FROM archivo
         """)
     )
 
@@ -88,14 +88,14 @@ def obtener_un_archivo(id_archivo):
                 id_archivo,
                 nombre,
                 descripcion,
-                URL,
+                url,
                 categoria_id,
                 tipo,
                 fecha_creacion,
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM ARCHIVOS
+            FROM archivo
             WHERE id_archivo = :id_archivo
         """),
         {
@@ -116,14 +116,14 @@ def obtener_archivos_por_tipo(tipo):
                 id_archivo,
                 nombre,
                 descripcion,
-                URL,
+                url,
                 categoria_id,
                 tipo,
                 fecha_creacion,
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM ARCHIVOS
+            FROM archivo
             WHERE tipo = :tipo
         """),
         {
@@ -144,14 +144,14 @@ def obtener_archivos_por_categoria(categoria_id):
                 id_archivo,
                 nombre,
                 descripcion,
-                URL,
+                url,
                 categoria_id,
                 tipo,
                 fecha_creacion,
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM ARCHIVOS
+            FROM archivo
             WHERE categoria_id = :categoria_id
         """),
         {
@@ -172,14 +172,14 @@ def obtener_archivos_por_nombre(nombre):
                 id_archivo,
                 nombre,
                 descripcion,
-                URL,
+                url,
                 categoria_id,
                 tipo,
                 fecha_creacion,
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM ARCHIVOS
+            FROM archivo
             WHERE nombre ILIKE :nombre
         """),
         {
@@ -196,7 +196,7 @@ def actualizar_archivo(
     id_archivo,
     nombre,
     descripcion,
-    URL,
+    url,
     categoria_id,
     tipo,
     fecha_modificacion,
@@ -206,11 +206,11 @@ def actualizar_archivo(
 
     db.session.execute(
         text("""
-            UPDATE ARCHIVOS
+            UPDATE archivo
             SET
                 nombre = :nombre,
                 descripcion = :descripcion,
-                URL = :URL,
+                url = :url,
                 categoria_id = :categoria_id,
                 tipo = :tipo,
                 fecha_modificacion = :fecha_modificacion,
@@ -221,7 +221,7 @@ def actualizar_archivo(
         {
             'nombre': nombre,
             'descripcion': descripcion,
-            'URL': URL,
+            'url': url,
             'categoria_id': categoria_id,
             'tipo': tipo,
             'fecha_modificacion': fecha_modificacion,
@@ -258,14 +258,14 @@ def obtener_archivos_por_tipos(tipos):
                 id_archivo,
                 nombre,
                 descripcion,
-                URL,
+                url,
                 categoria_id,
                 tipo,
                 fecha_creacion,
                 fecha_modificacion,
                 administrador_id,
                 estado
-            FROM ARCHIVOS
+            FROM archivo
             WHERE tipo IN :tipos
         """).bindparams(bindparam('tipos', expanding=True)),
         {
@@ -293,3 +293,8 @@ def obtener_imagenes():
 
 def obtener_videos():
     return obtener_archivos_por_tipo('video')
+
+def obtener_archivos_galeria():
+    # Todo lo que se muestra en la galería (imágenes y videos juntos)
+
+    return obtener_archivos_por_tipos(['imagen', 'video'])

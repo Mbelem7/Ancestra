@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Crear cuenta</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    [hidden] { display: none !important; }
+    .tarjeta-auth {
+        max-width: 640px; margin: 40px auto; padding: 36px 32px;
+        background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px;
+    }
+    .tarjeta-auth h2 { margin: 0 0 6px; text-align: center; }
+    .tarjeta-auth .sub { text-align: center; color: #555; margin: 0 0 22px; }
+    .tarjeta-auth label.etiqueta { display: block; font-weight: 700; margin: 14px 0 6px; }
+    .auth-input {
+        width: 100%; box-sizing: border-box; padding: 12px; font-size: 1rem; font-family: inherit;
+        background: #fff; color: #222; border: 2px solid #c9d6b0; border-radius: 10px;
+    }
+    .auth-input:focus { outline: none; border-color: #5a7a1e; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .opciones-tipo { display: flex; gap: 14px; margin-bottom: 6px; }
+    .opciones-tipo label {
+        flex: 1; text-align: center; padding: 12px; border: 2px solid #c9d6b0; border-radius: 12px;
+        background: #fff; cursor: pointer; font-weight: 700;
+    }
+    .opciones-tipo input { accent-color: #5a7a1e; margin-right: 6px; }
+    .opciones-tipo label:has(input:checked) { border-color: #5a7a1e; background: #e4f1cf; }
+
+    .nota-docente { background: #fff4d6; border-left: 5px solid #e0a800; padding: 10px 14px; border-radius: 8px; margin: 10px 0 0; font-size: 0.92rem; }
+    .tarjeta-auth .acciones { text-align: center; margin-top: 26px; }
+    .tarjeta-auth .enlace { display: block; text-align: center; margin-top: 18px; color: #5a7a1e; font-weight: 700; }
+    .mensaje-error { background: #fdf0ee; border-left: 5px solid #c0392b; color: #7b241c; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; }
+    .mensaje-error ul { margin: 0; padding-left: 18px; }
+    .ayuda { font-size: 0.82rem; color: #666; margin-top: 4px; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Crear cuenta
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{% set d = datos or {} %}
+<div class="container content">
+    <div class="tarjeta-auth">
+        <h2>Crea tu cuenta</h2>
+        <p class="sub">Solo te tomará un minuto.</p>
+
+        {% if erroresR %}
+        <div class="mensaje-error">
+            <ul>{% for e in erroresR %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        <form action="{{ url_for('registro') }}" method="POST">
+
+            <label class="etiqueta">Soy...</label>
+            <div class="opciones-tipo">
+                <label><input type="radio" name="tipo" value="estudiante" {% if d.get('tipo', 'estudiante') == 'estudiante' %}checked{% endif %}>Estudiante</label>
+                <label><input type="radio" name="tipo" value="docente" {% if d.get('tipo') == 'docente' %}checked{% endif %}>Docente</label>
+            </div>
+            <div class="nota-docente" id="nota-docente" {% if d.get('tipo') != 'docente' %}hidden{% endif %}>
+                Un administrador revisará tu cuenta antes de que puedas crear plantillas.
+                Mientras tanto podrás iniciar sesión.
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <label class="etiqueta" for="nombre_1">Primer nombre</label>
+                    <input type="text" id="nombre_1" name="nombre_1" class="auth-input" maxlength="50" value="{{ d.get('nombre_1', '') }}" required>
+                </div>
+                <div>
+                    <label class="etiqueta" for="nombre_2">Segundo nombre <span class="ayuda">(opcional)</span></label>
+                    <input type="text" id="nombre_2" name="nombre_2" class="auth-input" maxlength="50" value="{{ d.get('nombre_2', '') }}">
+                </div>
+                <div>
+                    <label class="etiqueta" for="apellido_1">Primer apellido</label>
+                    <input type="text" id="apellido_1" name="apellido_1" class="auth-input" maxlength="50" value="{{ d.get('apellido_1', '') }}" required>
+                </div>
+                <div>
+                    <label class="etiqueta" for="apellido_2">Segundo apellido <span class="ayuda">(opcional)</span></label>
+                    <input type="text" id="apellido_2" name="apellido_2" class="auth-input" maxlength="50" value="{{ d.get('apellido_2', '') }}">
+                </div>
+            </div>
+
+            <label class="etiqueta" for="fecha_nacimiento">Fecha de nacimiento</label>
+            <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="auth-input" value="{{ d.get('fecha_nacimiento', '') }}" required>
+
+            <label class="etiqueta" for="correo">Correo</label>
+            <input type="email" id="correo" name="correo" class="auth-input" maxlength="100" value="{{ d.get('correo', '') }}" autocomplete="email" required>
+
+            <div class="grid-2">
+                <div>
+                    <label class="etiqueta" for="contrasena">Contraseña</label>
+                    <input type="password" id="contrasena" name="contrasena" class="auth-input" minlength="8" autocomplete="new-password" required>
+                    <div class="ayuda">Mínimo 8 caracteres.</div>
+                </div>
+                <div>
+                    <label class="etiqueta" for="confirmar">Repite la contraseña</label>
+                    <input type="password" id="confirmar" name="confirmar" class="auth-input" minlength="8" autocomplete="new-password" required>
+                </div>
+            </div>
+
+            <div class="acciones">
+                <button type="submit" class="btn-guardar">Crear cuenta</button>
+            </div>
+        </form>
+
+        <a href="{{ url_for('login') }}" class="enlace">¿Ya tienes cuenta? Inicia sesión</a>
+    </div>
+</div>
+
+<script>
+    // Muestra el aviso de aprobación solo cuando se elige "Docente"
+    document.querySelectorAll('input[name="tipo"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            document.getElementById('nota-docente').hidden = (radio.value !== 'docente' || !radio.checked);
+        });
+    });
+</script>
+{% endblock %}

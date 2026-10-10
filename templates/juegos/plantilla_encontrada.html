@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+ 
+{% block title %}
+<title>{{ juego[1] }}</title>
+{% endblock %}
+ 
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+ 
+{% block titulo_header %}
+{{ juego[1] }}
+{% endblock %}
+ 
+{% block clase_header %}
+header-crear
+{% endblock %}
+ 
+{% block body %}
+<div class="container content">
+    <div class="personalizacion-header mb-5">
+        <p class="texto-descripcion">{{ juego[2] }}</p>
+        <p><strong>Tipo:</strong> {{ juego[3] }}</p>
+        <p><strong>Preguntas:</strong> {{ total_preguntas }}</p>
+        <p style="color:#888;">
+            (Pantalla temporal — aquí va a ir el juego de verdad cuando construyamos
+            la pantalla de jugar para "{{ juego[3] }}")
+        </p>
+    </div>
+</div>
+{% endblock %}

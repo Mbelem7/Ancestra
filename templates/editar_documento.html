@@ -19,36 +19,87 @@ header-biblioteca
 {% endblock %}
 
 {% block body %}
-<!-- El enctype="multipart/form-data" es obligatorio para poder subir archivos (PDFs, imágenes) -->
-        <form action="#" method="POST" enctype="multipart/form-data" class="form-ancestra">
+{# archivo: (id_archivo, nombre, descripcion, url, categoria_id, tipo,
+            fecha_creacion, fecha_modificacion, administrador_id, estado) #}
+<div class="container content">
+
+    <!-- BARRA SUPERIOR: Botón de regresar a la biblioteca -->
+    <div class="barra-superior-galeria mb-4">
+        <a href="{{ url_for('biblioteca') }}" class="btn-cancelar" style="border-radius: 50px; text-decoration: none; padding: 5px 15px; display: inline-block;">
+            ← Volver a la Biblioteca
+        </a>
+    </div>
+
+    <!-- CONTENEDOR DEL FORMULARIO -->
+    <div class="formulario-edicion shadow-sm">
+        <h2 class="titulo-seccion mb-4" style="text-align: center;">Actualizar Documento</h2>
+
+        <!-- Errores de validación que manda el backend -->
+        {% if erroresD %}
+        <ul style="color: red;">
+            {% for error in erroresD %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <!-- El enctype="multipart/form-data" es obligatorio para poder subir archivos -->
+        <form action="{{ url_for('editar_documento', id_archivo=archivo[0]) }}" method="POST" enctype="multipart/form-data" class="form-ancestra">
             
-            <!-- Campo: Título -->
+            <!-- Campo: Nombre -->
             <div class="form-group">
-                <label for="titulo" class="form-label">Título del Documento</label>
-                {# value="{{ documento.titulo }}" es un ejemplo de cómo Jinja cargará el dato viejo cuando se conecte a la BD #}
-                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Historia Chorotega" value="Historia Antigua (Ejemplo)" required>
+                <label for="nombre" class="form-label">Título del Documento</label>
+                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" value="{{ archivo[1] }}" required>
             </div>
 
-            <!-- Campo: Autor o Fuente -->
+            <!-- Campo: Tipo -->
             <div class="form-group">
-                <label for="autor" class="form-label">Autor / Fuente</label>
-                <input type="text" id="autor" name="autor" class="form-input" placeholder="Ej: Universidad Nacional" value="Archivo Municipal">
+                <label for="tipo" class="form-label">Tipo de documento</label>
+                <select id="tipo" name="tipo" class="form-input" required>
+                    {% for valor, texto in [('libro', 'Libro'), ('documento', 'Documento'), ('cuento', 'Cuento'), ('tesis', 'Tesis'), ('ensayo', 'Ensayo')] %}
+                    <option value="{{ valor }}" {% if archivo[5] == valor %}selected{% endif %}>{{ texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Campo: Categoría (viene de la tabla categorias) -->
+            <div class="form-group">
+                <label for="categoria" class="form-label">Categoría</label>
+                <select id="categoria" name="categoria" class="form-input" required>
+                    {% for c in categ %}
+                    {# c: (id_categoria, nombre_categoria) #}
+                    <option value="{{ c[0] }}" {% if c[0] == archivo[4] %}selected{% endif %}>{{ c[1] }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <!-- Campo: Descripción -->
             <div class="form-group">
                 <label for="descripcion" class="form-label">Descripción</label>
-                {# Aquí adentro también irá la variable de Jinja en el futuro #}
-                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" placeholder="Breve resumen del contenido...">Este documento contiene los registros del censo de 1920...</textarea>
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" maxlength="500" required>{{ archivo[2] }}</textarea>
+            </div>
+
+            <!-- Campo: Estado (activar / desactivar) -->
+            <div class="form-group">
+                <label for="estado" class="form-label">Estado</label>
+                <select id="estado" name="estado" class="form-input">
+                    <option value="activo" {% if archivo[9] == 'activo' %}selected{% endif %}>Activo</option>
+                    <option value="inactivo" {% if archivo[9] == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                </select>
             </div>
 
             <!-- Campo: Reemplazar Archivo -->
             <div class="form-group">
-                <label for="archivo" class="form-label">Reemplazar Archivo PDF (Opcional)</label>
+                <label for="URL" class="form-label">Reemplazar Archivo PDF (Opcional)</label>
                 <div class="archivo-actual mb-2">
-                    <span style="font-size: 0.85rem; color: #555;">Archivo actual: <strong>documento_1920.pdf</strong></span>
+                    <span style="font-size: 0.85rem; color: #555;">
+                        Archivo actual:
+                        <a href="{{ url_for('static', filename=archivo[3].split('static/')[1]) }}" target="_blank">
+                            <strong>{{ archivo[3].split('/')[-1] }}</strong>
+                        </a>
+                    </span>
                 </div>
-                <input type="file" id="archivo" name="archivo" class="form-input-file" accept=".pdf,.doc,.docx">
+                <input type="file" id="URL" name="URL" class="form-input-file" accept=".pdf">
             </div>
 
             <!-- BOTONES DE ACCIÓN -->
@@ -57,4 +108,7 @@ header-biblioteca
                 <a href="{{ url_for('biblioteca') }}" class="btn-cancelar">Cancelar</a>
             </div>
         </form>
+    </div>
+
+</div>
 {% endblock %}

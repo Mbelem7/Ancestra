@@ -6,7 +6,7 @@ def insertar_docente(persona_id, estado_verificacion):
 
     resultado = db.session.execute(
         text("""
-            INSERT INTO DOCENTE
+            INSERT INTO docente
             (
                 persona_id,
                 estado_verificacion
@@ -39,15 +39,15 @@ def obtener_docentes():
                 d.id_docente,
                 d.estado_verificacion,
                 p.id_persona,
-                p.nombre1,
-                p.nombre2,
-                p.apellido1,
-                p.apellido2,
+                p.nombre_1,
+                p.nombre_2,
+                p.apellido_1,
+                p.apellido_2,
                 p.fecha_nacimiento,
                 p.correo,
                 p.estado
-            FROM DOCENTE d
-            INNER JOIN PERSONA p ON p.id_persona = d.persona_id
+            FROM docente d
+            INNER JOIN persona p ON p.id_persona = d.persona_id
         """)
     )
 
@@ -65,15 +65,15 @@ def obtener_docentes_por_verificacion(estado_verificacion):
                 d.id_docente,
                 d.estado_verificacion,
                 p.id_persona,
-                p.nombre1,
-                p.nombre2,
-                p.apellido1,
-                p.apellido2,
+                p.nombre_1,
+                p.nombre_2,
+                p.apellido_1,
+                p.apellido_2,
                 p.fecha_nacimiento,
                 p.correo,
                 p.estado
-            FROM DOCENTE d
-            INNER JOIN PERSONA p ON p.id_persona = d.persona_id
+            FROM docente d
+            INNER JOIN persona p ON p.id_persona = d.persona_id
             WHERE d.estado_verificacion = :estado_verificacion
         """),
         {
@@ -94,15 +94,15 @@ def obtener_un_docente(id_docente):
                 d.id_docente,
                 d.estado_verificacion,
                 p.id_persona,
-                p.nombre1,
-                p.nombre2,
-                p.apellido1,
-                p.apellido2,
+                p.nombre_1,
+                p.nombre_2,
+                p.apellido_1,
+                p.apellido_2,
                 p.fecha_nacimiento,
                 p.correo,
                 p.estado
-            FROM DOCENTE d
-            INNER JOIN PERSONA p ON p.id_persona = d.persona_id
+            FROM docente d
+            INNER JOIN persona p ON p.id_persona = d.persona_id
             WHERE d.id_docente = :id_docente
         """),
         {
@@ -124,7 +124,7 @@ def obtener_docente_por_persona(persona_id):
                 id_docente,
                 estado_verificacion,
                 persona_id
-            FROM DOCENTE
+            FROM docente
             WHERE persona_id = :persona_id
         """),
         {
@@ -141,7 +141,7 @@ def actualizar_estado_verificacion(id_docente, estado_verificacion):
 
     db.session.execute(
         text("""
-            UPDATE DOCENTE
+            UPDATE docente
             SET
                 estado_verificacion = :estado_verificacion
             WHERE id_docente = :id_docente

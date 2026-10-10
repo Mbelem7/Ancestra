@@ -3,17 +3,18 @@ from sqlalchemy import text
 
 
 def insertar_pregunta(enunciado, fecha_creacion, fecha_modificacion,
-                      plantilla_id, juego_id):
+                      plantilla_id, juego_id, administrador_id):
 
     resultado = db.session.execute(
         text("""
-            INSERT INTO PREGUNTA
+            INSERT INTO pregunta
             (
                 enunciado,
                 fecha_creacion,
                 fecha_modificacion,
                 plantilla_id,
-                juego_id
+                juego_id,
+                administrador_id
             )
             VALUES
             (
@@ -21,7 +22,8 @@ def insertar_pregunta(enunciado, fecha_creacion, fecha_modificacion,
                 :fecha_creacion,
                 :fecha_modificacion,
                 :plantilla_id,
-                :juego_id
+                :juego_id,
+                :administrador_id
             )
             RETURNING id_pregunta
         """),
@@ -30,7 +32,8 @@ def insertar_pregunta(enunciado, fecha_creacion, fecha_modificacion,
             'fecha_creacion': fecha_creacion,
             'fecha_modificacion': fecha_modificacion,
             'plantilla_id': plantilla_id,
-            'juego_id': juego_id
+            'juego_id': juego_id,
+            'administrador_id': administrador_id
         }
     )
 
@@ -51,8 +54,9 @@ def obtener_preguntas():
                 fecha_creacion,
                 fecha_modificacion,
                 plantilla_id,
-                juego_id
-            FROM PREGUNTA
+                juego_id,
+                administrador_id
+            FROM pregunta
         """)
     )
 
@@ -71,8 +75,9 @@ def obtener_preguntas_por_juego(juego_id):
                 fecha_creacion,
                 fecha_modificacion,
                 plantilla_id,
-                juego_id
-            FROM PREGUNTA
+                juego_id,
+                administrador_id
+            FROM pregunta
             WHERE juego_id = :juego_id
         """),
         {
@@ -95,8 +100,9 @@ def obtener_preguntas_por_plantilla(plantilla_id):
                 fecha_creacion,
                 fecha_modificacion,
                 plantilla_id,
-                juego_id
-            FROM PREGUNTA
+                juego_id,
+                administrador_id
+            FROM pregunta
             WHERE plantilla_id = :plantilla_id
         """),
         {
@@ -119,8 +125,9 @@ def obtener_una_pregunta(id_pregunta):
                 fecha_creacion,
                 fecha_modificacion,
                 plantilla_id,
-                juego_id
-            FROM PREGUNTA
+                juego_id,
+                administrador_id
+            FROM pregunta
             WHERE id_pregunta = :id_pregunta
         """),
         {
@@ -138,17 +145,19 @@ def actualizar_pregunta(
     enunciado,
     fecha_modificacion,
     plantilla_id,
-    juego_id
+    juego_id,
+    administrador_id
 ):
 
     db.session.execute(
         text("""
-            UPDATE PREGUNTA
+            UPDATE pregunta
             SET
                 enunciado = :enunciado,
                 fecha_modificacion = :fecha_modificacion,
                 plantilla_id = :plantilla_id,
-                juego_id = :juego_id
+                juego_id = :juego_id,
+                administrador_id = :administrador_id
             WHERE id_pregunta = :id_pregunta
         """),
         {
@@ -156,6 +165,7 @@ def actualizar_pregunta(
             'fecha_modificacion': fecha_modificacion,
             'plantilla_id': plantilla_id,
             'juego_id': juego_id,
+            'administrador_id': administrador_id,
             'id_pregunta': id_pregunta
         }
     )

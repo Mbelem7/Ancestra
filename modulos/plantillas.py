@@ -7,7 +7,7 @@ def insertar_plantilla(codigo_acceso, fecha_creacion, fecha_modificacion,
 
     resultado = db.session.execute(
         text("""
-            INSERT INTO PLANTILLA
+            INSERT INTO plantilla
             (
                 codigo_acceso,
                 fecha_creacion,
@@ -56,7 +56,7 @@ def obtener_plantillas():
                 juego_id,
                 docente_id,
                 administrador_id
-            FROM PLANTILLA
+            FROM plantilla
         """)
     )
 
@@ -79,8 +79,8 @@ def obtener_plantillas_por_docente(docente_id):
                 j.descripcion,
                 p.docente_id,
                 p.administrador_id
-            FROM PLANTILLA p
-            INNER JOIN JUEGO j ON j.id_juego = p.juego_id
+            FROM plantilla p
+            INNER JOIN juego j ON j.id_juego = p.juego_id
             WHERE p.docente_id = :docente_id
         """),
         {
@@ -105,7 +105,7 @@ def obtener_una_plantilla(id_plantilla):
                 juego_id,
                 docente_id,
                 administrador_id
-            FROM PLANTILLA
+            FROM plantilla
             WHERE id_plantilla = :id_plantilla
         """),
         {
@@ -131,7 +131,7 @@ def obtener_plantilla_por_codigo(codigo_acceso):
                 juego_id,
                 docente_id,
                 administrador_id
-            FROM PLANTILLA
+            FROM plantilla
             WHERE codigo_acceso = :codigo_acceso
         """),
         {
@@ -155,7 +155,7 @@ def actualizar_plantilla(
 
     db.session.execute(
         text("""
-            UPDATE PLANTILLA
+            UPDATE plantilla
             SET
                 codigo_acceso = :codigo_acceso,
                 fecha_modificacion = :fecha_modificacion,
@@ -175,3 +175,35 @@ def actualizar_plantilla(
     )
 
     db.session.commit()
+
+
+def obtener_plantillas_resumen(docente_id=None):
+    # Lista las plantillas con el nombre y el tipo de su juego, y cuántas preguntas tienen.
+    # Sin docente_id trae todas (mientras no haya login); con docente_id solo las de ese docente.
+
+    consulta = """
+        SELECT
+            p.id_plantilla,
+            p.codigo_acceso,
+            p.fecha_creacion,
+            j.nombre,
+            j.descripcion,
+            j.tipo,
+            j.estado,
+            (SELECT COUNT(*) FROM pregunta pr WHERE pr.plantilla_id = p.id_plantilla) AS total_preguntas
+        FROM plantilla p
+        INNER JOIN juego j ON j.id_juego = p.juego_id
+    """
+    parametros = {}
+
+    if docente_id is not None:
+        consulta += " WHERE p.docente_id = :docente_id"
+        parametros['docente_id'] = docente_id
+
+    consulta += " ORDER BY p.id_plantilla DESC"
+
+    resultado = db.session.execute(text(consulta), parametros)
+
+    plantillas = resultado.fetchall()
+
+    return plantillas

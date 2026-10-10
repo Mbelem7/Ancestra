@@ -6,7 +6,7 @@ def insertar_ruta(nombre, descripcion, latitud, longitud, fecha_creacion,
 
     db.session.execute(
         text("""
-            INSERT INTO RUTA
+            INSERT INTO ruta
             (
                 nombre,
                 descripcion,
@@ -62,7 +62,7 @@ def obtener_rutas():
                 lugar_id,
                 administrador_id,
                 estado
-            FROM RUTA
+            FROM ruta
         """)
     )
 
@@ -86,7 +86,7 @@ def obtener_rutas_por_lugar(lugar_id):
                 lugar_id,
                 administrador_id,
                 estado
-            FROM RUTA
+            FROM ruta
             WHERE lugar_id = :lugar_id
         """),
         {
@@ -114,7 +114,7 @@ def obtener_una_ruta(id_ruta):
                 lugar_id,
                 administrador_id,
                 estado
-            FROM RUTA
+            FROM ruta
             WHERE id_ruta = :id_ruta
         """),
         {
@@ -141,7 +141,7 @@ def actualizar_ruta(
 
     db.session.execute(
         text("""
-            UPDATE RUTA
+            UPDATE ruta
             SET
                 nombre = :nombre,
                 descripcion = :descripcion,

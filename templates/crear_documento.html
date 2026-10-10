@@ -17,30 +17,59 @@
 
     <!-- Contenedor del formulario centrado -->
     <div class="formulario-admin">
-        <form action="#" method="POST" enctype="multipart/form-data">
+
+        <!-- Errores de validación que manda el backend -->
+        {% if erroresD %}
+        <ul style="color: red;">
+            {% for error in erroresD %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form action="/crear-documento" method="POST" enctype="multipart/form-data">
             
-            <!-- Campo: Título -->
+            <!-- Campo: Nombre -->
             <div class="form-group">
-                <label class="form-label" for="titulo">Título del documento</label>
-                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Libro de Historia Mangue" required>
+                <label class="form-label" for="nombre">Título del documento</label>
+                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" placeholder="Ej: Libro de Historia Mangue" required>
             </div>
 
-            <!-- Campo: Dato 1 -->
+            <!-- Campo: Tipo de documento -->
             <div class="form-group">
-                <label class="form-label" for="dato1">Dato 1 (Autor o Categoría)</label>
-                <input type="text" id="dato1" name="dato1" class="form-input" placeholder="Ej: Dr. Pérez">
+                <label class="form-label" for="tipo">Tipo de documento</label>
+                <select id="tipo" name="tipo" class="form-input" required>
+                    <option value="" disabled selected>Selecciona un tipo...</option>
+                    <option value="libro">Libro</option>
+                    <option value="documento">Documento</option>
+                    <option value="cuento">Cuento</option>
+                    <option value="tesis">Tesis</option>
+                    <option value="ensayo">Ensayo</option>
+                </select>
+            </div>
+
+            <!-- Campo: Categoría (viene de la tabla categorias) -->
+            <div class="form-group">
+                <label class="form-label" for="categoria">Categoría</label>
+                <select id="categoria" name="categoria" class="form-input" required>
+                    <option value="" disabled selected>Selecciona una categoría...</option>
+                    {% for c in categ %}
+                    {# c: (id_categoria, nombre_categoria) #}
+                    <option value="{{ c[0] }}">{{ c[1] }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <!-- Campo: Descripción (Textarea) -->
             <div class="form-group">
-                <label class="form-label" for="descripcion">Descripción (Dato 2 y 3)</label>
-                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" placeholder="Breve descripción del documento..."></textarea>
+                <label class="form-label" for="descripcion">Descripción</label>
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" maxlength="500" placeholder="Breve descripción del documento..." required></textarea>
             </div>
 
-            <!-- Campo: Subir Imagen/Portada -->
+            <!-- Campo: Archivo PDF -->
             <div class="form-group">
-                <label class="form-label" for="imagen">Subir Portada (Imagen)</label>
-                <input type="file" id="imagen" name="imagen" class="form-input" accept="image/*">
+                <label class="form-label" for="URL">Archivo (PDF)</label>
+                <input type="file" id="URL" name="URL" class="form-input" accept=".pdf" required>
             </div>
 
             <!-- Botones de Acción -->

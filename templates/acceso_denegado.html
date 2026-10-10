@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Sin permiso</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    .tarjeta-aviso { max-width: 560px; margin: 40px auto; padding: 36px 32px; text-align: center; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; }
+    .tarjeta-aviso .icono { font-size: 3rem; margin-bottom: 6px; }
+    .tarjeta-aviso p { color: #444; line-height: 1.5; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Sin permiso
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+    <div class="tarjeta-aviso">
+        <div class="icono">🔒</div>
+        <h2>No tienes permiso para entrar aquí</h2>
+        <p>Esta página es solo para otro tipo de cuenta.</p>
+        <a href="{{ url_for('index') }}" class="btn-guardar" style="text-decoration:none;">Volver al inicio</a>
+    </div>
+</div>
+{% endblock %}

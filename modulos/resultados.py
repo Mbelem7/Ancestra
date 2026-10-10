@@ -2,15 +2,16 @@ from app import db
 from sqlalchemy import text
 
 
-def insertar_resultado(puntaje, fecha_creacion, respuesta_id,
-                       juego_id, estudiante_id):
+def insertar_resultado(puntaje, fecha_creacion, fecha_modificacion,
+                       respuesta_id, juego_id, estudiante_id):
 
     db.session.execute(
         text("""
-            INSERT INTO RESULTADO
+            INSERT INTO resultado
             (
                 puntaje,
                 fecha_creacion,
+                fecha_modificacion,
                 respuesta_id,
                 juego_id,
                 estudiante_id
@@ -19,6 +20,7 @@ def insertar_resultado(puntaje, fecha_creacion, respuesta_id,
             (
                 :puntaje,
                 :fecha_creacion,
+                :fecha_modificacion,
                 :respuesta_id,
                 :juego_id,
                 :estudiante_id
@@ -27,6 +29,7 @@ def insertar_resultado(puntaje, fecha_creacion, respuesta_id,
         {
             'puntaje': puntaje,
             'fecha_creacion': fecha_creacion,
+            'fecha_modificacion': fecha_modificacion,
             'respuesta_id': respuesta_id,
             'juego_id': juego_id,
             'estudiante_id': estudiante_id
@@ -44,10 +47,11 @@ def obtener_resultados():
                 id_resultado,
                 puntaje,
                 fecha_creacion,
+                fecha_modificacion,
                 respuesta_id,
                 juego_id,
                 estudiante_id
-            FROM RESULTADO
+            FROM resultado
         """)
     )
 
@@ -64,10 +68,11 @@ def obtener_resultados_por_estudiante(estudiante_id):
                 id_resultado,
                 puntaje,
                 fecha_creacion,
+                fecha_modificacion,
                 respuesta_id,
                 juego_id,
                 estudiante_id
-            FROM RESULTADO
+            FROM resultado
             WHERE estudiante_id = :estudiante_id
         """),
         {
@@ -92,13 +97,13 @@ def obtener_resultados_por_docente(docente_id):
                 r.juego_id,
                 j.nombre AS juego,
                 r.estudiante_id,
-                pe.nombre1,
-                pe.apellido1
-            FROM RESULTADO r
-            INNER JOIN PLANTILLA pl ON pl.juego_id = r.juego_id
-            INNER JOIN JUEGO j ON j.id_juego = r.juego_id
-            INNER JOIN ESTUDIANTE e ON e.id_estudiante = r.estudiante_id
-            INNER JOIN PERSONA pe ON pe.id_persona = e.persona_id
+                pe.nombre_1,
+                pe.apellido_1
+            FROM resultado r
+            INNER JOIN plantilla pl ON pl.juego_id = r.juego_id
+            INNER JOIN juego j ON j.id_juego = r.juego_id
+            INNER JOIN estudiante e ON e.id_estudiante = r.estudiante_id
+            INNER JOIN persona pe ON pe.id_persona = e.persona_id
             WHERE pl.docente_id = :docente_id
         """),
         {
@@ -119,10 +124,11 @@ def obtener_un_resultado(id_resultado):
                 id_resultado,
                 puntaje,
                 fecha_creacion,
+                fecha_modificacion,
                 respuesta_id,
                 juego_id,
                 estudiante_id
-            FROM RESULTADO
+            FROM resultado
             WHERE id_resultado = :id_resultado
         """),
         {
@@ -138,19 +144,22 @@ def obtener_un_resultado(id_resultado):
 def actualizar_resultado(
     id_resultado,
     puntaje,
+    fecha_modificacion,
     respuesta_id
 ):
 
     db.session.execute(
         text("""
-            UPDATE RESULTADO
+            UPDATE resultado
             SET
                 puntaje = :puntaje,
+                fecha_modificacion = :fecha_modificacion,
                 respuesta_id = :respuesta_id
             WHERE id_resultado = :id_resultado
         """),
         {
             'puntaje': puntaje,
+            'fecha_modificacion': fecha_modificacion,
             'respuesta_id': respuesta_id,
             'id_resultado': id_resultado
         }

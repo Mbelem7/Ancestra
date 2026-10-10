@@ -3,7 +3,7 @@ from sqlalchemy import text
 
 
 # ======================================================================
-# AUTOR
+# autor
 # ======================================================================
 
 def insertar_autor(nombre, tipo, origen, descripcion,
@@ -11,7 +11,7 @@ def insertar_autor(nombre, tipo, origen, descripcion,
 
     resultado = db.session.execute(
         text("""
-            INSERT INTO AUTOR
+            INSERT INTO autor
             (
                 nombre,
                 tipo,
@@ -60,7 +60,7 @@ def obtener_autores():
                 descripcion,
                 fecha_creacion,
                 fecha_modificacion
-            FROM AUTOR
+            FROM autor
         """)
     )
 
@@ -81,7 +81,7 @@ def obtener_un_autor(id_autor):
                 descripcion,
                 fecha_creacion,
                 fecha_modificacion
-            FROM AUTOR
+            FROM autor
             WHERE id_autor = :id_autor
         """),
         {
@@ -105,7 +105,7 @@ def actualizar_autor(
 
     db.session.execute(
         text("""
-            UPDATE AUTOR
+            UPDATE autor
             SET
                 nombre = :nombre,
                 tipo = :tipo,
@@ -128,14 +128,14 @@ def actualizar_autor(
 
 
 # ======================================================================
-# ARCHIVO_AUTOR  (tabla intermedia archivo <-> autor)
+# archivo_autor  (tabla intermedia archivo <-> autor)
 # ======================================================================
 
 def insertar_archivo_autor(archivo_id, autor_id):
 
     db.session.execute(
         text("""
-            INSERT INTO ARCHIVO_AUTOR
+            INSERT INTO archivo_autor
             (
                 archivo_id,
                 autor_id
@@ -163,7 +163,7 @@ def obtener_archivo_autores():
                 id_archivoautor,
                 archivo_id,
                 autor_id
-            FROM ARCHIVO_AUTOR
+            FROM archivo_autor
         """)
     )
 
@@ -183,8 +183,8 @@ def obtener_autores_por_archivo(archivo_id):
                 a.tipo,
                 a.origen,
                 a.descripcion
-            FROM ARCHIVO_AUTOR aa
-            INNER JOIN AUTOR a ON a.id_autor = aa.autor_id
+            FROM archivo_autor aa
+            INNER JOIN autor a ON a.id_autor = aa.autor_id
             WHERE aa.archivo_id = :archivo_id
         """),
         {
@@ -206,12 +206,12 @@ def obtener_archivos_por_autor(autor_id):
                 ar.id_archivo,
                 ar.nombre,
                 ar.descripcion,
-                ar.URL,
+                ar.url,
                 ar.categoria_id,
                 ar.tipo,
                 ar.estado
-            FROM ARCHIVO_AUTOR aa
-            INNER JOIN ARCHIVOS ar ON ar.id_archivo = aa.archivo_id
+            FROM archivo_autor aa
+            INNER JOIN archivo ar ON ar.id_archivo = aa.archivo_id
             WHERE aa.autor_id = :autor_id
         """),
         {
@@ -232,7 +232,7 @@ def obtener_una_archivo_autor(id_archivoautor):
                 id_archivoautor,
                 archivo_id,
                 autor_id
-            FROM ARCHIVO_AUTOR
+            FROM archivo_autor
             WHERE id_archivoautor = :id_archivoautor
         """),
         {
@@ -249,7 +249,7 @@ def actualizar_archivo_autor(id_archivoautor, archivo_id, autor_id):
 
     db.session.execute(
         text("""
-            UPDATE ARCHIVO_AUTOR
+            UPDATE archivo_autor
             SET
                 archivo_id = :archivo_id,
                 autor_id = :autor_id
@@ -270,7 +270,7 @@ def eliminar_archivo_autor(id_archivoautor):
 
     db.session.execute(
         text("""
-            DELETE FROM ARCHIVO_AUTOR
+            DELETE FROM archivo_autor
             WHERE id_archivoautor = :id_archivoautor
         """),
         {

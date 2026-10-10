@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+ 
+{% block title %}
+<title>Jugar</title>
+{% endblock %}
+ 
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+{% endblock %}
+ 
+{% block titulo_header %}
+Jugar
+{% endblock %}
+ 
+{% block clase_header %}
+header-crear
+{% endblock %}
+ 
+{% block body %}
+<div class="container content">
+ 
+    {% if error %}
+    <p style="color:red;">{{ error }}</p>
+    {% endif %}
+ 
+    <form action="/jugar" method="POST">
+        <div class="personalizacion-header mb-5">
+            <label class="form-label">Código de acceso</label>
+            <input type="text" name="codigo" class="input-gris" maxlength="6"
+                   style="text-transform:uppercase;" required>
+        </div>
+ 
+        <div class="d-flex justify-content-end mt-5">
+            <button type="submit" class="btn-guardar">Entrar</button>
+        </div>
+    </form>
+ 
+</div>
+{% endblock %}
+ 

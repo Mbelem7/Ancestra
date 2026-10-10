@@ -3,19 +3,21 @@ from sqlalchemy import text
 
 
 def insertar_respuesta(respuesta, tipo, fecha_creacion,
-                       fecha_modificacion, pregunta_id, juego_id):
+                       fecha_modificacion, pregunta_id, juego_id,
+                       administrador_id):
     # tipo: aquí puedes guardar, por ejemplo, 'correcta' / 'incorrecta'
 
     db.session.execute(
         text("""
-            INSERT INTO RESPUESTA
+            INSERT INTO respuesta
             (
                 respuesta,
                 tipo,
                 fecha_creacion,
                 fecha_modificacion,
                 pregunta_id,
-                juego_id
+                juego_id,
+                administrador_id
             )
             VALUES
             (
@@ -24,7 +26,8 @@ def insertar_respuesta(respuesta, tipo, fecha_creacion,
                 :fecha_creacion,
                 :fecha_modificacion,
                 :pregunta_id,
-                :juego_id
+                :juego_id,
+                :administrador_id
             )
         """),
         {
@@ -33,7 +36,8 @@ def insertar_respuesta(respuesta, tipo, fecha_creacion,
             'fecha_creacion': fecha_creacion,
             'fecha_modificacion': fecha_modificacion,
             'pregunta_id': pregunta_id,
-            'juego_id': juego_id
+            'juego_id': juego_id,
+            'administrador_id': administrador_id
         }
     )
 
@@ -51,8 +55,9 @@ def obtener_respuestas():
                 fecha_creacion,
                 fecha_modificacion,
                 pregunta_id,
-                juego_id
-            FROM RESPUESTA
+                juego_id,
+                administrador_id
+            FROM respuesta
         """)
     )
 
@@ -72,8 +77,9 @@ def obtener_respuestas_por_pregunta(pregunta_id):
                 fecha_creacion,
                 fecha_modificacion,
                 pregunta_id,
-                juego_id
-            FROM RESPUESTA
+                juego_id,
+                administrador_id
+            FROM respuesta
             WHERE pregunta_id = :pregunta_id
         """),
         {
@@ -97,8 +103,9 @@ def obtener_una_respuesta(id_respuesta):
                 fecha_creacion,
                 fecha_modificacion,
                 pregunta_id,
-                juego_id
-            FROM RESPUESTA
+                juego_id,
+                administrador_id
+            FROM respuesta
             WHERE id_respuesta = :id_respuesta
         """),
         {
@@ -117,18 +124,20 @@ def actualizar_respuesta(
     tipo,
     fecha_modificacion,
     pregunta_id,
-    juego_id
+    juego_id,
+    administrador_id
 ):
 
     db.session.execute(
         text("""
-            UPDATE RESPUESTA
+            UPDATE respuesta
             SET
                 respuesta = :respuesta,
                 tipo = :tipo,
                 fecha_modificacion = :fecha_modificacion,
                 pregunta_id = :pregunta_id,
-                juego_id = :juego_id
+                juego_id = :juego_id,
+                administrador_id = :administrador_id
             WHERE id_respuesta = :id_respuesta
         """),
         {
@@ -137,6 +146,7 @@ def actualizar_respuesta(
             'fecha_modificacion': fecha_modificacion,
             'pregunta_id': pregunta_id,
             'juego_id': juego_id,
+            'administrador_id': administrador_id,
             'id_respuesta': id_respuesta
         }
     )

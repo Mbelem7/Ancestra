@@ -7,7 +7,7 @@ def insertar_alianza(lugar_id, administrador_id, estado, tipo_negocio,
 
     db.session.execute(
         text("""
-            INSERT INTO ALIANZA
+            INSERT INTO alianza
             (
                 lugar_id,
                 administrador_id,
@@ -63,7 +63,7 @@ def obtener_alianzas():
                 fecha_vencimiento,
                 fecha_creacion,
                 fecha_modificacion
-            FROM ALIANZA
+            FROM alianza
         """)
     )
 
@@ -87,7 +87,7 @@ def obtener_alianzas_por_lugar(lugar_id):
                 fecha_vencimiento,
                 fecha_creacion,
                 fecha_modificacion
-            FROM ALIANZA
+            FROM alianza
             WHERE lugar_id = :lugar_id
         """),
         {
@@ -115,7 +115,7 @@ def obtener_una_alianza(id_alianza):
                 fecha_vencimiento,
                 fecha_creacion,
                 fecha_modificacion
-            FROM ALIANZA
+            FROM alianza
             WHERE id_alianza = :id_alianza
         """),
         {
@@ -142,7 +142,7 @@ def actualizar_alianza(
 
     db.session.execute(
         text("""
-            UPDATE ALIANZA
+            UPDATE alianza
             SET
                 lugar_id = :lugar_id,
                 administrador_id = :administrador_id,

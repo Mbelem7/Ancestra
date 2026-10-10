@@ -27,9 +27,26 @@
         <a href="{{ url_for('biblioteca') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'biblioteca' else '' }}">Biblioteca</a>
         <a href="{{ url_for('galeria') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'galeria' else '' }}">Galería</a>
         <a href="{{ url_for('mapa') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'mapa' else '' }}">Mapa</a>
+        <a href="{{ url_for('jugar') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'jugar' else '' }}">Jugar</a>
         
-        <!-- Usamos .startswith() para que 'crear-local' o 'crear-plantilla' mantengan este botón activo -->
-        <a href="{{ url_for('crear') }}" class="nav__item {{ 'nav__item--active' if request.endpoint and request.endpoint.startswith('crear') else '' }}">Crear</a>
+        <!-- "Crear" solo lo ven docentes y administradores.
+             Usamos .startswith() para que 'crear-local' o 'crear-plantilla' mantengan este botón activo (y también 'Mis plantillas') -->
+        {% if session.get('tipo') in ('docente', 'administrador') %}
+        <a href="{{ url_for('crear') }}" class="nav__item {{ 'nav__item--active' if request.endpoint and (request.endpoint.startswith('crear') or request.endpoint == 'mis_plantillas') else '' }}">Crear</a>
+        {% endif %}
+
+        <!-- Solo los administradores aprueban a los docentes -->
+        {% if session.get('tipo') == 'administrador' %}
+        <a href="{{ url_for('admin_docentes') }}" class="nav__item {{ 'nav__item--active' if request.endpoint and request.endpoint.startswith('admin') else '' }}">Docentes</a>
+        {% endif %}
+
+        <!-- Cuenta: nombre y salir si hay sesión; si no, ingresar -->
+        {% if session.get('persona_id') %}
+        <span class="nav__item" title="{{ session.get('tipo') }}">👤 {{ session.get('nombre') }}</span>
+        <a href="{{ url_for('logout') }}" class="nav__item">Salir</a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="nav__item {{ 'nav__item--active' if request.endpoint in ('login', 'registro') else '' }}">Ingresar</a>
+        {% endif %}
 
         <form class="nav__search" role="search">
             <input type="search" placeholder="Buscar..." aria-label="Buscar">

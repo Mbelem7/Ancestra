@@ -6,6 +6,7 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 {% endblock %}
 
 {% block titulo_header %}
@@ -18,6 +19,8 @@ header-mapa
 {% endblock %}
 
 {% block body %}
+{# lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion,
+           administrador_id, estado, contacto, latitud, longitud) #}
 <div class="container content">
     
     <!-- BARRA SUPERIOR: Botón de regresar al mapa -->
@@ -30,39 +33,60 @@ header-mapa
     <!-- CONTENEDOR DEL FORMULARIO -->
     <div class="formulario-edicion shadow-sm">
         <h2 class="titulo-seccion mb-4" style="text-align: center;">Actualizar Ubicación</h2>
+
+        <!-- Errores de validación que manda el backend -->
+        {% if erroresL %}
+        <ul style="color: red;">
+            {% for error in erroresL %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
         
-        <form action="#" method="POST" class="form-ancestra">
+        <form action="{{ url_for('editar_lugar', id_lugar=lugar[0]) }}" method="POST" class="form-ancestra" id="form-local">
             
             <!-- Campo: Nombre del Local -->
             <div class="form-group">
-                <label for="titulo" class="form-label">Nombre del Local / Punto</label>
-                {# Cuando conecten Supabase: value="{{ local.nombre }}" #}
-                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Mercado de Artesanías" value="Local 1" required>
+                <label for="nombre" class="form-label">Nombre del Local / Punto</label>
+                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" value="{{ lugar[1] }}" required>
             </div>
 
-            <!-- Campo: Descripción (Tooltip) -->
+            <!-- Campo: Descripción -->
             <div class="form-group">
-                <label for="descripcion" class="form-label">Información Detallada (Tooltip)</label>
-                {# En el futuro esta variable irá aquí adentro #}
-                <textarea id="descripcion" name="descripcion" class="form-input" rows="3" placeholder="Horarios, qué venden, detalles...">Información detallada sobre este punto. Abierto de 8am a 5pm.</textarea>
+                <label for="descripcion" class="form-label">Información Detallada</label>
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="3" maxlength="500" required>{{ lugar[2] }}</textarea>
             </div>
 
-            <!-- Campos: Coordenadas en el mapa (Top y Left en porcentajes) -->
-            <!-- Usamos Flexbox para poner ambos campos en la misma línea -->
-            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="pos_top" class="form-label">Posición Vertical (Top %)</label>
-                    <input type="number" id="pos_top" name="pos_top" class="form-input" placeholder="Ej: 50" value="50" min="0" max="100">
-                    <small style="color: #666; font-size: 0.8rem; margin-top: 4px;">Distancia desde arriba</small>
+            <!-- Campo: Dirección -->
+            <div class="form-group">
+                <label for="direccion" class="form-label">Dirección</label>
+                <input type="text" id="direccion" name="direccion" class="form-input" maxlength="200" value="{{ lugar[3] }}" required>
+            </div>
+
+            <!-- Campo: Contacto (solo números) -->
+            <div class="form-group">
+                <label for="contacto" class="form-label">Teléfono de contacto</label>
+                <input type="text" id="contacto" name="contacto" class="form-input" maxlength="8" inputmode="numeric" pattern="[0-9]+" value="{{ lugar[8] }}" required>
+            </div>
+
+            <!-- Campo: Estado (activar / desactivar) -->
+            <div class="form-group">
+                <label for="estado" class="form-label">Estado</label>
+                <select id="estado" name="estado" class="form-input">
+                    <option value="activo" {% if lugar[7] == 'activo' %}selected{% endif %}>Activo</option>
+                    <option value="inactivo" {% if lugar[7] == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+
+            <!-- Ubicación: se cambia haciendo clic en el mapa -->
+            <div class="form-group">
+                <label class="form-label">Ubicación en el Mapa</label>
+                <div id="mapa-selector" style="height: 350px; border-radius: 8px;"></div>
+                <small style="color: #666;">Haz clic en el mapa para mover el local a otro lugar.</small>
+                <div class="d-flex gap-3 mt-2">
+                    <input type="text" id="latitud" name="latitud" class="form-input" placeholder="Latitud" readonly style="flex: 1;" value="{{ lugar[9] if lugar[9] is not none else '' }}">
+                    <input type="text" id="longitud" name="longitud" class="form-input" placeholder="Longitud" readonly style="flex: 1;" value="{{ lugar[10] if lugar[10] is not none else '' }}">
                 </div>
-                
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="pos_left" class="form-label">Posición Horizontal (Left %)</label>
-                    <input type="number" id="pos_left" name="pos_left" class="form-input" placeholder="Ej: 25" value="25" min="0" max="100">
-                    <small style="color: #666; font-size: 0.8rem; margin-top: 4px;">Distancia desde la izquierda</small>
-                </div>
-                
             </div>
 
             <!-- BOTONES DE ACCIÓN -->
@@ -74,4 +98,46 @@ header-mapa
     </div>
 
 </div>
+{% endblock %}
+
+{% block js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Si el local ya tiene ubicación, el mapa arranca ahí; si no, en Masaya.
+    // Las coordenadas guardadas se leen de los campos latitud y longitud del formulario.
+    const latGuardada = parseFloat(document.getElementById('latitud').value);
+    const lngGuardada = parseFloat(document.getElementById('longitud').value);
+    const hayUbicacion = !isNaN(latGuardada) && !isNaN(lngGuardada);
+
+    const mapa = L.map('mapa-selector').setView(
+        hayUbicacion ? [latGuardada, lngGuardada] : [11.9744, -86.0942],
+        hayUbicacion ? 16 : 14
+    );
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; Colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(mapa);
+
+    let marcador = hayUbicacion ? L.marker([latGuardada, lngGuardada]).addTo(mapa) : null;
+
+    // Cada clic en el mapa mueve el pin y actualiza latitud y longitud
+    mapa.on('click', function (e) {
+        if (marcador) {
+            marcador.setLatLng(e.latlng);
+        } else {
+            marcador = L.marker(e.latlng).addTo(mapa);
+        }
+        document.getElementById('latitud').value = e.latlng.lat.toFixed(6);
+        document.getElementById('longitud').value = e.latlng.lng.toFixed(6);
+    });
+
+    // Los campos de solo lectura no se validan solos, por eso se revisa aquí
+    document.getElementById('form-local').addEventListener('submit', function (e) {
+        if (!document.getElementById('latitud').value) {
+            e.preventDefault();
+            alert('Haz clic en el mapa para marcar la ubicación del local.');
+        }
+    });
+</script>
 {% endblock %}
