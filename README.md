@@ -1,4 +1,3 @@
-# Ancestra 
 # Ancestra
 
 Plataforma web educativa para preservar y difundir la memoria histórico-cultural del pueblo Mangue de Masaya, Nicaragua. Reúne en un solo lugar una biblioteca de documentos, una galería de imágenes y videos, un mapa de lugares de interés y juegos educativos que los docentes pueden crear y compartir con sus estudiantes.
