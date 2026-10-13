@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Mis resultados</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Los nombres de esta pantalla empiezan con "mr-" para que no choquen con clases del CSS del sitio */
+    .mr-nota-unica { margin: 28px 0 0; color: #555; }
+    .mr-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 22px; margin: 18px 0 50px; }
+
+    .mr-tarjeta { display: block; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 22px; }
+    .mr-tarjeta h3 { margin: 0 0 10px; font-size: 1.15rem; line-height: 1.3; }
+    .mr-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+    .mr-chip { display: inline-block; padding: 3px 12px; background: #e4f1cf; color: #3d5a10; border-radius: 12px; font-weight: 700; font-size: 0.78rem; }
+
+    .mr-cifra { display: block; padding: 14px; margin: 0 0 12px; border-radius: 12px; text-align: center; }
+    .mr-cifra .rotulo { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; }
+    .mr-cifra .numero { display: block; margin: 2px 0; font-size: 2rem; font-weight: 700; line-height: 1.1; }
+    .mr-cifra .detalle { display: block; font-size: 0.78rem; opacity: 0.85; }
+    .mr-cifra.alto { background: #e4f1cf; color: #2f4a0c; }
+    .mr-cifra.medio { background: #fff4d6; color: #7a5b00; }
+    .mr-cifra.bajo { background: #fdf0ee; color: #7b241c; }
+
+    .mr-pista { display: block; height: 8px; background: #e3e8d6; border-radius: 4px; overflow: hidden; margin: 0 0 14px; }
+    .mr-pista span { display: block; height: 100%; border-radius: 4px; }
+    .mr-pista .alto { background: #5a7a1e; } .mr-pista .medio { background: #e0a800; } .mr-pista .bajo { background: #c0392b; }
+
+    .mr-historial summary { cursor: pointer; font-weight: 700; color: #5a7a1e; font-size: 0.9rem; }
+    .mr-historial ul { margin: 10px 0 0; padding: 0; list-style: none; }
+    .mr-historial li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid #e3e8d6; font-size: 0.85rem; color: #444; }
+
+    .mr-boton-sec { display: inline-block; margin: 0; padding: 8px 18px; background: #fff; color: #5a7a1e; border: 2px solid #5a7a1e; border-radius: 20px; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+    .mr-boton-sec:hover { background: #5a7a1e; color: #fff; }
+
+    .mr-vacio { display: block; max-width: 520px; margin: 50px auto; padding: 44px 28px; text-align: center; background: #fafcf6; color: #444; border: 2px dashed #c9d6b0; border-radius: 18px; line-height: 1.6; }
+    .mr-vacio .icono { display: block; font-size: 2.6rem; margin-bottom: 8px; }
+    .mr-boton { display: inline-block; margin: 18px 0 0; padding: 12px 28px; background: #5a7a1e; color: #fff; border: none; border-radius: 24px; font-weight: 700; text-decoration: none; }
+    .mr-boton:hover { background: #46611a; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Mis resultados
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{# plantillas: lista de {id_juego, nombre, tipo, intento}
+   intento: {fecha, puntaje, maximo, porcentaje, nivel} #}
+<div class="container content">
+
+    {% if plantillas %}
+    <p class="mr-nota-unica">Cada evaluación se hace una sola vez. Aquí está tu resultado en cada una.</p>
+    <div class="mr-lista">
+        {% for p in plantillas %}
+        <div class="mr-tarjeta">
+            <h3>{{ p.nombre }}</h3>
+            <div class="mr-chips">
+                <span class="mr-chip">{{ p.tipo }}</span>
+                <span class="mr-chip">{{ p.intento.fecha.strftime('%d/%m/%Y') }}</span>
+            </div>
+
+            <div class="mr-cifra {{ p.intento.nivel }}">
+                <span class="numero">{{ p.intento.puntaje }}/{{ p.intento.maximo }}</span>
+                <span class="detalle">{{ p.intento.porcentaje }}%</span>
+            </div>
+            <span class="mr-pista"><span class="{{ p.intento.nivel }}" style="width: {{ p.intento.porcentaje }}%"></span></span>
+
+            <a href="{{ url_for('mi_resultado', id_juego=p.id_juego) }}" class="mr-boton-sec">Ver qué respondí</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+
+    <div class="mr-vacio">
+        <span class="icono" aria-hidden="true">🎮</span>
+        <strong>Todavía no has hecho ninguna evaluación.</strong><br>
+        Cuando termines una, tu resultado va a aparecer aquí.
+        <br>
+        <a href="{{ url_for('jugar') }}" class="mr-boton">Ir a Jugar</a>
+    </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}

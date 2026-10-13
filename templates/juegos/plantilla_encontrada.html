@@ -36,6 +36,7 @@
     .pi-titulo-reglas { display: block; margin: 12px 0 2px; font-weight: 700; color: #3d5a10; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
     .pi-regla { display: flex; align-items: flex-start; gap: 14px; margin: 0; padding: 12px 0; }
     .pi-regla + .pi-regla { border-top: 1px solid #eef1e4; }
+    .pi-importante { background: #fff4d6; margin: 6px -10px 8px; padding: 12px 10px; border-radius: 10px; border-top: none !important; }
     .pi-icono { flex: 0 0 30px; text-align: center; font-size: 1.35rem; line-height: 1.3; }
     .pi-texto { flex: 1; line-height: 1.5; color: #333; }
 
@@ -89,6 +90,17 @@ header-crear
                 <span class="pi-icono" aria-hidden="true">🏁</span>
                 <span class="pi-texto">Al final verás tu puntaje y cuáles eran las respuestas correctas.</span>
             </div>
+            {% if es_estudiante %}
+            <div class="pi-regla pi-importante">
+                <span class="pi-icono" aria-hidden="true">⚠️</span>
+                <span class="pi-texto"><strong>Solo tienes un intento.</strong> Cuenta desde que presionas Jugar: si cierras la página, las preguntas sin responder quedan en 0 y no podrás repetirla.</span>
+            </div>
+            {% else %}
+            <div class="pi-regla">
+                <span class="pi-icono" aria-hidden="true">🧪</span>
+                <span class="pi-texto">Como docente puedes probar el juego las veces que quieras: tu resultado no se guarda.</span>
+            </div>
+            {% endif %}
         </div>
 
         {% if disponible %}

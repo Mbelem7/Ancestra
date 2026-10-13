@@ -30,6 +30,7 @@
         font-weight: 700; font-size: 0.85rem; text-decoration: none;
     }
     .boton-ver:hover { background: #5a7a1e; color: #fff; }
+    .acciones-tarjeta { display: flex; flex-wrap: wrap; gap: 8px; }
     .tarjeta-plantilla .descripcion { margin: 0; color: #555; font-size: 0.9rem; }
 
     .etiquetas { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -118,7 +119,10 @@ header-crear
                 <button type="button" class="btn-copiar-mini" data-codigo="{{ p[1] }}">📋 Copiar</button>
             </div>
 
-            <a href="{{ url_for('ver_plantilla', id_plantilla=p[0]) }}" class="boton-ver">👁 Ver preguntas y respuestas</a>
+            <div class="acciones-tarjeta">
+                <a href="{{ url_for('ver_plantilla', id_plantilla=p[0]) }}" class="boton-ver">👁 Ver preguntas</a>
+                <a href="{{ url_for('resultados_plantilla', id_plantilla=p[0]) }}" class="boton-ver">📊 Resultados</a>
+            </div>
 
             <span class="fecha">Creada el {{ p[2].strftime('%d/%m/%Y') if p[2] else '—' }}</span>
         </div>

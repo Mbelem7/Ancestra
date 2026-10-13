@@ -1,0 +1,138 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Resultados - {{ juego[1] }}</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Los nombres de esta pantalla empiezan con "rs-" para que no choquen con clases del CSS del sitio */
+    .rs-columna { display: block; max-width: 920px; margin: 0 auto; }
+
+    .rs-botones { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 0; }
+    .rs-boton {
+        display: inline-block; margin: 0; padding: 9px 20px; background: #fff; color: #5a7a1e;
+        border: 2px solid #5a7a1e; border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+    }
+    .rs-boton:hover { background: #5a7a1e; color: #fff; }
+
+    .rs-cabecera { display: block; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 22px 24px; margin: 16px 0 18px; }
+    .rs-cabecera h2 { margin: 0 0 10px; }
+    .rs-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .rs-chip { display: inline-block; padding: 4px 14px; background: #e4f1cf; color: #3d5a10; border-radius: 14px; font-weight: 700; font-size: 0.82rem; }
+    .rs-chip.codigo { background: #fff; border: 2px dashed #5a7a1e; letter-spacing: 3px; }
+
+    /* Cuatro cajas con los números principales */
+    .rs-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 0 22px; }
+    .rs-dato { display: block; text-align: center; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 14px; padding: 16px 8px; }
+    .rs-dato .numero { display: block; font-size: 1.9rem; font-weight: 700; color: #2f4a0c; line-height: 1.1; }
+    .rs-dato .rotulo { display: block; margin-top: 4px; font-size: 0.8rem; color: #666; }
+    @media (max-width: 640px) { .rs-resumen { grid-template-columns: 1fr 1fr; } }
+
+    .rs-tabla-caja { display: block; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 8px 18px 14px; overflow-x: auto; margin-bottom: 40px; }
+    .rs-tabla { width: 100%; border-collapse: collapse; min-width: 560px; }
+    .rs-tabla th { text-align: left; padding: 12px 8px; border-bottom: 2px solid #c9d6b0; font-size: 0.85rem; color: #3d5a10; }
+    .rs-tabla td { padding: 12px 8px; border-bottom: 1px solid #e3e8d6; vertical-align: top; }
+    .rs-tabla tr:last-child td { border-bottom: none; }
+    .rs-tabla .pos { width: 34px; font-weight: 700; color: #888; }
+    .rs-tabla .nombre { font-weight: 700; }
+    .rs-tabla .correo { display: block; font-size: 0.8rem; color: #777; margin-top: 2px; }
+    .rs-tabla .fecha { display: block; font-size: 0.78rem; color: #888; margin-top: 2px; }
+
+    /* El puntaje se pinta según el porcentaje: verde, amarillo o rojo */
+    .rs-nota { display: inline-block; padding: 3px 12px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; }
+    .rs-nota.alto { background: #e4f1cf; color: #2f4a0c; }
+    .rs-nota.medio { background: #fff4d6; color: #7a5b00; }
+    .rs-nota.bajo { background: #fdf0ee; color: #7b241c; }
+    .rs-pista { display: block; width: 110px; height: 7px; background: #e3e8d6; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+    .rs-pista span { display: block; height: 100%; border-radius: 4px; }
+    .rs-pista .alto { background: #5a7a1e; } .rs-pista .medio { background: #e0a800; } .rs-pista .bajo { background: #c0392b; }
+
+    .rs-intentos summary { cursor: pointer; font-weight: 700; color: #5a7a1e; }
+    .rs-intentos ul { margin: 8px 0 0; padding: 0; list-style: none; font-size: 0.82rem; color: #444; }
+    .rs-intentos li { padding: 3px 0; white-space: nowrap; }
+
+    .rs-vacio { display: block; text-align: center; background: #fafcf6; color: #444; border: 2px dashed #c9d6b0; border-radius: 16px; padding: 44px 20px; margin-bottom: 40px; line-height: 1.6; }
+    .rs-vacio .codigo { display: inline-block; margin-top: 8px; padding: 6px 16px; background: #e4f1cf; border: 2px dashed #5a7a1e; border-radius: 10px; font-size: 1.4rem; font-weight: 700; letter-spacing: 5px; color: #2f4a0c; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Resultados
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{# plantilla: (id_plantilla, codigo_acceso, ...)   juego: (id_juego, nombre, descripcion, tipo, ...)
+   participantes: lista de {nombre, correo, intento}   resumen: {participantes, promedio, mejor, menor} #}
+<div class="container content">
+  <div class="rs-columna">
+
+    <div class="rs-botones">
+        <a href="{{ url_for('mis_plantillas') }}" class="rs-boton">← Mis plantillas</a>
+        <a href="{{ url_for('ver_plantilla', id_plantilla=plantilla[0]) }}" class="rs-boton">👁 Ver preguntas y respuestas</a>
+    </div>
+
+    <div class="rs-cabecera">
+        <h2>{{ juego[1] }}</h2>
+        <div class="rs-chips">
+            <span class="rs-chip">{{ nombre_tipo }}</span>
+            <span class="rs-chip codigo">{{ plantilla[1] }}</span>
+        </div>
+    </div>
+
+    {% if participantes %}
+
+    <div class="rs-resumen">
+        <div class="rs-dato"><span class="numero">{{ resumen.participantes }}</span><span class="rotulo">{{ 'estudiante participó' if resumen.participantes == 1 else 'estudiantes participaron' }}</span></div>
+        <div class="rs-dato"><span class="numero">{{ resumen.promedio }}%</span><span class="rotulo">promedio del grupo</span></div>
+        <div class="rs-dato"><span class="numero">{{ resumen.mejor }}%</span><span class="rotulo">resultado más alto</span></div>
+        <div class="rs-dato"><span class="numero">{{ resumen.menor }}%</span><span class="rotulo">resultado más bajo</span></div>
+    </div>
+
+    <div class="rs-tabla-caja">
+        <table class="rs-tabla">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Estudiante</th>
+                    <th>Puntaje</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in participantes %}
+                <tr>
+                    <td class="pos">{{ loop.index }}</td>
+                    <td>
+                        <span class="nombre">{{ e.nombre }}</span>
+                        <span class="correo">{{ e.correo }}</span>
+                    </td>
+                    <td>
+                        <span class="rs-nota {{ e.intento.nivel }}">{{ e.intento.puntaje }}/{{ e.intento.maximo }} · {{ e.intento.porcentaje }}%</span>
+                        <span class="rs-pista"><span class="{{ e.intento.nivel }}" style="width: {{ e.intento.porcentaje }}%"></span></span>
+                    </td>
+                    <td>{{ e.intento.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% else %}
+
+    <div class="rs-vacio">
+        Todavía nadie ha jugado esta plantilla.<br>
+        Comparte este código con tus estudiantes:<br>
+        <span class="codigo">{{ plantilla[1] }}</span>
+    </div>
+
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

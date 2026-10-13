@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Mi resultado - {{ juego[1] }}</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Los nombres de esta pantalla empiezan con "mi-" para que no choquen con clases del CSS del sitio */
+    .mi-columna { display: block; max-width: 760px; margin: 0 auto; }
+
+    .mi-botones { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 0; }
+    .mi-boton {
+        display: inline-block; margin: 0; padding: 9px 20px; background: #fff; color: #5a7a1e;
+        border: 2px solid #5a7a1e; border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+    }
+    .mi-boton:hover { background: #5a7a1e; color: #fff; }
+
+    .mi-aviso { display: block; margin: 16px 0 0; padding: 12px 16px; background: #fff4d6; border-left: 5px solid #e0a800; border-radius: 8px; color: #5c4400; line-height: 1.5; }
+
+    .mi-resumen { display: block; text-align: center; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 18px; padding: 26px 20px; margin: 16px 0 24px; }
+    .mi-resumen h2 { margin: 0 0 4px; font-size: 1.2rem; }
+    .mi-resumen .tipo { display: block; margin-bottom: 14px; color: #666; font-size: 0.9rem; }
+    .mi-resumen .puntaje { display: block; font-size: 3rem; font-weight: 700; line-height: 1.1; }
+    .mi-resumen .puntaje.alto { color: #2f4a0c; } .mi-resumen .puntaje.medio { color: #7a5b00; } .mi-resumen .puntaje.bajo { color: #7b241c; }
+    .mi-resumen .linea { display: block; margin-top: 6px; color: #444; }
+    .mi-pista { display: block; max-width: 320px; height: 9px; margin: 14px auto 0; background: #e3e8d6; border-radius: 5px; overflow: hidden; }
+    .mi-pista span { display: block; height: 100%; border-radius: 5px; }
+    .mi-pista .alto { background: #5a7a1e; } .mi-pista .medio { background: #e0a800; } .mi-pista .bajo { background: #c0392b; }
+
+    .mi-titulo { margin: 0 0 12px; }
+
+    /* Cada pregunta, verde si acertó y roja si no */
+    .mi-pregunta { display: block; margin: 0 0 12px; padding: 14px 18px; background: #fff; color: #222; border: 2px solid #e3e8d6; border-radius: 12px; }
+    .mi-pregunta.bien { background: #eef4e2; border-color: #5a7a1e; }
+    .mi-pregunta.mal { background: #fdf0ee; border-color: #c0392b; }
+    .mi-pregunta .enunciado { display: flex; gap: 10px; margin: 0 0 6px; font-weight: 700; line-height: 1.4; }
+    .mi-pregunta .marca { flex: 0 0 1.4em; }
+    .mi-pregunta.bien .marca { color: #3d5a10; } .mi-pregunta.mal .marca { color: #c0392b; }
+    .mi-pregunta .linea { display: block; margin: 2px 0 0 calc(1.4em + 10px); font-size: 0.92rem; color: #444; }
+    .mi-pregunta .linea strong { color: #222; }
+    .mi-pregunta .sin { color: #a04000; font-style: italic; }
+    .mi-final { height: 40px; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Mi resultado
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{# juego: (id_juego, nombre, descripcion, tipo, ...)   intento: {fecha, puntaje, maximo, porcentaje, nivel}
+   detalle: lista de {enunciado, tu_respuesta, correcta, acerto}   aciertos: cuántas acertó #}
+<div class="container content">
+  <div class="mi-columna">
+
+    <div class="mi-botones">
+        <a href="{{ url_for('mis_resultados') }}" class="mi-boton">← Mis resultados</a>
+        <a href="{{ url_for('jugar') }}" class="mi-boton">Usar otro código</a>
+    </div>
+
+    <div class="mi-aviso">Esta evaluación se hace <strong>una sola vez</strong>, así que este es tu resultado final.</div>
+
+    <div class="mi-resumen">
+        <h2>{{ juego[1] }}</h2>
+        <span class="tipo">{{ nombre_tipo }} · {{ intento.fecha.strftime('%d/%m/%Y') }}</span>
+        <span class="puntaje {{ intento.nivel }}">{{ intento.puntaje }} / {{ intento.maximo }}</span>
+        <span class="linea">Acertaste <strong>{{ aciertos }}</strong> de <strong>{{ detalle|length }}</strong> preguntas ({{ intento.porcentaje }}%)</span>
+        <span class="mi-pista"><span class="{{ intento.nivel }}" style="width: {{ intento.porcentaje }}%"></span></span>
+    </div>
+
+    <h3 class="mi-titulo">Lo que respondiste</h3>
+    {% for d in detalle %}
+    <div class="mi-pregunta {{ 'bien' if d.acerto else 'mal' }}">
+        <p class="enunciado"><span class="marca">{{ '✔' if d.acerto else '✘' }}</span><span>{{ loop.index }}. {{ d.enunciado }}</span></p>
+        {% if d.tu_respuesta %}
+        <span class="linea">Tu respuesta: <strong>{{ d.tu_respuesta }}</strong></span>
+        {% else %}
+        <span class="linea sin">No respondiste esta pregunta a tiempo.</span>
+        {% endif %}
+        {% if not d.acerto %}
+        <span class="linea">Respuesta correcta: <strong>{{ d.correcta }}</strong></span>
+        {% endif %}
+    </div>
+    {% endfor %}
+    <div class="mi-final"></div>
+
+  </div>
+</div>
+{% endblock %}

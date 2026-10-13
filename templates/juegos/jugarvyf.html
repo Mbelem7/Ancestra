@@ -62,7 +62,8 @@ header-crear
     <div class="pj-partida" id="partida"
          data-preguntas='{{ preguntas | tojson }}'
          data-tiempo="{{ tiempo }}"
-         data-resultado-url="{{ url_for('jugar_resultado', id_plantilla=id_plantilla) }}">
+         data-resultado-url="{{ url_for('jugar_resultado', id_plantilla=id_plantilla) }}"
+         data-detalle-url="{{ url_for('mi_resultado', id_juego=juego[0]) }}">
 
         <!-- PREGUNTA ACTUAL -->
         <div class="pj-tarjeta" id="pantalla-pregunta">
@@ -205,10 +206,15 @@ header-crear
             body: JSON.stringify({ respuestas: respuestas })
         })
         .then(function (r) {
+            // 409 = esta evaluación ya se envió (por ejemplo, si se perdió la respuesta y se reintentó)
+            if (r.status === 409) {
+                window.location.href = contenedor.dataset.detalleUrl;
+                return null;
+            }
             if (!r.ok) throw new Error('Respuesta no válida');
             return r.json();
         })
-        .then(mostrarResultado)
+        .then(function (datos) { if (datos) mostrarResultado(datos); })
         .catch(function () { mostrar('pantalla-error'); });
     }
 

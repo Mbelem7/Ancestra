@@ -166,3 +166,131 @@ def actualizar_resultado(
     )
 
     db.session.commit()
+
+    
+def obtener_intentos_por_juego(juego_id):
+    # Un INTENTO son todas las filas de resultado que un estudiante guardó con la misma fecha
+    # (se guarda una fila por pregunta). Devuelve UNA fila por intento:
+    #   (estudiante_id, nombre_1, nombre_2, apellido_1, apellido_2, correo,
+    #    fecha, puntaje_total, cantidad_de_preguntas)
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                r.estudiante_id,
+                p.nombre_1,
+                p.nombre_2,
+                p.apellido_1,
+                p.apellido_2,
+                p.correo,
+                r.fecha_creacion,
+                SUM(r.puntaje) AS puntaje_total,
+                COUNT(*) AS preguntas
+            FROM resultado r
+            INNER JOIN estudiante e ON e.id_estudiante = r.estudiante_id
+            INNER JOIN persona p ON p.id_persona = e.persona_id
+            WHERE r.juego_id = :juego_id
+            GROUP BY
+                r.estudiante_id,
+                p.nombre_1,
+                p.nombre_2,
+                p.apellido_1,
+                p.apellido_2,
+                p.correo,
+                r.fecha_creacion
+            ORDER BY r.estudiante_id, r.fecha_creacion
+        """),
+        {
+            'juego_id': juego_id
+        }
+    )
+
+    intentos = resultado.fetchall()
+
+    return intentos
+
+
+def obtener_intentos_por_estudiante(estudiante_id):
+    # Los intentos de UN estudiante en todas las plantillas que ha hecho.
+    # Devuelve UNA fila por intento:
+    #   (juego_id, nombre_del_juego, tipo, fecha, puntaje_total, cantidad_de_preguntas)
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                r.juego_id,
+                j.nombre,
+                j.tipo,
+                r.fecha_creacion,
+                SUM(r.puntaje) AS puntaje_total,
+                COUNT(*) AS preguntas
+            FROM resultado r
+            INNER JOIN juego j ON j.id_juego = r.juego_id
+            WHERE r.estudiante_id = :estudiante_id
+            GROUP BY
+                r.juego_id,
+                j.nombre,
+                j.tipo,
+                r.fecha_creacion
+            ORDER BY r.fecha_creacion DESC
+        """),
+        {
+            'estudiante_id': estudiante_id
+        }
+    )
+
+    intentos = resultado.fetchall()
+
+    return intentos
+
+
+def obtener_resultados_de_estudiante_en_juego(estudiante_id, juego_id):
+    # Las filas de resultado (una por pregunta) que un estudiante tiene en una plantilla.
+    # Sirve para saber si ya hizo la evaluación y para revisar lo que respondió.
+    # Devuelve: (id_resultado, puntaje, fecha_creacion, fecha_modificacion, respuesta_id)
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                id_resultado,
+                puntaje,
+                fecha_creacion,
+                fecha_modificacion,
+                respuesta_id
+            FROM resultado
+            WHERE estudiante_id = :estudiante_id
+              AND juego_id = :juego_id
+            ORDER BY fecha_creacion, id_resultado
+        """),
+        {
+            'estudiante_id': estudiante_id,
+            'juego_id': juego_id
+        }
+    )
+
+    filas = resultado.fetchall()
+
+    return filas
+
+
+def registrar_respuesta_en_resultado(id_resultado, puntaje, respuesta_id, fecha_modificacion):
+    # Guarda la respuesta y el puntaje de UNA pregunta, en la fila que se creó al abrir la evaluación
+
+    db.session.execute(
+        text("""
+            UPDATE resultado
+            SET
+                puntaje = :puntaje,
+                respuesta_id = :respuesta_id,
+                fecha_modificacion = :fecha_modificacion
+            WHERE id_resultado = :id_resultado
+        """),
+        {
+            'puntaje': puntaje,
+            'respuesta_id': respuesta_id,
+            'fecha_modificacion': fecha_modificacion,
+            'id_resultado': id_resultado
+        }
+    )
+
+    db.session.commit()

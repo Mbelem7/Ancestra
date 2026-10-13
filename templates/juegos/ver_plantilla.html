@@ -9,7 +9,7 @@
 <style>
     .columna-detalle { max-width: 820px; margin: 0 auto; }
 
-    .barra-regresar { margin: 28px 0 0; }
+    .barra-regresar { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 0; }
     .boton-regresar {
         display: inline-block; padding: 9px 20px; background: #fff; color: #5a7a1e;
         border: 2px solid #5a7a1e; border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
@@ -79,6 +79,7 @@ header-crear
 
     <div class="barra-regresar">
         <a href="{{ url_for('mis_plantillas') }}" class="boton-regresar">← Regresar a Mis plantillas</a>
+        <a href="{{ url_for('resultados_plantilla', id_plantilla=plantilla[0]) }}" class="boton-regresar">📊 Ver resultados</a>
     </div>
 
     <div class="resumen">

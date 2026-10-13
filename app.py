@@ -1150,6 +1150,148 @@ def ver_plantilla(id_plantilla):
     )
 
 #############################################################################
+#PANELES DE RESULTADOS
+def intento_oficial(filas):
+    # La evaluación se hace una sola vez. Si por pruebas anteriores hubiera más de un intento, cuenta el PRIMERO
+    if not filas:
+        return []
+    primera = min(f[2] for f in filas)
+    return [f for f in filas if f[2] == primera]
+
+
+def ya_realizo_la_evaluacion(juego_id):
+    # Solo los estudiantes tienen un único intento; docentes y administradores pueden probar el juego
+    if session.get('tipo') != 'estudiante':
+        return False
+    return bool(obtener_resultados_de_estudiante_en_juego(session['rol_id'], juego_id))
+
+
+def datos_de_intento(fecha, puntaje, preguntas):
+    # Un intento listo para mostrar: puntaje, máximo posible, porcentaje y nivel (el nivel decide el color)
+    puntaje = int(puntaje)
+    maximo = int(preguntas) * PUNTOS_POR_PREGUNTA
+    porcentaje = round(puntaje * 100 / maximo) if maximo else 0
+    nivel = 'alto' if porcentaje >= 80 else ('medio' if porcentaje >= 50 else 'bajo')
+    return {'fecha': fecha, 'puntaje': puntaje, 'maximo': maximo, 'porcentaje': porcentaje, 'nivel': nivel}
+
+
+#RESULTADOS DE UNA PLANTILLA (panel del docente: solo ve el puntaje de cada estudiante)
+@app.route('/mis-plantillas/<int:id_plantilla>/resultados')
+@puede_crear_plantillas
+def resultados_plantilla(id_plantilla):
+    plantilla = obtener_una_plantilla(id_plantilla)
+    # plantilla: (id_plantilla, codigo_acceso, fecha_creacion, fecha_modificacion,
+    #             juego_id, docente_id, administrador_id)
+    if not plantilla:
+        return redirect(url_for('mis_plantillas'))
+
+    # Un docente solo ve los resultados de SUS plantillas; el administrador ve todos
+    docente_id, _ = ids_de_creador()
+    if session.get('tipo') != 'administrador' and plantilla[5] != docente_id:
+        return render_template('acceso_denegado.html'), 403
+
+    juego = obtener_un_juego(plantilla[4])
+    intentos = obtener_intentos_por_juego(plantilla[4])
+    # intentos: (estudiante_id, nombre_1, nombre_2, apellido_1, apellido_2, correo,
+    #            fecha, puntaje_total, cantidad_de_preguntas)
+
+    # Cada estudiante tiene UN intento (si por pruebas anteriores hubiera más, cuenta el primero)
+    por_estudiante = {}
+    for fila in intentos:
+        intento = datos_de_intento(fila[6], fila[7], fila[8])
+        actual = por_estudiante.get(fila[0])
+        if actual is None or intento['fecha'] < actual['intento']['fecha']:
+            por_estudiante[fila[0]] = {
+                'nombre': ' '.join(parte for parte in (fila[1], fila[2], fila[3], fila[4]) if parte),
+                'correo': fila[5],
+                'intento': intento
+            }
+
+    # Primero quien sacó el mejor puntaje; si empatan, por nombre
+    participantes = sorted(por_estudiante.values(), key=lambda e: (-e['intento']['puntaje'], e['nombre']))
+
+    resumen = {
+        'participantes': len(participantes),
+        'promedio': round(sum(e['intento']['porcentaje'] for e in participantes) / len(participantes)) if participantes else 0,
+        'mejor': max((e['intento']['porcentaje'] for e in participantes), default=0),
+        'menor': min((e['intento']['porcentaje'] for e in participantes), default=0)
+    }
+
+    return render_template(
+        'juegos/resultados_plantilla.html',
+        plantilla=plantilla,
+        juego=juego,
+        participantes=participantes,
+        resumen=resumen,
+        nombre_tipo=NOMBRES_TIPO.get(juego[3], juego[3])
+    )
+
+
+#MIS RESULTADOS (panel del estudiante: una tarjeta por plantilla que hizo)
+@app.route('/mis-resultados')
+@rol_requerido('estudiante')
+def mis_resultados():
+    intentos = obtener_intentos_por_estudiante(session['rol_id'])
+    # intentos: (juego_id, nombre_del_juego, tipo, fecha, puntaje_total, cantidad_de_preguntas)
+
+    # Un intento por plantilla (si por pruebas anteriores hubiera más, cuenta el primero)
+    por_juego = {}
+    for fila in intentos:
+        intento = datos_de_intento(fila[3], fila[4], fila[5])
+        actual = por_juego.get(fila[0])
+        if actual is None or intento['fecha'] < actual['intento']['fecha']:
+            por_juego[fila[0]] = {
+                'id_juego': fila[0],
+                'nombre': fila[1],
+                'tipo': NOMBRES_TIPO.get(fila[2], fila[2]),
+                'intento': intento
+            }
+
+    # La plantilla hecha más recientemente queda primero
+    plantillas = sorted(por_juego.values(), key=lambda p: p['intento']['fecha'], reverse=True)
+
+    return render_template('juegos/mis_resultados.html', plantillas=plantillas)
+
+
+#MI RESULTADO EN UNA PLANTILLA (el estudiante revisa qué respondió bien y mal)
+@app.route('/mis-resultados/<int:id_juego>')
+@rol_requerido('estudiante')
+def mi_resultado(id_juego):
+    juego = obtener_un_juego(id_juego)
+    filas = []
+    if juego:
+        filas = intento_oficial(obtener_resultados_de_estudiante_en_juego(session['rol_id'], id_juego))
+        # filas: (id_resultado, puntaje, fecha_creacion, fecha_modificacion, respuesta_id), una por pregunta
+    if not filas:
+        return redirect(url_for('mis_resultados'))
+
+    # Pregunta por pregunta: la fila 1 es la pregunta 1, y así (se crearon en ese orden)
+    detalle = []
+    preguntas = sorted(obtener_preguntas_por_juego(id_juego), key=lambda p: p[0])
+    for indice, pregunta in enumerate(preguntas):
+        respuestas = obtener_respuestas_por_pregunta(pregunta[0])
+        correcta = next((r for r in respuestas if r[2] == 'correcta'), None)
+        fila = filas[indice] if indice < len(filas) else None
+        elegida = next((r for r in respuestas if fila is not None and r[0] == fila[4]), None)
+        detalle.append({
+            'enunciado': pregunta[1],
+            'tu_respuesta': elegida[1] if elegida else None,
+            'correcta': correcta[1] if correcta else None,
+            'acerto': fila is not None and fila[1] > 0
+        })
+
+    intento = datos_de_intento(filas[0][2], sum(f[1] for f in filas), len(filas))
+
+    return render_template(
+        'juegos/mi_resultado.html',
+        juego=juego,
+        intento=intento,
+        detalle=detalle,
+        aciertos=sum(1 for d in detalle if d['acerto']),
+        nombre_tipo=NOMBRES_TIPO.get(juego[3], juego[3])
+    )
+
+#############################################################################
 #JUGAR
 TIEMPO_POR_PREGUNTA = 20      # segundos que tiene el estudiante para cada pregunta
 PUNTOS_POR_PREGUNTA = 10      # puntos por cada respuesta correcta
@@ -1191,6 +1333,9 @@ def jugar():
         return render_template('juegos/jugar.html', error="Ese código no existe.")
     if not cargar_plantilla_activa(plantilla[0]):
         return render_template('juegos/jugar.html', error="Esta plantilla no está disponible.")
+        # La evaluación se hace una sola vez: si ya la hizo, se le muestra su resultado
+    if ya_realizo_la_evaluacion(plantilla[4]):
+        return redirect(url_for('mi_resultado', id_juego=plantilla[4]))
  
     return redirect(url_for('jugar_plantilla', id_plantilla=plantilla[0]))
  
@@ -1203,6 +1348,9 @@ def jugar_plantilla(id_plantilla):
     if not datos:
         return render_template('juegos/jugar.html', error="Esta plantilla no está disponible.")
     plantilla, juego = datos
+
+    if ya_realizo_la_evaluacion(juego[0]):
+        return redirect(url_for('mi_resultado', id_juego=juego[0]))
  
     preguntas = obtener_preguntas_por_plantilla(id_plantilla)
     return render_template(
@@ -1213,6 +1361,7 @@ def jugar_plantilla(id_plantilla):
         tiempo=TIEMPO_POR_PREGUNTA,
         nombre_tipo=NOMBRES_TIPO.get(juego[3], juego[3]),
         disponible=(juego[3] in JUEGOS_DISPONIBLES and len(preguntas) > 0)
+        es_estudiante=(session.get('tipo') == 'estudiante'),
     )
  
  
@@ -1227,6 +1376,10 @@ def jugar_partida(id_plantilla):
  
     if juego[3] not in JUEGOS_DISPONIBLES:
         return redirect(url_for('jugar_plantilla', id_plantilla=id_plantilla))
+
+        # La evaluación se hace una sola vez
+    if ya_realizo_la_evaluacion(juego[0]):
+        return redirect(url_for('mi_resultado', id_juego=juego[0]))
  
     # Al navegador se le mandan las preguntas y sus opciones, SIN decir cuál es la correcta
     preguntas = []
@@ -1239,6 +1392,13 @@ def jugar_partida(id_plantilla):
  
     if not preguntas:
         return redirect(url_for('jugar_plantilla', id_plantilla=id_plantilla))
+    
+        # Para un estudiante, el intento se cuenta desde que abre la evaluación: se crea una fila por pregunta
+    # (con 0 puntos y sin respuesta). Al terminar se completan; si cierra la página, lo que falte queda en 0.
+    if session.get('tipo') == 'estudiante':
+        ahora = datetime.now()
+        for _ in preguntas:
+            insertar_resultado(0, ahora, ahora, None, juego[0], session['rol_id'])
  
     return render_template(
         'juegos/jugarvyf.html',
@@ -1248,8 +1408,7 @@ def jugar_partida(id_plantilla):
         tiempo=TIEMPO_POR_PREGUNTA
     )
  
- 
-#PASO 4: el servidor califica lo que el estudiante respondió (y lo guarda si es estudiante)
+ #PASO 4: el servidor califica lo que el estudiante respondió (y lo guarda si es estudiante)
 @app.route('/jugar/<int:id_plantilla>/resultado', methods=['POST'])
 @login_required
 def jugar_resultado(id_plantilla):
@@ -1257,13 +1416,24 @@ def jugar_resultado(id_plantilla):
     if not datos:
         return jsonify({'error': 'Plantilla no disponible'}), 404
     plantilla, juego = datos
- 
+
+    es_estudiante = session.get('tipo') == 'estudiante'
+
+    # Un estudiante solo puede enviar la evaluación que abrió, y una sola vez
+    filas = []
+    if es_estudiante:
+        filas = intento_oficial(obtener_resultados_de_estudiante_en_juego(session['rol_id'], juego[0]))
+        if not filas:
+            return jsonify({'error': 'Primero debes abrir la evaluación.'}), 400
+        if any(f[3] > f[2] for f in filas):      # fecha_modificacion > fecha_creacion: ya la envió
+            return jsonify({'error': 'Ya enviaste esta evaluación.'}), 409
+
     # elegidas: {"id_pregunta": id_respuesta, ...} (null si no alcanzó a responder)
     cuerpo = request.get_json(silent=True)
     elegidas = cuerpo.get('respuestas', {}) if isinstance(cuerpo, dict) else {}
     if not isinstance(elegidas, dict):
         elegidas = {}
- 
+
     detalle = []
     por_guardar = []   # (id de la respuesta elegida o None, si acertó), una por pregunta
     aciertos = 0
@@ -1272,15 +1442,15 @@ def jugar_resultado(id_plantilla):
         # respuesta: (id_respuesta, respuesta, tipo, fecha_creacion, fecha_modificacion,
         #             pregunta_id, juego_id, administrador_id)
         correcta = next((r for r in respuestas if r[2] == 'correcta'), None)
- 
+
         # Solo vale si la respuesta elegida pertenece a ESTA pregunta
         id_elegida = elegidas.get(str(pregunta[0]))
         elegida = next((r for r in respuestas if r[0] == id_elegida), None)
- 
+
         acerto = elegida is not None and correcta is not None and elegida[0] == correcta[0]
         if acerto:
             aciertos += 1
- 
+
         por_guardar.append((elegida[0] if elegida else None, acerto))
         detalle.append({
             'enunciado': pregunta[1],
@@ -1288,24 +1458,22 @@ def jugar_resultado(id_plantilla):
             'correcta': correcta[1] if correcta else None,
             'acerto': acerto
         })
- 
+
     # Solo se guardan los resultados de ESTUDIANTES (si un docente o administrador prueba el juego, no se guarda).
-    # Se guarda una fila por pregunta; todas con la misma fecha para poder distinguir cada intento.
-    es_estudiante = session.get('tipo') == 'estudiante'
+    # Se completan las filas que se crearon al abrir la evaluación: la fila 1 es la pregunta 1, y así.
     guardado = False
     if es_estudiante:
         ahora = datetime.now()
         try:
-            for id_respuesta, acerto in por_guardar:
-                insertar_resultado(
-                    PUNTOS_POR_PREGUNTA if acerto else 0,
-                    ahora, ahora, id_respuesta, juego[0], session['rol_id']
+            for fila, (id_respuesta, acerto) in zip(filas, por_guardar):
+                registrar_respuesta_en_resultado(
+                    fila[0], PUNTOS_POR_PREGUNTA if acerto else 0, id_respuesta, ahora
                 )
             guardado = True
         except Exception as error:
             print("No se pudo guardar el resultado:", error)
             db.session.rollback()
- 
+
     return jsonify({
         'puntaje': aciertos * PUNTOS_POR_PREGUNTA,
         'maximo': len(detalle) * PUNTOS_POR_PREGUNTA,

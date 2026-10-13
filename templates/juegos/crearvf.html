@@ -9,7 +9,7 @@
 <style>
     /* Cada pregunta va en su propia tarjeta, para que no se mezcle con la siguiente */
     .pregunta-bloque {
-        border: 2px solid #c9d6b0;
+        border: 2px solid #FFC565;
         border-radius: 14px;
         padding: 18px 20px;
         background: #fafcf6;
@@ -22,7 +22,7 @@
     .ayuda-correcta {
         background: #eef4e2;
         color: #222;
-        border-left: 5px solid #5a7a1e;
+        border-left: 5px solid #FFAF2A;
         border-radius: 8px;
         padding: 12px 16px;
         margin-bottom: 22px;
@@ -43,16 +43,16 @@
         margin: 0;
         background: #fff;
         color: #222;
-        border: 2px solid #c9d6b0;
+        border: 2px solid #FFC565;
         border-radius: 12px;
         font-size: 1.1rem;
         font-weight: 700;
         cursor: pointer;
     }
-    .opcion-vf:hover { border-color: #5a7a1e; }
-    .opcion-vf input { width: 22px; height: 22px; accent-color: #5a7a1e; cursor: pointer; margin: 0; }
-    .opcion-vf.es-correcta { background: #e4f1cf; border-color: #5a7a1e; color: #2f4a0c; }
-    .opcion-vf .etiqueta-correcta { display: none; font-size: 0.78rem; font-weight: 700; color: #3d5a10; }
+    .opcion-vf:hover { border-color: #FFAF2A; }
+    .opcion-vf input { width: 22px; height: 22px; accent-color: #FFAF2A; cursor: pointer; margin: 0; }
+    .opcion-vf.es-correcta { background: #FFC565; border-color: #FFAF2A; color: #FFA105; }
+    .opcion-vf .etiqueta-correcta { display: none; font-size: 0.78rem; font-weight: 700; color: #FFA105; }
     .opcion-vf.es-correcta .etiqueta-correcta { display: inline; }
 
     /* Espaciado y botones propios: no dependen de clases de utilidad (d-flex, mt-5...) que el CSS del sitio no define */
@@ -67,10 +67,10 @@
     .barra-guardar { display: flex; justify-content: flex-end; margin-top: 32px; margin-bottom: 40px; }
     .boton-guardar {
         position: static; margin: 0; padding: 12px 30px;
-        background: #5a7a1e; color: #fff; border: none; border-radius: 24px;
+        background: #FFAF2A; color: #fff; border: none; border-radius: 24px;
         font-weight: 700; font-size: 1rem; cursor: pointer;
     }
-    .boton-guardar:hover { background: #46611a; }
+    .boton-guardar:hover { background: #FFA105; }
 
     /* Zona separada para añadir otra pregunta */
     .zona-nueva-pregunta { border-top: 3px solid #c9d6b0; margin-top: 8px; padding-top: 22px; }
