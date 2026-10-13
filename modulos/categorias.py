@@ -1,0 +1,18 @@
+from app import db
+from sqlalchemy import text
+
+
+def mostrar_categorias():
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                id_categoria,
+                nombre_categoria
+            FROM categorias
+        """)
+    )
+
+    categorias = resultado.fetchall()
+
+    return categorias

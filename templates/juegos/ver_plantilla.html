@@ -1,0 +1,180 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>{{ juego[1] }}</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    .columna-detalle { max-width: 820px; margin: 0 auto; }
+
+    .barra-regresar { margin: 28px 0 0; }
+    .boton-regresar {
+        display: inline-block; padding: 9px 20px; background: #fff; color: #5a7a1e;
+        border: 2px solid #5a7a1e; border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+    }
+    .boton-regresar:hover { background: #5a7a1e; color: #fff; }
+
+    .resumen { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 24px; margin: 16px 0 28px; }
+    .resumen h2 { margin: 0 0 10px; }
+    .etiquetas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .etiqueta { font-size: 0.8rem; font-weight: 700; padding: 3px 12px; border-radius: 12px; background: #e4f1cf; color: #3d5a10; }
+    .etiqueta.inactiva { background: #eee; color: #777; }
+    .resumen .descripcion { margin: 0 0 16px; color: #555; line-height: 1.5; }
+    .caja-codigo {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+        background: #e4f1cf; border: 2px dashed #5a7a1e; border-radius: 10px; padding: 8px 14px; margin-bottom: 10px;
+    }
+    .caja-codigo .rotulo { font-size: 0.85rem; color: #3d5a10; font-weight: 700; }
+    .caja-codigo .codigo { font-size: 1.5rem; font-weight: 700; letter-spacing: 5px; color: #2f4a0c; user-select: all; }
+    .btn-copiar-mini {
+        background: #fff; color: #5a7a1e; border: 2px solid #5a7a1e; border-radius: 16px;
+        padding: 4px 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer;
+    }
+    .btn-copiar-mini:hover { background: #5a7a1e; color: #fff; }
+    .fecha { font-size: 0.8rem; color: #777; }
+
+    .titulo-lista { margin: 8px 0 14px; }
+
+    .pregunta { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+    .pregunta .numero { font-size: 0.8rem; font-weight: 700; color: #3d5a10; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .pregunta .enunciado { font-size: 1.1rem; font-weight: 700; margin: 0 0 12px; line-height: 1.4; }
+
+    .respuesta {
+        display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 8px;
+        background: #fff; color: #222; border: 2px solid #e3e8d6; border-radius: 10px;
+    }
+    .respuesta .marca { font-weight: 700; color: #aaa; width: 1.2em; text-align: center; }
+    .respuesta.correcta { background: #e4f1cf; border-color: #5a7a1e; }
+    .respuesta.correcta .marca { color: #3d5a10; }
+    .respuesta .aviso-correcta { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: #3d5a10; }
+
+    .pareja { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .pareja .lado { flex: 1 1 200px; padding: 10px 14px; background: #fff; border: 2px solid #e3e8d6; border-radius: 10px; }
+    .pareja .lado.derecho { background: #e4f1cf; border-color: #5a7a1e; }
+    .pareja .flecha { font-weight: 700; color: #5a7a1e; font-size: 1.2rem; }
+
+    .sin-preguntas { text-align: center; margin: 40px 0; color: #666; }
+    .enunciado .blanco { display: inline-block; min-width: 110px; margin: 0 4px; border-bottom: 3px solid #5a7a1e; background: #eef4e2; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+{{ juego[1] }}
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{# plantilla: (id_plantilla, codigo_acceso, fecha_creacion, fecha_modificacion, juego_id, docente_id, administrador_id)
+   juego: (id_juego, nombre, descripcion, tipo, fecha_creacion, fecha_modificacion, administrador_id, estado)
+   preguntas: lista de (pregunta, respuestas)
+     pregunta: (id_pregunta, enunciado, ...)   respuesta: (id_respuesta, respuesta, tipo, ...) #}
+{% set tipo = juego[3] %}
+<div class="container content">
+  <div class="columna-detalle">
+
+    <div class="barra-regresar">
+        <a href="{{ url_for('mis_plantillas') }}" class="boton-regresar">← Regresar a Mis plantillas</a>
+    </div>
+
+    <div class="resumen">
+        <h2>{{ juego[1] }}</h2>
+        <div class="etiquetas">
+            <span class="etiqueta">{{ nombre_tipo }}</span>
+            <span class="etiqueta">{{ preguntas|length }} {{ 'pregunta' if preguntas|length == 1 else 'preguntas' }}</span>
+            <span class="etiqueta {% if juego[7] != 'activo' %}inactiva{% endif %}">{{ juego[7] }}</span>
+        </div>
+        <p class="descripcion">{{ juego[2] }}</p>
+
+        <div class="caja-codigo">
+            <span class="rotulo">Código de acceso</span>
+            <span class="codigo" id="codigo">{{ plantilla[1] }}</span>
+            <button type="button" class="btn-copiar-mini" id="btn-copiar">📋 Copiar</button>
+        </div>
+        <span class="fecha">Creada el {{ plantilla[2].strftime('%d/%m/%Y') if plantilla[2] else '—' }}</span>
+    </div>
+
+    <h3 class="titulo-lista">
+        {% if tipo == 'union' %}Parejas{% else %}Preguntas y respuestas{% endif %}
+        <span style="font-weight:400; font-size:0.85rem; color:#666;">(la respuesta correcta está marcada)</span>
+    </h3>
+
+    {% if preguntas %}
+        {% for pregunta, respuestas in preguntas %}
+        <div class="pregunta">
+
+            {% if tipo == 'union' %}
+            <div class="numero">Pareja {{ loop.index }}</div>
+            <div class="pareja">
+                <div class="lado">{{ pregunta[1] }}</div>
+                <span class="flecha">↔</span>
+                <div class="lado derecho">{{ respuestas[0][1] if respuestas else '—' }}</div>
+            </div>
+
+            {% elif tipo == 'completar' %}
+            <div class="numero">Pregunta {{ loop.index }}</div>
+            <p class="enunciado con-blanco">{{ pregunta[1] }}</p>
+            <div class="respuesta correcta">
+                <span class="marca">✔</span>
+                <span>Respuesta correcta: <strong>{{ respuestas[0][1] if respuestas else '—' }}</strong></span>
+            </div>
+
+            {% else %}
+            <div class="numero">{{ 'Afirmación' if tipo == 'verdadero_falso' else 'Pregunta' }} {{ loop.index }}</div>
+            <p class="enunciado">{{ pregunta[1] }}</p>
+            {% for r in respuestas %}
+            <div class="respuesta {% if r[2] == 'correcta' %}correcta{% endif %}">
+                <span class="marca">{{ '✔' if r[2] == 'correcta' else '✘' }}</span>
+                <span>{{ r[1] }}</span>
+                {% if r[2] == 'correcta' %}<span class="aviso-correcta">Respuesta correcta</span>{% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="sin-preguntas">Esta plantilla todavía no tiene preguntas.</div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+    document.getElementById('btn-copiar').addEventListener('click', async function () {
+        const boton = this;
+        try {
+            await navigator.clipboard.writeText(document.getElementById('codigo').textContent.trim());
+            boton.textContent = '✔ Copiado';
+        } catch (error) {
+            boton.textContent = 'Ctrl+C';
+            const rango = document.createRange();
+            rango.selectNodeContents(document.getElementById('codigo'));
+            const seleccion = window.getSelection();
+            seleccion.removeAllRanges();
+            seleccion.addRange(rango);
+        }
+        setTimeout(function () { boton.textContent = '📋 Copiar'; }, 2000);
+    });
+
+    // En "Completar", cada grupo de guiones bajos se muestra como un espacio en blanco
+    document.querySelectorAll('.enunciado.con-blanco').forEach(function (parrafo) {
+        const partes = parrafo.textContent.split(/_+/);
+        if (partes.length < 2) return;
+        parrafo.textContent = '';
+        partes.forEach(function (parte, i) {
+            parrafo.appendChild(document.createTextNode(parte));
+            if (i < partes.length - 1) {
+                const hueco = document.createElement('span');
+                hueco.className = 'blanco';
+                hueco.textContent = '\u00a0';
+                parrafo.appendChild(hueco);
+            }
+        });
+    });
+</script>
+{% endblock %}

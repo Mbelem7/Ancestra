@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Crear plantilla - Verdadero y Falso</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Cada pregunta va en su propia tarjeta, para que no se mezcle con la siguiente */
+    .pregunta-bloque {
+        border: 2px solid #c9d6b0;
+        border-radius: 14px;
+        padding: 18px 20px;
+        background: #fafcf6;
+        color: #222;
+        margin-bottom: 28px;
+    }
+    .pregunta-bloque.sin-correcta { border-color: #c0392b; background: #fdf0ee; }
+
+    /* Cuadro de ayuda: explica cómo se arma cada pregunta */
+    .ayuda-correcta {
+        background: #eef4e2;
+        color: #222;
+        border-left: 5px solid #5a7a1e;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 22px;
+        font-size: 0.95rem;
+    }
+
+    /* Las dos opciones fijas: Verdadero y Falso */
+    .titulo-opciones { margin: 18px 0 10px; font-weight: 700; }
+    .titulo-opciones .mini { font-weight: 400; font-size: 0.85rem; color: #666; }
+    .opciones-vf { display: flex; gap: 14px; flex-wrap: wrap; }
+    .opcion-vf {
+        flex: 1 1 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px;
+        margin: 0;
+        background: #fff;
+        color: #222;
+        border: 2px solid #c9d6b0;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .opcion-vf:hover { border-color: #5a7a1e; }
+    .opcion-vf input { width: 22px; height: 22px; accent-color: #5a7a1e; cursor: pointer; margin: 0; }
+    .opcion-vf.es-correcta { background: #e4f1cf; border-color: #5a7a1e; color: #2f4a0c; }
+    .opcion-vf .etiqueta-correcta { display: none; font-size: 0.78rem; font-weight: 700; color: #3d5a10; }
+    .opcion-vf.es-correcta .etiqueta-correcta { display: inline; }
+
+    /* Espaciado y botones propios: no dependen de clases de utilidad (d-flex, mt-5...) que el CSS del sitio no define */
+    .cabecera-pregunta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .cabecera-pregunta .form-label { margin: 0; }
+    .boton-eliminar {
+        position: static; margin: 0; padding: 8px 18px;
+        background: #fff; color: #c0392b; border: 2px solid #c0392b; border-radius: 20px;
+        font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .boton-eliminar:hover { background: #c0392b; color: #fff; }
+    .barra-guardar { display: flex; justify-content: flex-end; margin-top: 32px; margin-bottom: 40px; }
+    .boton-guardar {
+        position: static; margin: 0; padding: 12px 30px;
+        background: #5a7a1e; color: #fff; border: none; border-radius: 24px;
+        font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    .boton-guardar:hover { background: #46611a; }
+
+    /* Zona separada para añadir otra pregunta */
+    .zona-nueva-pregunta { border-top: 3px solid #c9d6b0; margin-top: 8px; padding-top: 22px; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Verdadero y Falso
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+
+    <div class="barra-superior-galeria mb-3">
+        <a href="/crear" class="btn-cancelar" style="text-decoration:none;">← Regresar</a>
+    </div>
+
+    {% if erroresP %}
+    <ul style="color:red;">
+        {% for error in erroresP %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form action="/juegos/verdadero-falso/crear" method="POST" id="form-plantilla">
+
+        <div class="personalizacion-header mb-5">
+            <label class="form-label">Nombre de la plantilla</label>
+            <input type="text" name="nombre" class="input-gris" maxlength="100" required>
+
+            <label class="form-label">Descripción</label>
+            <textarea name="descripcion" class="input-gris" maxlength="500" required></textarea>
+        </div>
+
+        <div class="ayuda-correcta">
+            <strong>¿Cómo se arma cada pregunta?</strong><br>
+            1. Escribe una afirmación. Por ejemplo: "Managua es la capital de Nicaragua".<br>
+            2. Marca si la afirmación es <strong>Verdadera</strong> o <strong>Falsa</strong>.<br>
+            El estudiante verá la afirmación con dos opciones, Verdadero y Falso, y tendrá que elegir una.
+        </div>
+
+        <div id="preguntas-container"></div>
+
+        <div class="zona-nueva-pregunta">
+            <button type="button" class="btn-añadir-respuesta" onclick="agregarPregunta()">
+                + Añadir otra pregunta
+            </button>
+        </div>
+
+        <div class="barra-guardar">
+            <button type="submit" class="boton-guardar">Guardar Plantilla</button>
+        </div>
+    </form>
+
+</div>
+
+<template id="plantilla-pregunta">
+    <div class="pregunta-columna pregunta-bloque">
+        <div class="cabecera-pregunta">
+            <label class="form-label pregunta-titulo">Pregunta</label>
+            <button type="button" class="boton-eliminar btn-eliminar-pregunta">Eliminar pregunta</button>
+        </div>
+        <textarea class="input-gris enunciado" maxlength="300" required
+                  placeholder="Escribe una afirmación. Ej: Managua es la capital de Nicaragua"></textarea>
+
+        <div class="titulo-opciones">¿La afirmación es verdadera o falsa? <span class="mini">(marca la respuesta correcta)</span></div>
+        <div class="opciones-vf">
+            <label class="opcion-vf">
+                <input type="radio" class="radio-correcta" value="1">
+                <span>Verdadero</span>
+                <span class="etiqueta-correcta">✔ Correcta</span>
+            </label>
+            <label class="opcion-vf">
+                <input type="radio" class="radio-correcta" value="2">
+                <span>Falso</span>
+                <span class="etiqueta-correcta">✔ Correcta</span>
+            </label>
+        </div>
+
+        <!-- Las dos respuestas son siempre estas; el servidor también las fija -->
+        <input type="hidden" class="resp-verdadero" value="Verdadero">
+        <input type="hidden" class="resp-falso" value="Falso">
+    </div>
+</template>
+
+<script>
+    let contadorPreguntas = 0;
+
+    function agregarPregunta() {
+        contadorPreguntas++;
+        const n = contadorPreguntas;
+
+        const tplPregunta = document.getElementById('plantilla-pregunta').content.cloneNode(true);
+        const bloque = tplPregunta.querySelector('.pregunta-bloque');
+        bloque.dataset.indice = n;
+        bloque.querySelector('.pregunta-titulo').innerText = 'Pregunta ' + n;
+        bloque.querySelector('.enunciado').name = 'pregunta_' + n + '_enunciado';
+        bloque.querySelector('.resp-verdadero').name = 'pregunta_' + n + '_respuesta_1';
+        bloque.querySelector('.resp-falso').name = 'pregunta_' + n + '_respuesta_2';
+        bloque.querySelectorAll('.radio-correcta').forEach(function (radio) {
+            radio.name = 'correcta_pregunta_' + n;
+        });
+
+        bloque.querySelector('.btn-eliminar-pregunta').addEventListener('click', function () {
+            bloque.remove();
+        });
+
+        // Al marcar una opción, se pinta de verde y se quita el aviso de error
+        bloque.addEventListener('change', function () {
+            bloque.querySelectorAll('.opcion-vf').forEach(function (etiqueta) {
+                etiqueta.classList.toggle('es-correcta', etiqueta.querySelector('input').checked);
+            });
+            bloque.classList.remove('sin-correcta');
+        });
+
+        document.getElementById('preguntas-container').appendChild(tplPregunta);
+    }
+
+    document.getElementById('form-plantilla').addEventListener('submit', function (e) {
+        const bloques = document.querySelectorAll('.pregunta-bloque');
+
+        if (bloques.length === 0) {
+            e.preventDefault();
+            alert('Agrega al menos una pregunta antes de guardar.');
+            return;
+        }
+
+        for (const bloque of bloques) {
+            if (!bloque.querySelector('.radio-correcta:checked')) {
+                e.preventDefault();
+                bloque.classList.add('sin-correcta');
+                bloque.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                alert('Falta marcar si la afirmación es verdadera o falsa en: ' + bloque.querySelector('.pregunta-titulo').innerText);
+                return;
+            }
+        }
+    });
+
+    agregarPregunta();
+</script>
+{% endblock %}

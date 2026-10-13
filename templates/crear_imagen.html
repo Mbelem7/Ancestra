@@ -8,47 +8,67 @@
 <div class="container content mt-5 mb-5">
     
     <div class="d-flex justify-content-center mb-4">
-        <h2 class="titulo-seccion">Agregar Nueva Imagen</h2>
+        <h2 class="titulo-seccion">Agregar Nueva Imagen o Video</h2>
     </div>
 
     <!-- Reutilizamos las clases del formulario-admin -->
     <div class="formulario-admin">
-        <form action="#" method="POST" enctype="multipart/form-data">
+
+        <!-- Errores de validación que manda el backend -->
+        {% if erroresD %}
+        <ul style="color: red;">
+            {% for error in erroresD %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form action="/crear-imagen" method="POST" enctype="multipart/form-data">
             
-            <!-- Campo: Título -->
+            <!-- Campo: Nombre -->
             <div class="form-group">
-                <label class="form-label" for="titulo">Título de la imagen</label>
-                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Danza de las Inditas" required>
+                <label class="form-label" for="nombre">Título</label>
+                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" placeholder="Ej: Danza de las Inditas" required>
             </div>
 
-            <!-- Campo: Categoría (Álbum) -->
+            <!-- Campo: Tipo (imagen o video) -->
             <div class="form-group">
-                <label class="form-label" for="album">Álbum / Categoría</label>
-                <!-- Menú desplegable -->
-                <select id="album" name="album" class="form-input" required>
+                <label class="form-label" for="tipo">¿Qué vas a subir?</label>
+                <select id="tipo" name="tipo" class="form-input" required>
+                    <option value="" disabled selected>Selecciona...</option>
+                    <option value="imagen">Imagen</option>
+                    <option value="video">Video</option>
+                </select>
+            </div>
+
+            <!-- Campo: Categoría (Álbum) - viene de la tabla categorias -->
+            <div class="form-group">
+                <label class="form-label" for="categoria">Álbum / Categoría</label>
+                <select id="categoria" name="categoria" class="form-input" required>
                     <option value="" disabled selected>Selecciona un álbum...</option>
-                    <option value="lugares">Lugares Típicos</option>
-                    <option value="tradiciones">Tradiciones</option>
-                    <option value="otros">Otros</option>
+                    {% for c in categ %}
+                    {# c: (id_categoria, nombre_categoria) #}
+                    <option value="{{ c[0] }}">{{ c[1] }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
             <!-- Campo: Descripción -->
             <div class="form-group">
-                <label class="form-label" for="descripcion">Descripción breve (Opcional)</label>
-                <textarea id="descripcion" name="descripcion" class="form-input" rows="2" placeholder="Agrega un pequeño contexto..."></textarea>
+                <label class="form-label" for="descripcion">Descripción breve</label>
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="2" maxlength="500" placeholder="Agrega un pequeño contexto..." required></textarea>
             </div>
 
             <!-- Campo: Subir el archivo -->
             <div class="form-group">
-                <label class="form-label" for="imagen">Seleccionar Imagen</label>
-                <input type="file" id="imagen" name="imagen" class="form-input" accept="image/*" required>
+                <label class="form-label" for="URL">Seleccionar archivo (PNG, JPG, SVG, MP4 o WEBM)</label>
+                <input type="file" id="URL" name="URL" class="form-input" accept=".png,.jpg,.jpeg,.svg,.mp4,.webm" required>
             </div>
 
             <!-- Botones de Acción -->
             <div class="d-flex justify-content-end gap-3 mt-4">
                 <a href="{{ url_for('galeria') }}" class="btn-cancelar">Cancelar</a>
-                <button type="submit" class="btn-guardar">Subir Imagen</button>
+                <button type="submit" class="btn-guardar">Subir</button>
             </div>
 
         </form>

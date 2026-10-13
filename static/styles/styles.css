@@ -64,7 +64,7 @@ body.dark-mode .header__title {
   background: #ffffff;
   border-radius: 16px 16px 0 0;
   margin-top: -20px;
-  padding: 20px 24px;
+  padding: 18px 24px;
   position: relative;
 }
 
@@ -80,7 +80,7 @@ body.dark-mode .header__title {
     margin-right: auto;
 }
 
-/* ===== Navbar (barra verde) ===== */
+/* ===== Navbar ===== */
 .navbar {
   display: flex;
   align-items: center;
@@ -103,8 +103,8 @@ body.dark-mode .header__title {
 }
 
 .nav__item--active {
-  background: #6f7a1e;
-  color: #ffffff;
+  background: #9ec230;
+  color: #fff;
 }
 
 .nav__search {

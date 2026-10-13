@@ -6,6 +6,8 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<!-- Leaflet: librería de mapas (usa los mapas gratuitos de OpenStreetMap) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 {% endblock %}
 
 
@@ -31,87 +33,48 @@ header-mapa
         <!-- {# {% endif %} #} -->
     </div>
 
-    <!-- Contenedor principal del mapa -->
+    <!-- Contenedor principal del mapa.
+         Los locales viajan en data-lugares (JSON), así el script de abajo no lleva código de Flask -->
     <div class="mapa-contenedor shadow-sm">
-        
-        <!-- Local 1 -->
-        <div class="pin-local" style="top: 50%; left: 25%;">
-            <div class="pin-titulo">Local 1</div>
-            <!-- Ícono de pin (SVG) -->
-            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-
-            <br>
-            <a href="{{ url_for('editar_local') }}" class="btn-editar">
-                ✏️ Editar
-            </a>
-            
-            <!-- Cuadro de información (Tooltip) -->
-            <div class="pin-tooltip">
-                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 1</h4>
-                <p style="margin:0; font-size:0.85rem; color:#555;">Información detallada sobre este punto. Abierto de 8am a 5pm.</p>
-            </div>
-        </div>
-
-        <!-- Local 2 -->
-        <div class="pin-local" style="top: 80%; left: 45%;">
-            <div class="pin-titulo">Local 2</div>
-            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-
-            <br>
-            <a href="{{ url_for('editar_local') }}" class="btn-editar">
-                ✏️ Editar
-            </a>
-
-            <div class="pin-tooltip">
-                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 2</h4>
-                <p style="margin:0; font-size:0.85rem; color:#555;">Detalles del segundo local. Excelente ubicación.</p>
-            </div>
-        </div>
-
-        <!-- Local 3 -->
-        <div class="pin-local" style="top: 45%; left: 60%;">
-            <div class="pin-titulo">Local 3</div>
-            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-
-            <br>
-            <a href="{{ url_for('editar_local') }}" class="btn-editar">
-                ✏️ Editar
-            </a>
-
-            <div class="pin-tooltip">
-                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 3</h4>
-                <p style="margin:0; font-size:0.85rem; color:#555;">Aquí puedes encontrar productos artesanales.</p>
-            </div>
-        </div>
-
-        <!-- Local 4 -->
-        <div class="pin-local" style="top: 85%; left: 75%;">
-            <div class="pin-titulo">Local 4</div>
-            <svg class="pin-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-
-            <br>
-            <a href="{{ url_for('editar_local') }}" class="btn-editar">
-                ✏️ Editar
-            </a>
-             
-            <div class="pin-tooltip">
-                <h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">Local 4</h4>
-                <p style="margin:0; font-size:0.85rem; color:#555;">Punto de encuentro y área de descanso.</p>
-            </div>
-        </div>
-
+        <div id="mapa" data-lugares='{{ puntos | tojson }}' style="width: 100%; height: 100%; min-height: 500px; border-radius: 8px;"></div>
     </div>
 </div>
+{% endblock %}
+
+{% block js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Locales que vienen de la base de datos (los arma la ruta /mapa en app.py)
+    const lugares = JSON.parse(document.getElementById('mapa').dataset.lugares);
+
+    // Evita que un texto con símbolos raros rompa el HTML del globito
+    function esc(texto) {
+        return String(texto ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Masaya, Nicaragua (centro inicial del mapa)
+    const mapa = L.map('mapa').setView([11.9744, -86.0942], 14);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; Colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(mapa);
+
+    const marcadores = lugares.map(function (l) {
+        return L.marker([l.lat, l.lng]).addTo(mapa).bindPopup(
+            '<h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">' + esc(l.nombre) + '</h4>' +
+            '<p style="margin:0; font-size:0.85rem; color:#555;">' + esc(l.descripcion) + '</p>' +
+            '<p style="margin:4px 0 0 0; font-size:0.8rem; color:#777;">📍 ' + esc(l.direccion) + '</p>' +
+            '<p style="margin:2px 0 6px 0; font-size:0.8rem; color:#777;">📞 ' + esc(l.contacto) + '</p>' +
+            '<a href="' + esc(l.editar) + '" class="btn-editar">✏️ Editar</a>'
+        );
+    });
+
+    // Si ya hay locales, el mapa se ajusta para mostrarlos todos
+    if (marcadores.length > 0) {
+        mapa.fitBounds(L.featureGroup(marcadores).getBounds().pad(0.2), { maxZoom: 16 });
+    }
+</script>
 {% endblock %}

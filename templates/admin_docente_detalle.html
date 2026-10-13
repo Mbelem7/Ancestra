@@ -1,0 +1,102 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Datos del docente</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    .tarjeta-detalle { max-width: 640px; margin: 30px auto; padding: 32px; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; }
+    .tarjeta-detalle h2 { margin: 0 0 6px; }
+    .encabezado-detalle { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .estado { font-size: 0.85rem; font-weight: 700; padding: 4px 14px; border-radius: 12px; }
+    .estado.pendiente { background: #fff4d6; color: #7a5b00; }
+    .estado.verificado { background: #e4f1cf; color: #3d5a10; }
+    .estado.rechazado { background: #fdf0ee; color: #7b241c; }
+
+    .datos { margin: 0; }
+    .datos .fila { display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e3e8d6; }
+    .datos .fila:last-child { border-bottom: none; }
+    .datos dt { flex: 0 0 190px; font-weight: 700; color: #3d5a10; margin: 0; }
+    .datos dd { flex: 1; margin: 0; word-break: break-word; }
+    .datos .vacio { color: #888; font-style: italic; }
+    @media (max-width: 520px) { .datos .fila { flex-direction: column; gap: 2px; } .datos dt { flex: none; } }
+
+    .nota-revision { background: #fff4d6; border-left: 5px solid #e0a800; padding: 10px 14px; border-radius: 8px; margin: 18px 0 0; font-size: 0.9rem; line-height: 1.5; }
+
+    .acciones-detalle { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
+    .acciones-detalle form { margin: 0; }
+    .btn-detalle { border-radius: 20px; padding: 10px 22px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: 2px solid #5a7a1e; background: #5a7a1e; color: #fff; text-decoration: none; display: inline-block; }
+    .btn-detalle.secundario { background: #fff; color: #5a7a1e; }
+    .btn-detalle.peligro { background: #fff; color: #c0392b; border-color: #c0392b; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Datos del docente
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{# d: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1, apellido_2,
+       fecha_nacimiento, correo, estado, fecha_creacion) #}
+<div class="container content">
+    <div class="tarjeta-detalle">
+
+        <div class="encabezado-detalle">
+            <h2>{{ d[3] }}{% if d[4] %} {{ d[4] }}{% endif %} {{ d[5] }}{% if d[6] %} {{ d[6] }}{% endif %}</h2>
+            <span class="estado {{ d[1] }}">{{ d[1] }}</span>
+        </div>
+
+        <dl class="datos">
+            <div class="fila"><dt>Nombre completo</dt><dd>{{ d[3] }}{% if d[4] %} {{ d[4] }}{% endif %} {{ d[5] }}{% if d[6] %} {{ d[6] }}{% endif %}</dd></div>
+            <div class="fila"><dt>Correo</dt><dd>{{ d[8] }}</dd></div>
+            <div class="fila">
+                <dt>Fecha de nacimiento</dt>
+                <dd>
+                    {% if d[7] %}{{ d[7].strftime('%d/%m/%Y') }}{% if edad is not none %} ({{ edad }} años){% endif %}
+                    {% else %}<span class="vacio">No registrada</span>{% endif %}
+                </dd>
+            </div>
+            <div class="fila">
+                <dt>Fecha de registro</dt>
+                <dd>{% if d[10] %}{{ d[10].strftime('%d/%m/%Y %H:%M') }}{% else %}<span class="vacio">No registrada</span>{% endif %}</dd>
+            </div>
+            <div class="fila"><dt>Estado de la cuenta</dt><dd>{{ d[9] }}</dd></div>
+            <div class="fila"><dt>Verificación como docente</dt><dd>{{ d[1] }}</dd></div>
+        </dl>
+
+        <div class="nota-revision">
+            Estos son los únicos datos que el docente indicó al registrarse. Antes de aprobar, confirma su identidad por otro medio, por ejemplo escribiéndole al correo.
+        </div>
+
+        <div class="acciones-detalle">
+            <a href="{{ url_for('admin_docentes') }}" class="btn-detalle secundario">← Volver a la lista</a>
+
+            {% if d[1] != 'verificado' %}
+            <form action="{{ url_for('admin_docente_estado', id_docente=d[0]) }}" method="POST">
+                <input type="hidden" name="estado" value="verificado">
+                <button type="submit" class="btn-detalle">✔ Aprobar</button>
+            </form>
+            {% endif %}
+            {% if d[1] != 'rechazado' %}
+            <form action="{{ url_for('admin_docente_estado', id_docente=d[0]) }}" method="POST">
+                <input type="hidden" name="estado" value="rechazado">
+                <button type="submit" class="btn-detalle peligro">✘ Rechazar</button>
+            </form>
+            {% endif %}
+            {% if d[1] == 'verificado' %}
+            <form action="{{ url_for('admin_docente_estado', id_docente=d[0]) }}" method="POST">
+                <input type="hidden" name="estado" value="pendiente">
+                <button type="submit" class="btn-detalle secundario">Volver a pendiente</button>
+            </form>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

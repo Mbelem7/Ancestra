@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Jugar</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    .tarjeta-entrada {
+        max-width: 520px;
+        margin: 48px auto 60px;
+        padding: 40px 36px 32px;
+        text-align: center;
+        background: #fafcf6;
+        color: #222;
+        border: 2px solid #c9d6b0;
+        border-radius: 20px;
+        box-shadow: 0 6px 22px rgba(90, 122, 30, 0.12);
+    }
+    .tarjeta-entrada .icono {
+        width: 76px; height: 76px; margin: 0 auto 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2.4rem; background: #e4f1cf; border-radius: 50%;
+    }
+    .tarjeta-entrada h2 { margin: 0 0 8px; font-size: 1.5rem; }
+    .tarjeta-entrada .subtitulo { margin: 0 0 26px; color: #555; line-height: 1.5; }
+
+    .campo-codigo {
+        display: block; width: 100%; box-sizing: border-box; margin: 0 0 8px;
+        padding: 16px 12px; text-align: center;
+        font-family: inherit; font-size: 2rem; font-weight: 700; letter-spacing: 10px; text-indent: 10px;
+        text-transform: uppercase; color: #2f4a0c; background: #e4f1cf;
+        border: 3px dashed #5a7a1e; border-radius: 14px;
+    }
+    .campo-codigo::placeholder { color: #9bb37a; letter-spacing: 10px; }
+    .campo-codigo:focus { outline: none; border-style: solid; box-shadow: 0 0 0 4px rgba(90, 122, 30, 0.2); }
+
+    .contador { font-size: 0.82rem; color: #777; margin-bottom: 22px; min-height: 1.2em; }
+
+    .boton-entrar {
+        display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 15px;
+        position: static; background: #5a7a1e; color: #fff; border: none; border-radius: 28px;
+        font-family: inherit; font-weight: 700; font-size: 1.1rem; cursor: pointer;
+    }
+    .boton-entrar:hover:not(:disabled) { background: #46611a; }
+    .boton-entrar:disabled { background: #b9c7a1; cursor: not-allowed; }
+
+    .ayuda { margin: 22px 0 0; font-size: 0.9rem; color: #666; line-height: 1.5; }
+
+    .mensaje-error {
+        display: flex; align-items: center; gap: 10px; text-align: left;
+        background: #fdf0ee; border-left: 5px solid #c0392b; color: #7b241c;
+        padding: 12px 14px; border-radius: 8px; margin: 0 0 20px; font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Jugar
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+    <div class="tarjeta-entrada">
+        <div class="icono" aria-hidden="true">🎮</div>
+        <h2>Ingresa el código de acceso</h2>
+        <p class="subtitulo">Es el código de 6 letras y números que te dio tu docente.</p>
+
+        {% if error %}
+        <div class="mensaje-error" role="alert"><span aria-hidden="true">⚠</span><span>{{ error }}</span></div>
+        {% endif %}
+
+        <form action="/jugar" method="POST" id="form-codigo">
+            <input type="text" name="codigo" id="codigo" class="campo-codigo"
+                   placeholder="••••••" autocomplete="off" autocapitalize="characters"
+                   spellcheck="false" aria-label="Código de acceso" autofocus required>
+            <div class="contador" id="contador"></div>
+            <button type="submit" class="boton-entrar" id="boton-entrar" disabled>Entrar</button>
+        </form>
+
+        <p class="ayuda">¿No tienes un código? Pídeselo a tu docente.</p>
+    </div>
+</div>
+
+<script>
+    const campo = document.getElementById('codigo');
+    const boton = document.getElementById('boton-entrar');
+    const contador = document.getElementById('contador');
+
+    // Solo letras y números, siempre en mayúscula, máximo 6.
+    // (No se usa maxlength en el HTML: cortaría lo que se pega antes de limpiarlo.)
+    // El botón se activa cuando el código está completo.
+    function revisar() {
+        campo.value = campo.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+        const largo = campo.value.length;
+        boton.disabled = largo !== 6;
+        contador.textContent = largo === 0 ? '' : (largo === 6 ? '✔ Código completo' : largo + ' de 6 caracteres');
+    }
+
+    campo.addEventListener('input', revisar);
+    revisar();
+</script>
+{% endblock %}

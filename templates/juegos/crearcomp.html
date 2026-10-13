@@ -1,0 +1,231 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Crear plantilla - Completar</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Cada pregunta va en su propia tarjeta */
+    .pregunta-bloque {
+        border: 2px solid #c9d6b0;
+        border-radius: 14px;
+        padding: 18px 20px;
+        background: #fafcf6;
+        color: #222;
+        margin-bottom: 28px;
+    }
+    .pregunta-bloque.con-error { border-color: #c0392b; background: #fdf0ee; }
+
+    .ayuda-correcta {
+        background: #eef4e2; color: #222; border-left: 5px solid #5a7a1e;
+        border-radius: 8px; padding: 12px 16px; margin-bottom: 22px; font-size: 0.95rem;
+    }
+
+    /* Espaciado y botones propios: no dependen de clases de utilidad (d-flex, mt-5...) que el CSS del sitio no define */
+    .cabecera-pregunta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .cabecera-pregunta .form-label { margin: 0; }
+    .boton-eliminar {
+        position: static; margin: 0; padding: 8px 18px;
+        background: #fff; color: #c0392b; border: 2px solid #c0392b; border-radius: 20px;
+        font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .boton-eliminar:hover { background: #c0392b; color: #fff; }
+    .barra-guardar { display: flex; justify-content: flex-end; margin-top: 32px; margin-bottom: 40px; }
+    .boton-guardar {
+        position: static; margin: 0; padding: 12px 30px;
+        background: #5a7a1e; color: #fff; border: none; border-radius: 24px;
+        font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    .boton-guardar:hover { background: #46611a; }
+
+    .titulo-campo { display: block; margin: 16px 0 6px; font-weight: 700; }
+    .titulo-campo:first-of-type { margin-top: 0; }
+    .titulo-campo .mini { font-weight: 400; font-size: 0.85rem; color: #666; }
+
+    /* Vista previa: así lo verá el estudiante */
+    .vista-previa {
+        margin-top: 8px; padding: 12px 14px; background: #fff; color: #222;
+        border: 2px dashed #c9d6b0; border-radius: 10px; line-height: 1.8; min-height: 1.8em;
+    }
+    .vista-previa.vacia { color: #999; font-style: italic; }
+    .vista-previa .blanco {
+        display: inline-block; min-width: 110px; margin: 0 4px;
+        border-bottom: 3px solid #5a7a1e; background: #eef4e2; vertical-align: baseline;
+    }
+    .aviso-blanco { margin-top: 6px; font-size: 0.85rem; font-weight: 700; color: #b9770e; min-height: 1.2em; }
+
+    .zona-nueva-pregunta { border-top: 3px solid #c9d6b0; margin-top: 8px; padding-top: 22px; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Completar
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+
+    <div class="barra-superior-galeria mb-3">
+        <a href="/crear" class="btn-cancelar" style="text-decoration:none;">← Regresar</a>
+    </div>
+
+    {% if erroresP %}
+    <ul style="color:red;">
+        {% for error in erroresP %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form action="/juegos/completar/crear" method="POST" id="form-plantilla">
+
+        <!-- DATOS DE LA PLANTILLA -->
+        <div class="personalizacion-header mb-5">
+            <label class="form-label">Nombre de la plantilla</label>
+            <input type="text" name="nombre" class="input-gris" maxlength="100" required>
+
+            <label class="form-label">Descripción</label>
+            <textarea name="descripcion" class="input-gris" maxlength="500" required></textarea>
+        </div>
+
+        <div class="ayuda-correcta">
+            <strong>¿Cómo se arma cada pregunta?</strong><br>
+            1. Escribe la oración y pon un guion bajo <strong>_</strong> donde va la palabra que falta.
+            Por ejemplo: "La capital de Nicaragua es _".<br>
+            2. Escribe en el otro campo la respuesta correcta, es decir, lo que va en ese espacio.<br>
+            Solo hace falta <strong>un</strong> guion bajo, y un solo espacio en blanco por pregunta.
+        </div>
+
+        <!-- PREGUNTAS (se agregan dinámicamente) -->
+        <div id="preguntas-container"></div>
+
+        <div class="zona-nueva-pregunta">
+            <button type="button" class="btn-añadir-respuesta" onclick="agregarPregunta()">
+                + Añadir otra pregunta
+            </button>
+        </div>
+
+        <div class="barra-guardar">
+            <button type="submit" class="boton-guardar">Guardar Plantilla</button>
+        </div>
+    </form>
+
+</div>
+
+<!-- Plantilla oculta de una pregunta, se clona con JS -->
+<template id="plantilla-pregunta">
+    <div class="pregunta-columna pregunta-bloque">
+        <div class="cabecera-pregunta">
+            <label class="form-label pregunta-titulo">Pregunta</label>
+            <button type="button" class="boton-eliminar btn-eliminar-pregunta">Eliminar pregunta</button>
+        </div>
+
+        <label class="titulo-campo">Oración <span class="mini">(pon _ donde va la palabra que falta)</span></label>
+        <textarea class="input-gris enunciado" maxlength="300" required
+                  placeholder="Ej: La capital de Nicaragua es _"></textarea>
+
+        <div class="vista-previa vacia"></div>
+        <div class="aviso-blanco"></div>
+
+        <label class="titulo-campo">Respuesta correcta <span class="mini">(lo que va en el espacio en blanco)</span></label>
+        <input type="text" class="input-gris respuesta-correcta" maxlength="200" required placeholder="Ej: Managua">
+    </div>
+</template>
+
+<script>
+    let contadorPreguntas = 0;
+
+    // Cuenta cuántos espacios en blanco tiene la oración (un grupo de guiones bajos seguidos = un espacio)
+    function contarEspacios(texto) {
+        const grupos = texto.match(/_+/g);
+        return grupos ? grupos.length : 0;
+    }
+
+    // Muestra "así lo verá el estudiante" y avisa si falta o sobra algún espacio en blanco
+    function actualizarVistaPrevia(bloque) {
+        const texto = bloque.querySelector('.enunciado').value;
+        const caja = bloque.querySelector('.vista-previa');
+        const aviso = bloque.querySelector('.aviso-blanco');
+        caja.innerHTML = '';
+        aviso.textContent = '';
+
+        if (!texto.trim()) {
+            caja.className = 'vista-previa vacia';
+            caja.textContent = 'Aquí verás cómo lo verá el estudiante.';
+            return;
+        }
+
+        caja.className = 'vista-previa';
+        const partes = texto.split(/_+/);
+        partes.forEach(function (parte, indice) {
+            caja.appendChild(document.createTextNode(parte));
+            if (indice < partes.length - 1) {
+                const hueco = document.createElement('span');
+                hueco.className = 'blanco';
+                hueco.textContent = '\u00a0';
+                caja.appendChild(hueco);
+            }
+        });
+
+        const espacios = partes.length - 1;
+        if (espacios === 0) {
+            aviso.textContent = '⚠ Falta el espacio en blanco: escribe _ donde va la respuesta.';
+        } else if (espacios > 1) {
+            aviso.textContent = '⚠ Usa un solo espacio en blanco por pregunta.';
+        }
+    }
+
+    function agregarPregunta() {
+        contadorPreguntas++;
+        const n = contadorPreguntas;
+
+        const tpl = document.getElementById('plantilla-pregunta').content.cloneNode(true);
+        const bloque = tpl.querySelector('.pregunta-bloque');
+        bloque.dataset.indice = n;
+        bloque.querySelector('.pregunta-titulo').innerText = 'Pregunta ' + n;
+        bloque.querySelector('.enunciado').name = 'pregunta_' + n + '_enunciado';
+        bloque.querySelector('.respuesta-correcta').name = 'pregunta_' + n + '_respuesta';
+
+        bloque.querySelector('.btn-eliminar-pregunta').addEventListener('click', function () {
+            bloque.remove();
+        });
+
+        bloque.querySelector('.enunciado').addEventListener('input', function () {
+            bloque.classList.remove('con-error');
+            actualizarVistaPrevia(bloque);
+        });
+
+        document.getElementById('preguntas-container').appendChild(tpl);
+        actualizarVistaPrevia(bloque);
+    }
+
+    document.getElementById('form-plantilla').addEventListener('submit', function (e) {
+        const bloques = document.querySelectorAll('.pregunta-bloque');
+
+        if (bloques.length === 0) {
+            e.preventDefault();
+            alert('Agrega al menos una pregunta antes de guardar.');
+            return;
+        }
+
+        for (const bloque of bloques) {
+            if (contarEspacios(bloque.querySelector('.enunciado').value) !== 1) {
+                e.preventDefault();
+                bloque.classList.add('con-error');
+                bloque.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                alert('Cada pregunta necesita un espacio en blanco: escribe _ donde va la respuesta, en: '
+                      + bloque.querySelector('.pregunta-titulo').innerText);
+                return;
+            }
+        }
+    });
+
+    agregarPregunta();
+</script>
+{% endblock %}

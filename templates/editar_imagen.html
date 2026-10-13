@@ -18,6 +18,8 @@ header-galeria
 {% endblock %}
 
 {% block body %}
+{# archivo: (id_archivo, nombre, descripcion, url, categoria_id, tipo,
+            fecha_creacion, fecha_modificacion, administrador_id, estado) #}
 <div class="container content">
     
     <!-- BARRA SUPERIOR: Botón de regresar a la galería -->
@@ -29,50 +31,76 @@ header-galeria
 
     <!-- CONTENEDOR DEL FORMULARIO -->
     <div class="formulario-edicion shadow-sm">
-        <h2 class="titulo-seccion mb-4" style="text-align: center;">Actualizar Fotografía</h2>
+        <h2 class="titulo-seccion mb-4" style="text-align: center;">Actualizar Imagen o Video</h2>
+
+        <!-- Errores de validación que manda el backend -->
+        {% if erroresD %}
+        <ul style="color: red;">
+            {% for error in erroresD %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
         
-        <form action="#" method="POST" enctype="multipart/form-data" class="form-ancestra">
+        <form action="{{ url_for('editar_imagen', id_archivo=archivo[0]) }}" method="POST" enctype="multipart/form-data" class="form-ancestra">
             
-            <!-- Campo: Título -->
+            <!-- Campo: Nombre -->
             <div class="form-group">
-                <label for="titulo" class="form-label">Título de la Imagen</label>
-                {# El value real será algo como value="{{ imagen.titulo }}" #}
-                <input type="text" id="titulo" name="titulo" class="form-input" placeholder="Ej: Danza folclórica" value="Procesión de San Jerónimo" required>
+                <label for="nombre" class="form-label">Título</label>
+                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" value="{{ archivo[1] }}" required>
             </div>
 
-            <!-- Campo: Álbum / Categoría -->
+            <!-- Campo: Tipo (imagen o video) -->
             <div class="form-group">
-                <label for="album" class="form-label">Álbum</label>
-                <select id="album" name="album" class="form-input">
-                    <!-- Las opciones coinciden con los álbumes de tu galeria.html -->
-                    <option value="Lugares típicos">Lugares típicos</option>
-                    <option value="Tradiciones" selected>Tradiciones</option>
-                    <option value="Otros">Otros</option>
+                <label for="tipo" class="form-label">Tipo</label>
+                <select id="tipo" name="tipo" class="form-input" required>
+                    <option value="imagen" {% if archivo[5] == 'imagen' %}selected{% endif %}>Imagen</option>
+                    <option value="video" {% if archivo[5] == 'video' %}selected{% endif %}>Video</option>
+                </select>
+            </div>
+
+            <!-- Campo: Álbum / Categoría (viene de la tabla categorias) -->
+            <div class="form-group">
+                <label for="categoria" class="form-label">Álbum</label>
+                <select id="categoria" name="categoria" class="form-input" required>
+                    {% for c in categ %}
+                    {# c: (id_categoria, nombre_categoria) #}
+                    <option value="{{ c[0] }}" {% if c[0] == archivo[4] %}selected{% endif %}>{{ c[1] }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
             <!-- Campo: Descripción -->
             <div class="form-group">
                 <label for="descripcion" class="form-label">Descripción o Historia</label>
-                {# Aquí también irá la variable en el futuro #}
-                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" placeholder="Detalles o contexto de la fotografía...">Fotografía histórica tomada durante las festividades patronales en Masaya...</textarea>
+                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" maxlength="500" required>{{ archivo[2] }}</textarea>
             </div>
 
-            <!-- Campo: Reemplazar Imagen -->
+            <!-- Campo: Estado (activar / desactivar) -->
             <div class="form-group">
-                <label for="imagen" class="form-label">Reemplazar Fotografía (Opcional)</label>
+                <label for="estado" class="form-label">Estado</label>
+                <select id="estado" name="estado" class="form-input">
+                    <option value="activo" {% if archivo[9] == 'activo' %}selected{% endif %}>Activo</option>
+                    <option value="inactivo" {% if archivo[9] == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+
+            <!-- Campo: Reemplazar archivo -->
+            <div class="form-group">
+                <label for="URL" class="form-label">Reemplazar archivo (Opcional)</label>
                 
-                <!-- Miniatura de la imagen actual como referencia visual -->
+                <!-- Vista previa del archivo actual -->
                 <div class="archivo-actual mb-3" style="text-align: center; padding: 10px; background-color: #f1f1f1; border-radius: 8px;">
-                    <span style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 8px;">Imagen actual:</span>
-                    <!-- Cuando conecten la BD, aquí irá la ruta real de la imagen en el src -->
-                    <div style="width: 80px; height: 80px; background-color: #ddd; border-radius: 5px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                        📸
-                    </div>
+                    <span style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 8px;">Archivo actual:</span>
+                    {% set ruta = url_for('static', filename=archivo[3].split('static/')[1]) %}
+                    {% if archivo[5] == 'video' %}
+                    <video src="{{ ruta }}" controls style="max-width: 200px; max-height: 150px; border-radius: 5px;"></video>
+                    {% else %}
+                    <img src="{{ ruta }}" alt="{{ archivo[1] }}" style="max-width: 200px; max-height: 150px; border-radius: 5px;">
+                    {% endif %}
                 </div>
 
-                <!-- accept="image/*" fuerza al navegador a buscar solo archivos de imagen -->
-                <input type="file" id="imagen" name="imagen" class="form-input-file" accept="image/png, image/jpeg, image/webp">
+                <input type="file" id="URL" name="URL" class="form-input-file" accept=".png,.jpg,.jpeg,.svg,.mp4,.webm">
             </div>
 
             <!-- BOTONES DE ACCIÓN -->

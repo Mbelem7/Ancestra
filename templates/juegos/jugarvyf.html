@@ -1,0 +1,261 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>{{ juego[1] }}</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    [hidden] { display: none !important; }
+
+    .pj-partida { max-width: 720px; margin: 30px auto; }
+    .pj-tarjeta { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 28px; }
+
+    .pj-cabecera { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 10px; }
+    .pj-segundos { font-size: 1.6rem; color: #2f4a0c; min-width: 3ch; text-align: right; }
+    .pj-segundos.urgente { color: #c0392b; }
+    .pj-barra { height: 12px; background: #e3e8d6; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .pj-barra-relleno { height: 100%; width: 100%; background: #5a7a1e; transition: width .25s linear, background .3s; }
+    .pj-barra-relleno.urgente { background: #c0392b; }
+
+    .pj-enunciado { font-size: 1.4rem; margin: 0 0 22px; line-height: 1.35; }
+    .pj-opcion {
+        display: block; width: 100%; text-align: left; padding: 16px 18px; margin-bottom: 12px;
+        font-size: 1.05rem; font-family: inherit; background: #fff; color: #222;
+        border: 2px solid #c9d6b0; border-radius: 12px; cursor: pointer;
+    }
+    .pj-opcion:hover:not(:disabled) { border-color: #5a7a1e; background: #f1f7e4; }
+    .pj-opcion.elegida { border-color: #5a7a1e; background: #e4f1cf; font-weight: 700; }
+    .pj-opcion:disabled { cursor: default; }
+
+    /* Verdadero y Falso: dos botones grandes, lado a lado */
+    #opciones.dos-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    #opciones.dos-opciones .pj-opcion { margin-bottom: 0; text-align: center; font-size: 1.25rem; font-weight: 700; padding: 22px 12px; }
+    @media (max-width: 480px) { #opciones.dos-opciones { grid-template-columns: 1fr; } }
+    .pj-aviso-tiempo { text-align: center; color: #c0392b; font-weight: 700; margin-top: 10px; }
+
+    .pj-centrado { text-align: center; }
+    .pj-puntaje { font-size: 3.2rem; font-weight: 700; color: #2f4a0c; margin: 6px 0; }
+    .pj-aviso-guardado { font-size: 0.9rem; color: #555; margin: 4px 0 0; }
+    .pj-detalle { list-style: none; padding: 0; margin: 24px 0; text-align: left; }
+    .pj-detalle li { border: 2px solid #c9d6b0; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; background: #fff; }
+    .pj-detalle li.acierto { border-color: #5a7a1e; background: #eef6df; }
+    .pj-detalle li.fallo { border-color: #c0392b; background: #fdf0ee; }
+    .pj-detalle .pregunta { font-weight: 700; margin-bottom: 4px; }
+    .pj-detalle .linea { font-size: 0.92rem; color: #444; }
+    .pj-acciones { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+{{ juego[1] }}
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+    {# Las preguntas viajan en un atributo (JSON) y NO incluyen cuál respuesta es la correcta #}
+    <div class="pj-partida" id="partida"
+         data-preguntas='{{ preguntas | tojson }}'
+         data-tiempo="{{ tiempo }}"
+         data-resultado-url="{{ url_for('jugar_resultado', id_plantilla=id_plantilla) }}">
+
+        <!-- PREGUNTA ACTUAL -->
+        <div class="pj-tarjeta" id="pantalla-pregunta">
+            <div class="pj-cabecera">
+                <span id="contador-pregunta"></span>
+                <span class="pj-segundos" id="segundos"></span>
+            </div>
+            <div class="pj-barra"><div class="pj-barra-relleno" id="barra"></div></div>
+            <h2 class="pj-enunciado" id="enunciado"></h2>
+            <div id="opciones"></div>
+            <div class="pj-aviso-tiempo" id="aviso-tiempo" hidden>⏱ Se acabó el tiempo</div>
+        </div>
+
+        <!-- CALCULANDO -->
+        <div class="pj-tarjeta pj-centrado" id="pantalla-cargando" hidden>
+            <p>Calculando tu puntaje...</p>
+        </div>
+
+        <!-- ERROR AL ENVIAR -->
+        <div class="pj-tarjeta pj-centrado" id="pantalla-error" hidden>
+            <p>No se pudo calcular tu puntaje. Revisa tu conexión.</p>
+            <button type="button" class="btn-guardar" id="btn-reintentar">Reintentar</button>
+        </div>
+
+        <!-- RESULTADO -->
+        <div class="pj-tarjeta" id="pantalla-resultado" hidden>
+            <div class="pj-centrado">
+                <h2>¡Terminaste!</h2>
+                <div class="pj-puntaje" id="puntaje"></div>
+                <p id="aciertos"></p>
+                <p class="pj-aviso-guardado" id="aviso-guardado"></p>
+            </div>
+            <ul class="pj-detalle" id="detalle"></ul>
+            <div class="pj-acciones">
+                <a href="{{ url_for('index') }}" class="btn-guardar" style="text-decoration:none;">Volver al inicio</a>
+                <a href="/jugar" class="btn-guardar" style="text-decoration:none;">Usar otro código</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const contenedor = document.getElementById('partida');
+    const preguntas = JSON.parse(contenedor.dataset.preguntas);
+    const TIEMPO = parseInt(contenedor.dataset.tiempo, 10);
+    const URL_RESULTADO = contenedor.dataset.resultadoUrl;
+
+    let indice = 0;
+    let respuestas = {};   // id de la pregunta -> id de la respuesta elegida (null = no alcanzó a responder)
+    let reloj = null;
+    let bloqueado = false;
+
+    function mostrar(idPantalla) {
+        ['pantalla-pregunta', 'pantalla-cargando', 'pantalla-error', 'pantalla-resultado'].forEach(function (id) {
+            document.getElementById(id).hidden = (id !== idPantalla);
+        });
+    }
+
+    function mostrarPregunta() {
+        const pregunta = preguntas[indice];
+        bloqueado = false;
+        document.getElementById('aviso-tiempo').hidden = true;
+        document.getElementById('contador-pregunta').textContent = 'Pregunta ' + (indice + 1) + ' de ' + preguntas.length;
+        document.getElementById('enunciado').textContent = pregunta.enunciado;
+
+        const cajaOpciones = document.getElementById('opciones');
+        cajaOpciones.innerHTML = '';
+        // En Verdadero y Falso las dos opciones van siempre en el mismo orden (Verdadero, Falso)
+        cajaOpciones.className = pregunta.opciones.length === 2 ? 'dos-opciones' : '';
+        pregunta.opciones.forEach(function (opcion) {
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.className = 'pj-opcion';
+            boton.textContent = opcion.texto;
+            boton.addEventListener('click', function () { responder(opcion.id, boton); });
+            cajaOpciones.appendChild(boton);
+        });
+
+        iniciarReloj();
+    }
+
+    function pintarTiempo(restanteMs) {
+        const segundos = Math.max(0, Math.ceil(restanteMs / 1000));
+        const urgente = segundos <= 5;
+        const textoSegundos = document.getElementById('segundos');
+        const barra = document.getElementById('barra');
+        textoSegundos.textContent = segundos + ' s';
+        textoSegundos.classList.toggle('urgente', urgente);
+        barra.style.width = Math.max(0, restanteMs / (TIEMPO * 1000) * 100) + '%';
+        barra.classList.toggle('urgente', urgente);
+    }
+
+    function iniciarReloj() {
+        clearInterval(reloj);
+        const fin = Date.now() + TIEMPO * 1000;
+        pintarTiempo(TIEMPO * 1000);
+        reloj = setInterval(function () {
+            const restante = fin - Date.now();
+            pintarTiempo(restante);
+            if (restante <= 0) {
+                clearInterval(reloj);
+                responder(null, null);   // se acabó el tiempo
+            }
+        }, 200);
+    }
+
+    function responder(idRespuesta, boton) {
+        if (bloqueado) return;
+        bloqueado = true;
+        clearInterval(reloj);
+
+        respuestas[preguntas[indice].id] = idRespuesta;
+
+        document.querySelectorAll('.pj-opcion').forEach(function (b) { b.disabled = true; });
+        if (boton) {
+            boton.classList.add('elegida');
+        } else {
+            document.getElementById('aviso-tiempo').hidden = false;
+        }
+
+        // Sea buena, mala o sin responder: pasa a la siguiente pregunta
+        setTimeout(siguiente, boton ? 500 : 1200);
+    }
+
+    function siguiente() {
+        indice++;
+        if (indice < preguntas.length) {
+            mostrarPregunta();
+        } else {
+            terminar();
+        }
+    }
+
+    // Al terminar, el SERVIDOR califica (así nadie puede cambiar su nota desde el navegador)
+    function terminar() {
+        mostrar('pantalla-cargando');
+        fetch(URL_RESULTADO, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ respuestas: respuestas })
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('Respuesta no válida');
+            return r.json();
+        })
+        .then(mostrarResultado)
+        .catch(function () { mostrar('pantalla-error'); });
+    }
+
+    function mostrarResultado(datos) {
+        document.getElementById('puntaje').textContent = datos.puntaje + ' / ' + datos.maximo;
+        document.getElementById('aciertos').textContent =
+            'Acertaste ' + datos.aciertos + ' de ' + datos.total + ' preguntas.';
+
+        const aviso = document.getElementById('aviso-guardado');
+        if (datos.guardado) {
+            aviso.textContent = '✔ Tu resultado quedó guardado.';
+        } else if (datos.es_estudiante) {
+            aviso.textContent = '⚠ No se pudo guardar tu resultado. Avísale a tu docente.';
+        } else {
+            aviso.textContent = 'Modo prueba: este resultado no se guarda (solo se guardan los de estudiantes).';
+        }
+
+        const lista = document.getElementById('detalle');
+        lista.innerHTML = '';
+        datos.detalle.forEach(function (d, i) {
+            const item = document.createElement('li');
+            item.className = d.acerto ? 'acierto' : 'fallo';
+
+            const titulo = document.createElement('div');
+            titulo.className = 'pregunta';
+            titulo.textContent = (d.acerto ? '✔ ' : (d.tu_respuesta === null ? '⏱ ' : '✘ ')) + (i + 1) + '. ' + d.enunciado;
+            item.appendChild(titulo);
+
+            const tuya = document.createElement('div');
+            tuya.className = 'linea';
+            tuya.textContent = d.tu_respuesta === null ? 'No respondiste a tiempo.' : 'Tu respuesta: ' + d.tu_respuesta;
+            item.appendChild(tuya);
+
+            if (!d.acerto) {
+                const correcta = document.createElement('div');
+                correcta.className = 'linea';
+                correcta.textContent = 'Respuesta correcta: ' + d.correcta;
+                item.appendChild(correcta);
+            }
+            lista.appendChild(item);
+        });
+
+        mostrar('pantalla-resultado');
+    }
+
+    document.getElementById('btn-reintentar').addEventListener('click', terminar);
+
+    mostrarPregunta();
+</script>
+{% endblock %}
