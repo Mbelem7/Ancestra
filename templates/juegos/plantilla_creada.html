@@ -8,9 +8,25 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 <style>
     /* Tarjeta centrada con el código en grande */
+    /* Botón para volver a "Mis plantillas", alineado con el borde de la tarjeta */
+    .columna-codigo { max-width: 708px; margin: 0 auto; }
+    .barra-regresar { margin: 28px 0 0; }
+    .boton-regresar {
+        display: inline-block;
+        padding: 9px 20px;
+        background: #fff;
+        color: #5a7a1e;
+        border: 2px solid #5a7a1e;
+        border-radius: 24px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+    }
+    .boton-regresar:hover { background: #5a7a1e; color: #fff; }
+
     .tarjeta-codigo {
         max-width: 640px;
-        margin: 40px auto;
+        margin: 16px 0 40px;
         padding: 40px 32px;
         text-align: center;
         background: #fafcf6;
@@ -52,6 +68,20 @@
         cursor: pointer;
     }
     .btn-copiar:hover { background: #5a7a1e; color: #fff; }
+    .boton-principal {
+        display: inline-block;
+        position: static;
+        margin: 0;
+        padding: 10px 22px;
+        background: #5a7a1e;
+        color: #fff;
+        border: 2px solid #5a7a1e;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 1rem;
+        text-decoration: none;
+    }
+    .boton-principal:hover { background: #46611a; border-color: #46611a; }
 </style>
 {% endblock %}
 
@@ -65,6 +95,11 @@ header-crear
 
 {% block body %}
 <div class="container content">
+  <div class="columna-codigo">
+    <div class="barra-regresar">
+        <a href="{{ url_for('mis_plantillas') }}" class="boton-regresar">← Regresar a Mis plantillas</a>
+    </div>
+
     <div class="tarjeta-codigo">
         <p class="titulo-exito">Tu plantilla "<strong>{{ nombre }}</strong>" ya está lista.</p>
         <p class="instruccion">Comparte este código con tus estudiantes para que puedan jugarla:</p>
@@ -73,9 +108,10 @@ header-crear
 
         <div class="acciones">
             <button type="button" class="btn-copiar" id="btn-copiar">📋 Copiar código</button>
-            <a href="/crear" class="btn-guardar" style="text-decoration:none;">Crear otra plantilla</a>
+            <a href="/crear" class="boton-principal">Crear otra plantilla</a>
         </div>
     </div>
+  </div>
 </div>
 
 <script>

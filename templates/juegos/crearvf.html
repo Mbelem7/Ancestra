@@ -13,13 +13,15 @@
         border-radius: 14px;
         padding: 18px 20px;
         background: #fafcf6;
+        color: #222;
         margin-bottom: 28px;
     }
     .pregunta-bloque.sin-correcta { border-color: #c0392b; background: #fdf0ee; }
 
-    /* Cuadro de ayuda: explica cómo marcar la respuesta */
+    /* Cuadro de ayuda: explica cómo se arma cada pregunta */
     .ayuda-correcta {
         background: #eef4e2;
+        color: #222;
         border-left: 5px solid #5a7a1e;
         border-radius: 8px;
         padding: 12px 16px;
@@ -27,52 +29,48 @@
         font-size: 0.95rem;
     }
 
-    /* Títulos de las columnas de respuestas */
-    .cabecera-respuestas {
+    /* Las dos opciones fijas: Verdadero y Falso */
+    .titulo-opciones { margin: 18px 0 10px; font-weight: 700; }
+    .titulo-opciones .mini { font-weight: 400; font-size: 0.85rem; color: #666; }
+    .opciones-vf { display: flex; gap: 14px; flex-wrap: wrap; }
+    .opcion-vf {
+        flex: 1 1 200px;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 12px;
-        font-weight: 700;
-        font-size: 0.85rem;
-        margin: 16px 0 6px;
-        padding: 0 8px;
-    }
-    .cabecera-respuestas .col-marca  { width: 110px; text-align: center; }
-    .cabecera-respuestas .col-texto  { flex: 1; }
-    .cabecera-respuestas .col-estado { width: 100px; }
-
-    /* Una respuesta: círculo + texto + etiqueta de lo que quedará guardado */
-    .respuesta-fila {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 6px 8px;
-        border: 2px solid transparent;
-        border-radius: 10px;
-        margin-bottom: 8px;
-    }
-    .respuesta-fila .col-radio { width: 110px; display: flex; justify-content: center; margin: 0; }
-    .respuesta-fila .radio-correcta { width: 24px; height: 24px; accent-color: #5a7a1e; cursor: pointer; margin: 0; }
-    .respuesta-fila .respuesta-texto { flex: 1; width: auto; margin: 0; }
-    .respuesta-fila .badge-estado { width: 100px; font-size: 0.8rem; font-weight: 700; color: #8a8a8a; }
-
-    /* La respuesta marcada se pinta de verde */
-    .respuesta-fila.es-correcta { background: #e4f1cf; border-color: #5a7a1e; }
-    .respuesta-fila.es-correcta .badge-estado { color: #3d5a10; }
-
-    /* Botón chico para añadir una respuesta DENTRO de la pregunta */
-    .btn-mini-respuesta {
+        padding: 16px;
+        margin: 0;
         background: #fff;
-        color: #5a7a1e;
-        border: 2px solid #5a7a1e;
-        border-radius: 20px;
-        padding: 6px 16px;
+        color: #222;
+        border: 2px solid #c9d6b0;
+        border-radius: 12px;
+        font-size: 1.1rem;
         font-weight: 700;
-        font-size: 0.85rem;
         cursor: pointer;
-        margin-top: 6px;
     }
-    .btn-mini-respuesta:hover { background: #5a7a1e; color: #fff; }
+    .opcion-vf:hover { border-color: #5a7a1e; }
+    .opcion-vf input { width: 22px; height: 22px; accent-color: #5a7a1e; cursor: pointer; margin: 0; }
+    .opcion-vf.es-correcta { background: #e4f1cf; border-color: #5a7a1e; color: #2f4a0c; }
+    .opcion-vf .etiqueta-correcta { display: none; font-size: 0.78rem; font-weight: 700; color: #3d5a10; }
+    .opcion-vf.es-correcta .etiqueta-correcta { display: inline; }
+
+    /* Espaciado y botones propios: no dependen de clases de utilidad (d-flex, mt-5...) que el CSS del sitio no define */
+    .cabecera-pregunta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .cabecera-pregunta .form-label { margin: 0; }
+    .boton-eliminar {
+        position: static; margin: 0; padding: 8px 18px;
+        background: #fff; color: #c0392b; border: 2px solid #c0392b; border-radius: 20px;
+        font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .boton-eliminar:hover { background: #c0392b; color: #fff; }
+    .barra-guardar { display: flex; justify-content: flex-end; margin-top: 32px; margin-bottom: 40px; }
+    .boton-guardar {
+        position: static; margin: 0; padding: 12px 30px;
+        background: #5a7a1e; color: #fff; border: none; border-radius: 24px;
+        font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    .boton-guardar:hover { background: #46611a; }
 
     /* Zona separada para añadir otra pregunta */
     .zona-nueva-pregunta { border-top: 3px solid #c9d6b0; margin-top: 8px; padding-top: 22px; }
@@ -114,10 +112,9 @@ header-crear
 
         <div class="ayuda-correcta">
             <strong>¿Cómo se arma cada pregunta?</strong><br>
-            1. Escribe la pregunta.<br>
-            2. Escribe las respuestas.<br>
-            3. Marca con el círculo cuál es la <strong>VERDADERA</strong> (solo una).<br>
-            Las demás se guardan automáticamente como <strong>FALSAS</strong>.
+            1. Escribe una afirmación. Por ejemplo: "Managua es la capital de Nicaragua".<br>
+            2. Marca si la afirmación es <strong>Verdadera</strong> o <strong>Falsa</strong>.<br>
+            El estudiante verá la afirmación con dos opciones, Verdadero y Falso, y tendrá que elegir una.
         </div>
 
         <div id="preguntas-container"></div>
@@ -128,8 +125,8 @@ header-crear
             </button>
         </div>
 
-        <div class="d-flex justify-content-end mt-5">
-            <button type="submit" class="btn-guardar">Guardar Plantilla</button>
+        <div class="barra-guardar">
+            <button type="submit" class="boton-guardar">Guardar Plantilla</button>
         </div>
     </form>
 
@@ -137,92 +134,64 @@ header-crear
 
 <template id="plantilla-pregunta">
     <div class="pregunta-columna pregunta-bloque">
-        <div class="d-flex justify-content-between">
+        <div class="cabecera-pregunta">
             <label class="form-label pregunta-titulo">Pregunta</label>
-            <button type="button" class="btn-cancelar btn-eliminar-pregunta" style="border:none;cursor:pointer;">
-                Eliminar pregunta
-            </button>
+            <button type="button" class="boton-eliminar btn-eliminar-pregunta">Eliminar pregunta</button>
         </div>
-        <textarea class="input-gris enunciado" maxlength="300" required placeholder="Escribe la pregunta..."></textarea>
+        <textarea class="input-gris enunciado" maxlength="300" required
+                  placeholder="Escribe una afirmación. Ej: Managua es la capital de Nicaragua"></textarea>
 
-        <div class="cabecera-respuestas">
-            <span class="col-marca">¿Verdadera?</span>
-            <span class="col-texto">Respuestas</span>
-            <span class="col-estado"></span>
+        <div class="titulo-opciones">¿La afirmación es verdadera o falsa? <span class="mini">(marca la respuesta correcta)</span></div>
+        <div class="opciones-vf">
+            <label class="opcion-vf">
+                <input type="radio" class="radio-correcta" value="1">
+                <span>Verdadero</span>
+                <span class="etiqueta-correcta">✔ Correcta</span>
+            </label>
+            <label class="opcion-vf">
+                <input type="radio" class="radio-correcta" value="2">
+                <span>Falso</span>
+                <span class="etiqueta-correcta">✔ Correcta</span>
+            </label>
         </div>
-        <div class="respuestas-container"></div>
 
-        <button type="button" class="btn-mini-respuesta btn-añadir-respuesta-individual">
-            + Añadir respuesta
-        </button>
-    </div>
-</template>
-
-<template id="plantilla-respuesta">
-    <div class="respuesta-fila">
-        <label class="col-radio" title="Marcar como respuesta verdadera">
-            <input type="radio" class="radio-correcta">
-        </label>
-        <input type="text" class="input-gris respuesta-texto" maxlength="200"
-               placeholder="Escribe una respuesta" required>
-        <span class="badge-estado">✘ Falsa</span>
+        <!-- Las dos respuestas son siempre estas; el servidor también las fija -->
+        <input type="hidden" class="resp-verdadero" value="Verdadero">
+        <input type="hidden" class="resp-falso" value="Falso">
     </div>
 </template>
 
 <script>
     let contadorPreguntas = 0;
 
-    // Pinta de verde la respuesta marcada y escribe en cada fila cómo quedará guardada
-    function actualizarMarcas(bloque) {
-        bloque.querySelectorAll('.respuesta-fila').forEach(function (fila) {
-            const marcada = fila.querySelector('.radio-correcta').checked;
-            fila.classList.toggle('es-correcta', marcada);
-            fila.querySelector('.badge-estado').textContent = marcada ? '✔ Verdadera' : '✘ Falsa';
-        });
-        bloque.classList.remove('sin-correcta');
-    }
-
     function agregarPregunta() {
         contadorPreguntas++;
+        const n = contadorPreguntas;
 
         const tplPregunta = document.getElementById('plantilla-pregunta').content.cloneNode(true);
         const bloque = tplPregunta.querySelector('.pregunta-bloque');
-        bloque.dataset.indice = contadorPreguntas;
-        bloque.querySelector('.pregunta-titulo').innerText = 'Pregunta ' + contadorPreguntas;
-        bloque.querySelector('.enunciado').name = 'pregunta_' + contadorPreguntas + '_enunciado';
+        bloque.dataset.indice = n;
+        bloque.querySelector('.pregunta-titulo').innerText = 'Pregunta ' + n;
+        bloque.querySelector('.enunciado').name = 'pregunta_' + n + '_enunciado';
+        bloque.querySelector('.resp-verdadero').name = 'pregunta_' + n + '_respuesta_1';
+        bloque.querySelector('.resp-falso').name = 'pregunta_' + n + '_respuesta_2';
+        bloque.querySelectorAll('.radio-correcta').forEach(function (radio) {
+            radio.name = 'correcta_pregunta_' + n;
+        });
 
         bloque.querySelector('.btn-eliminar-pregunta').addEventListener('click', function () {
             bloque.remove();
         });
 
-        bloque.querySelector('.btn-añadir-respuesta-individual').addEventListener('click', function () {
-            agregarRespuesta(bloque, contadorPreguntas);
-        });
-
-        // Cada vez que se marca un círculo, se actualizan los colores y las etiquetas
-        bloque.querySelector('.respuestas-container').addEventListener('change', function () {
-            actualizarMarcas(bloque);
+        // Al marcar una opción, se pinta de verde y se quita el aviso de error
+        bloque.addEventListener('change', function () {
+            bloque.querySelectorAll('.opcion-vf').forEach(function (etiqueta) {
+                etiqueta.classList.toggle('es-correcta', etiqueta.querySelector('input').checked);
+            });
+            bloque.classList.remove('sin-correcta');
         });
 
         document.getElementById('preguntas-container').appendChild(tplPregunta);
-
-        agregarRespuesta(bloque, contadorPreguntas);
-        agregarRespuesta(bloque, contadorPreguntas);
-    }
-
-    function agregarRespuesta(bloque, indicePregunta) {
-        const contenedor = bloque.querySelector('.respuestas-container');
-        const numRespuesta = contenedor.querySelectorAll('.respuesta-fila').length + 1;
-
-        const tplRespuesta = document.getElementById('plantilla-respuesta').content.cloneNode(true);
-        const radio = tplRespuesta.querySelector('.radio-correcta');
-        const texto = tplRespuesta.querySelector('.respuesta-texto');
-
-        radio.name = 'correcta_pregunta_' + indicePregunta;
-        radio.value = numRespuesta;
-        texto.name = 'pregunta_' + indicePregunta + '_respuesta_' + numRespuesta;
-
-        contenedor.appendChild(tplRespuesta);
     }
 
     document.getElementById('form-plantilla').addEventListener('submit', function (e) {
@@ -235,13 +204,11 @@ header-crear
         }
 
         for (const bloque of bloques) {
-
-            const marcada = bloque.querySelector('.radio-correcta:checked');
-            if (!marcada) {
+            if (!bloque.querySelector('.radio-correcta:checked')) {
                 e.preventDefault();
                 bloque.classList.add('sin-correcta');
                 bloque.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                alert('Falta marcar cuál es la respuesta verdadera en: ' + bloque.querySelector('.pregunta-titulo').innerText);
+                alert('Falta marcar si la afirmación es verdadera o falsa en: ' + bloque.querySelector('.pregunta-titulo').innerText);
                 return;
             }
         }

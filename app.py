@@ -30,9 +30,17 @@ DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Evita errores y esperas largas por conexiones que se cortan cuando llevan un rato sin usarse
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,   # antes de usar una conexión, comprueba que siga viva y la reconecta si no
-    'pool_recycle': 280,     # renueva las conexiones cada ~5 minutos
+    'pool_pre_ping': True,        # antes de usar una conexión, comprueba que siga viva
+    'pool_recycle': 280,          # renueva las conexiones cada ~5 minutos
+    'connect_args': {
+        'keepalives': 1,              # envía señales para que la red no cierre la conexión por inactividad
+        'keepalives_idle': 10,        # primera señal tras 10 s sin uso
+        'keepalives_interval': 5,     # y luego una cada 5 s
+        'keepalives_count': 3,
+        'connect_timeout': 10,        # si no logra conectar en 10 s, falla en vez de quedarse esperando
+    },
 }
 
 # 4. Inicializar la base de datos con tu app
@@ -66,6 +74,7 @@ from modulos.administrador import *
 import random
 import string
 import re
+import uuid
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -297,6 +306,23 @@ def admin_docente_estado(id_docente):
         actualizar_estado_verificacion(id_docente, nuevo_estado)
     return redirect(url_for('admin_docentes'))
 
+@app.route('/admin/docentes/<int:id_docente>')
+@rol_requerido('administrador')
+def admin_docente_detalle(id_docente):
+    docente = obtener_docente_detalle(id_docente)
+    # docente: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1,
+    #           apellido_2, fecha_nacimiento, correo, estado, fecha_creacion)
+    if not docente:
+        return redirect(url_for('admin_docentes'))
+
+    edad = None
+    nacimiento = docente[7]
+    if nacimiento:
+        hoy = date.today()
+        edad = hoy.year - nacimiento.year - ((hoy.month, hoy.day) < (nacimiento.month, nacimiento.day))
+
+    return render_template('admin_docente_detalle.html', d=docente, edad=edad)
+
 ########################################################################
 # PÁGINA PRINCIPAL
 @app.route("/")
@@ -321,6 +347,13 @@ app.config['UPLOAD_FOLDER_DOCS'] = UPLOAD_FOLDER_DOC
 
 def allowed_file_documento(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_DOC
+
+#NOMBRE ÚNICO PARA LOS ARCHIVOS SUBIDOS
+def nombre_archivo_unico(nombre_original):
+    # Mantiene la extensión y agrega un código único, para que dos archivos con el mismo nombre no se pisen
+    extension = nombre_original.rsplit('.', 1)[1].lower() if '.' in nombre_original else ''
+    base = secure_filename(nombre_original.rsplit('.', 1)[0]) or 'archivo'
+    return f"{uuid.uuid4().hex[:8]}_{base}.{extension}"
 
 #CODIGO DE ACCESO PARA LOS JUEGOS
 def generar_codigo_acceso():
@@ -391,7 +424,7 @@ def crear_documento():
             categorias = mostrar_categorias()
             return render_template('crear_documento.html', erroresD=erroresD, categ=categorias)
  
-        filename = secure_filename(file.filename)
+        filename = nombre_archivo_unico(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER_DOCS'], filename)
         file.save(filepath)
         URLfile = f"{app.config['UPLOAD_FOLDER_DOCS']}/{filename}"
@@ -446,7 +479,7 @@ def editar_documento(id_archivo):
  
         # Si no suben un archivo nuevo, se mantiene la URL que ya tenía
         if file and file.filename and allowed_file_documento(file.filename):
-            filename = secure_filename(file.filename)
+            filename = nombre_archivo_unico(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER_DOCS'], filename)
             file.save(filepath)
             URLfile = f"{app.config['UPLOAD_FOLDER_DOCS']}/{filename}"
@@ -537,7 +570,7 @@ def crear_imagen():
             categorias = mostrar_categorias()
             return render_template('crear_imagen.html', erroresD=erroresD, categ=categorias)
  
-        filename = secure_filename(file.filename)
+        filename = nombre_archivo_unico(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER_IMG'], filename)
         file.save(filepath)
         URLfile = f"{app.config['UPLOAD_FOLDER_IMG']}/{filename}"
@@ -592,7 +625,7 @@ def editar_imagen(id_archivo):
  
         # Si no suben un archivo nuevo, se mantiene la URL que ya tenía
         if file and file.filename and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            filename = nombre_archivo_unico(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER_IMG'], filename)
             file.save(filepath)
             URLfile = f"{app.config['UPLOAD_FOLDER_IMG']}/{filename}"
@@ -817,16 +850,11 @@ def crear_vf():
             if not enunciado:
                 erroresP.append(f"La pregunta {i} no puede estar vacía.")
  
-            respuestas = []
-            j = 1
-            while request.form.get(f'pregunta_{i}_respuesta_{j}') is not None:
-                respuestas.append(request.form.get(f'pregunta_{i}_respuesta_{j}'))
-                j += 1
- 
-            if len(respuestas) < 2:
-                erroresP.append(f"La pregunta {i} necesita al menos 2 respuestas.")
-            if not correcta or not correcta.isdigit() or int(correcta) > len(respuestas) or int(correcta) < 1:
-                erroresP.append(f"Falta marcar la respuesta verdadera en la pregunta {i}.")
+            # En verdadero y falso las respuestas son siempre estas dos (no las escribe el docente)
+            respuestas = ['Verdadero', 'Falso']
+
+            if correcta not in ('1', '2'):
+                erroresP.append(f"Falta marcar si la afirmación {i} es verdadera o falsa.")
  
             preguntas.append({
                 'enunciado': enunciado,
@@ -976,6 +1004,8 @@ def crear_completar():
  
             if not enunciado:
                 erroresP.append(f"La pregunta {i} no puede estar vacía.")
+            elif len(re.findall(r'_+', enunciado)) != 1:
+                erroresP.append(f"La pregunta {i} debe tener un espacio en blanco: escribe _ donde va la respuesta.")
             if not respuesta:
                 erroresP.append(f"Falta la respuesta correcta en la pregunta {i}.")
  
@@ -1086,6 +1116,39 @@ def mis_plantillas():
     plantillas = obtener_plantillas_resumen(docente_id)
     return render_template('juegos/mis_plantillas.html', plantillas=plantillas)
 
+#VER UNA PLANTILLA CON SUS PREGUNTAS Y RESPUESTAS
+@app.route('/mis-plantillas/<int:id_plantilla>')
+@puede_crear_plantillas
+def ver_plantilla(id_plantilla):
+    plantilla = obtener_una_plantilla(id_plantilla)
+    # plantilla: (id_plantilla, codigo_acceso, fecha_creacion, fecha_modificacion,
+    #             juego_id, docente_id, administrador_id)
+    if not plantilla:
+        return redirect(url_for('mis_plantillas'))
+
+    # Un docente solo puede ver SUS plantillas (aquí se muestran las respuestas correctas);
+    # el administrador puede ver todas
+    docente_id, _ = ids_de_creador()
+    if session.get('tipo') != 'administrador' and plantilla[5] != docente_id:
+        return render_template('acceso_denegado.html'), 403
+
+    juego = obtener_un_juego(plantilla[4])
+    # juego: (id_juego, nombre, descripcion, tipo, fecha_creacion,
+    #         fecha_modificacion, administrador_id, estado)
+
+    preguntas = []
+    for pregunta in sorted(obtener_preguntas_por_plantilla(id_plantilla), key=lambda p: p[0]):
+        respuestas = sorted(obtener_respuestas_por_pregunta(pregunta[0]), key=lambda r: r[0])
+        preguntas.append((pregunta, respuestas))
+
+    return render_template(
+        'juegos/ver_plantilla.html',
+        plantilla=plantilla,
+        juego=juego,
+        preguntas=preguntas,
+        nombre_tipo=NOMBRES_TIPO.get(juego[3], juego[3])
+    )
+
 #############################################################################
 #JUGAR
 TIEMPO_POR_PREGUNTA = 20      # segundos que tiene el estudiante para cada pregunta
@@ -1178,7 +1241,7 @@ def jugar_partida(id_plantilla):
         return redirect(url_for('jugar_plantilla', id_plantilla=id_plantilla))
  
     return render_template(
-        'juegos/jugar_vf.html',
+        'juegos/jugarvyf.html',
         juego=juego,
         id_plantilla=id_plantilla,
         preguntas=preguntas,
@@ -1257,3 +1320,61 @@ def jugar_resultado(id_plantilla):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+    
+# from sqlalchemy.pool import NullPool
+
+
+# 1. Obtener las variables
+USER = os.getenv("user")
+PASSWORD = os.getenv("password")
+HOST = os.getenv("host")
+PORT = os.getenv("port")
+DBNAME = os.getenv("dbname")
+
+# 2. Construir la URL de conexión de Supabase
+DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
+
+# 3. Pasársela a la configuración de Flask
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+
+class Lugar(db.Model):
+    # Asegurate de que el nombre coincida con tu tabla (LUGAR en mayúscula según la imagen)
+    __tablename__ = 'LUGAR' 
+    
+    id_lugar = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String, nullable=True)
+    descripcion = db.Column(db.String, nullable=True)
+    direccion = db.Column(db.String, nullable=True)
+    contacto = db.Column(db.Integer, nullable=True)
+    
+    # Manejo de fechas automáticas delegadas a PostgreSQL
+    fecha_creacion = db.Column(db.DateTime, server_default=db.func.now())
+    
+    # Fíjate cómo vinculamos la variable de Python con la columna que tiene espacios en Supabase
+    fecha_modificacion = db.Column('fecha modificacion', db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+    administrador_id = None
+
+    def __repr__(self):
+        return f'<Lugar {self.nombre}>'
+
+@app.route('/test-db')
+def test_db():
+    # Creamos un nuevo objeto usando los campos exactos de tu tabla
+    nuevo_lugar = Lugar(
+        nombre="Plaza de Magdalena",
+        descripcion="Barrio histórico de la comunidad de Monimbó.",
+        direccion="De la iglesia San Jerónimo 2c al sur",
+        contacto=88888888,
+        administrador_id=1  # Suponiendo que el admin con ID 1 existe
+    )
+    
+    try:
+        db.session.add(nuevo_lugar)
+        db.session.commit()
+        return "¡Lugar guardado con éxito en Supabase, rey! Andá a revisar la tabla LUGAR."
+    except Exception as e:
+        db.session.rollback()
+        return f"Falló el guardado: {e}"

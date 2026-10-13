@@ -6,6 +6,53 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Cada pareja va en su propia tarjeta */
+    .pregunta-bloque {
+        border: 2px solid #c9d6b0;
+        border-radius: 14px;
+        padding: 18px 20px;
+        background: #fafcf6;
+        color: #222;
+        margin-bottom: 28px;
+    }
+
+    .ayuda-correcta {
+        background: #eef4e2; color: #222; border-left: 5px solid #5a7a1e;
+        border-radius: 8px; padding: 12px 16px; margin-bottom: 22px; font-size: 0.95rem;
+    }
+
+    /* Espaciado y botones propios: no dependen de clases de utilidad (d-flex, mt-5...) que el CSS del sitio no define */
+    .cabecera-pregunta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .cabecera-pregunta .form-label { margin: 0; }
+    .boton-eliminar {
+        position: static; margin: 0; padding: 8px 18px;
+        background: #fff; color: #c0392b; border: 2px solid #c0392b; border-radius: 20px;
+        font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .boton-eliminar:hover { background: #c0392b; color: #fff; }
+    .barra-guardar { display: flex; justify-content: flex-end; margin-top: 32px; margin-bottom: 40px; }
+    .boton-guardar {
+        position: static; margin: 0; padding: 12px 30px;
+        background: #5a7a1e; color: #fff; border: none; border-radius: 24px;
+        font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    .boton-guardar:hover { background: #46611a; }
+
+    /* Los dos elementos de la pareja, lado a lado y con una flecha en medio */
+    .par { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: end; }
+    .par .campo { min-width: 0; }
+    .titulo-campo { display: block; margin: 0 0 6px; font-weight: 700; }
+    .titulo-campo .mini { font-weight: 400; font-size: 0.85rem; color: #666; }
+    .par .input-gris { width: 100%; box-sizing: border-box; margin: 0; }
+    .par .flecha { font-size: 1.6rem; font-weight: 700; color: #5a7a1e; padding-bottom: 12px; line-height: 1; }
+    @media (max-width: 640px) {
+        .par { grid-template-columns: 1fr; gap: 8px; }
+        .par .flecha { text-align: center; padding: 0; transform: rotate(90deg); }
+    }
+
+    .zona-nueva-pregunta { border-top: 3px solid #c9d6b0; margin-top: 8px; padding-top: 22px; }
+</style>
 {% endblock %}
 
 {% block titulo_header %}
@@ -24,11 +71,11 @@ header-crear
     </div>
 
     {% if erroresP %}
-     <ul style="color:red;">
+    <ul style="color:red;">
         {% for error in erroresP %}
         <li>{{ error }}</li>
         {% endfor %}
-     </ul>
+    </ul>
     {% endif %}
 
     <form action="/juegos/union/crear" method="POST" id="form-plantilla">
@@ -40,25 +87,27 @@ header-crear
 
             <label class="form-label">Descripción</label>
             <textarea name="descripcion" class="input-gris" maxlength="500" required></textarea>
+        </div>
 
-            <p class="texto-descripcion">
-                Cada pareja tiene un elemento de la izquierda y su pareja correcta a la derecha.
-                Al jugar, los elementos de la derecha aparecerán desordenados y el estudiante
-                tendrá que unirlos con el de la izquierda que les corresponde.
-            </p>
+        <div class="ayuda-correcta">
+            <strong>¿Cómo se arma cada pareja?</strong><br>
+            1. Escribe el elemento de la <strong>izquierda</strong>. Por ejemplo: "Managua".<br>
+            2. Escribe a la <strong>derecha</strong> su pareja correcta. Por ejemplo: "Capital de Nicaragua".<br>
+            Al jugar, los elementos de la derecha aparecerán desordenados y el estudiante tendrá que unirlos
+            con el de la izquierda que les corresponde. Necesitas al menos 2 parejas.
         </div>
 
         <!-- PAREJAS (se agregan dinámicamente) -->
         <div id="preguntas-container"></div>
 
-        <div class="d-flex justify-content-between mt-3">
+        <div class="zona-nueva-pregunta">
             <button type="button" class="btn-añadir-respuesta" onclick="agregarPregunta()">
-                + Añadir pareja
+                + Añadir otra pareja
             </button>
         </div>
 
-        <div class="d-flex justify-content-end mt-5">
-            <button type="submit" class="btn-guardar">Guardar Plantilla</button>
+        <div class="barra-guardar">
+            <button type="submit" class="boton-guardar">Guardar Plantilla</button>
         </div>
     </form>
 
@@ -66,19 +115,23 @@ header-crear
 
 <!-- Plantilla oculta de una pareja, se clona con JS -->
 <template id="plantilla-pregunta">
-    <div class="pregunta-columna pregunta-bloque mb-4">
-        <div class="d-flex justify-content-between">
+    <div class="pregunta-columna pregunta-bloque">
+        <div class="cabecera-pregunta">
             <label class="form-label pregunta-titulo">Pareja</label>
-            <button type="button" class="btn-cancelar btn-eliminar-pregunta" style="border:none;cursor:pointer;">
-                Eliminar
-            </button>
+            <button type="button" class="boton-eliminar btn-eliminar-pregunta">Eliminar pareja</button>
         </div>
 
-        <label class="form-label">Elemento izquierdo</label>
-        <input type="text" class="input-gris enunciado" maxlength="200" required>
-
-        <label class="form-label">Elemento derecho (su pareja)</label>
-        <input type="text" class="input-gris respuesta-correcta" maxlength="200" required>
+        <div class="par">
+            <div class="campo">
+                <label class="titulo-campo">Elemento izquierdo</label>
+                <input type="text" class="input-gris enunciado" maxlength="200" required placeholder="Ej: Managua">
+            </div>
+            <div class="flecha" aria-hidden="true">↔</div>
+            <div class="campo">
+                <label class="titulo-campo">Elemento derecho <span class="mini">(su pareja)</span></label>
+                <input type="text" class="input-gris respuesta-correcta" maxlength="200" required placeholder="Ej: Capital de Nicaragua">
+            </div>
+        </div>
     </div>
 </template>
 
@@ -87,14 +140,16 @@ header-crear
 
     function agregarPregunta() {
         contadorPreguntas++;
+        const n = contadorPreguntas;
 
         const tpl = document.getElementById('plantilla-pregunta').content.cloneNode(true);
         const bloque = tpl.querySelector('.pregunta-bloque');
-        bloque.dataset.indice = contadorPreguntas;
-        bloque.querySelector('.pregunta-titulo').innerText = 'Pareja ' + contadorPreguntas;
+        bloque.dataset.indice = n;
+        bloque.querySelector('.pregunta-titulo').innerText = 'Pareja ' + n;
 
-        bloque.querySelector('.enunciado').name = 'pregunta_' + contadorPreguntas + '_enunciado';
-        bloque.querySelector('.respuesta-correcta').name = 'pregunta_' + contadorPreguntas + '_respuesta';
+        // Los nombres de los campos son los que lee el servidor
+        bloque.querySelector('.enunciado').name = 'pregunta_' + n + '_enunciado';
+        bloque.querySelector('.respuesta-correcta').name = 'pregunta_' + n + '_respuesta';
 
         bloque.querySelector('.btn-eliminar-pregunta').addEventListener('click', function () {
             bloque.remove();

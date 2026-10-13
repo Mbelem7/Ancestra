@@ -74,6 +74,23 @@
     }
     .btn-mini-respuesta:hover { background: #5a7a1e; color: #fff; }
 
+    /* Espaciado y botones propios: no dependen de clases de utilidad (d-flex, mt-5...) que el CSS del sitio no define */
+    .cabecera-pregunta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .cabecera-pregunta .form-label { margin: 0; }
+    .boton-eliminar {
+        position: static; margin: 0; padding: 8px 18px;
+        background: #fff; color: #c0392b; border: 2px solid #c0392b; border-radius: 20px;
+        font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .boton-eliminar:hover { background: #c0392b; color: #fff; }
+    .barra-guardar { display: flex; justify-content: flex-end; margin-top: 32px; margin-bottom: 40px; }
+    .boton-guardar {
+        position: static; margin: 0; padding: 12px 30px;
+        background: #5a7a1e; color: #fff; border: none; border-radius: 24px;
+        font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    .boton-guardar:hover { background: #46611a; }
+
     /* Zona separada para añadir otra pregunta */
     .zona-nueva-pregunta { border-top: 3px solid #c9d6b0; margin-top: 8px; padding-top: 22px; }
 </style>
@@ -128,8 +145,8 @@ header-crear
             </button>
         </div>
 
-        <div class="d-flex justify-content-end mt-5">
-            <button type="submit" class="btn-guardar">Guardar Plantilla</button>
+        <div class="barra-guardar">
+            <button type="submit" class="boton-guardar">Guardar Plantilla</button>
         </div>
     </form>
 
@@ -137,11 +154,9 @@ header-crear
 
 <template id="plantilla-pregunta">
     <div class="pregunta-columna pregunta-bloque">
-        <div class="d-flex justify-content-between">
+        <div class="cabecera-pregunta">
             <label class="form-label pregunta-titulo">Pregunta</label>
-            <button type="button" class="btn-cancelar btn-eliminar-pregunta" style="border:none;cursor:pointer;">
-                Eliminar pregunta
-            </button>
+            <button type="button" class="boton-eliminar btn-eliminar-pregunta">Eliminar pregunta</button>
         </div>
         <textarea class="input-gris enunciado" maxlength="300" required placeholder="Escribe la pregunta..."></textarea>
 

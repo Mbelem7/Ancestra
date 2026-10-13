@@ -20,6 +20,16 @@
         gap: 10px;
     }
     .tarjeta-plantilla h3 { margin: 0; font-size: 1.15rem; }
+    .tarjeta-plantilla { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+    .tarjeta-plantilla:hover { border-color: #5a7a1e; box-shadow: 0 2px 10px rgba(90, 122, 30, 0.18); }
+    .tarjeta-plantilla h3 a { color: inherit; text-decoration: none; }
+    .tarjeta-plantilla h3 a:hover { text-decoration: underline; }
+    .boton-ver {
+        align-self: flex-start; display: inline-block; padding: 7px 16px; margin: 0;
+        background: #fff; color: #5a7a1e; border: 2px solid #5a7a1e; border-radius: 18px;
+        font-weight: 700; font-size: 0.85rem; text-decoration: none;
+    }
+    .boton-ver:hover { background: #5a7a1e; color: #fff; }
     .tarjeta-plantilla .descripcion { margin: 0; color: #555; font-size: 0.9rem; }
 
     .etiquetas { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -45,6 +55,23 @@
 
     .fecha { font-size: 0.8rem; color: #777; }
     .vacio { text-align: center; margin: 50px 0; }
+    .vacio p { margin: 0 0 8px; line-height: 1.6; }
+
+    /* Botón propio: no depende de las reglas del botón de formularios, que lo encimaban sobre el texto */
+    .boton-verde {
+        display: inline-block;
+        margin-top: 24px;
+        padding: 12px 28px;
+        background: #5a7a1e;
+        color: #fff;
+        border: none;
+        border-radius: 24px;
+        font-weight: 700;
+        font-size: 1rem;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .boton-verde:hover { background: #46611a; }
 </style>
 {% endblock %}
 
@@ -75,8 +102,8 @@ header-crear
     {% if plantillas %}
     <div class="lista-plantillas">
         {% for p in plantillas %}
-        <div class="tarjeta-plantilla">
-            <h3>{{ p[3] }}</h3>
+        <div class="tarjeta-plantilla" data-href="{{ url_for('ver_plantilla', id_plantilla=p[0]) }}">
+            <h3><a href="{{ url_for('ver_plantilla', id_plantilla=p[0]) }}">{{ p[3] }}</a></h3>
 
             <div class="etiquetas">
                 <span class="etiqueta">{{ nombres_tipo.get(p[5], p[5]) }}</span>
@@ -91,6 +118,8 @@ header-crear
                 <button type="button" class="btn-copiar-mini" data-codigo="{{ p[1] }}">📋 Copiar</button>
             </div>
 
+            <a href="{{ url_for('ver_plantilla', id_plantilla=p[0]) }}" class="boton-ver">👁 Ver preguntas y respuestas</a>
+
             <span class="fecha">Creada el {{ p[2].strftime('%d/%m/%Y') if p[2] else '—' }}</span>
         </div>
         {% endfor %}
@@ -98,7 +127,7 @@ header-crear
     {% else %}
     <div class="vacio">
         <p>Todavía no hay plantillas creadas.</p>
-        <a href="/crear" class="btn-guardar" style="text-decoration:none;">Crear la primera</a>
+        <a href="/crear" class="boton-verde">Crear la primera</a>
     </div>
     {% endif %}
 
@@ -119,6 +148,14 @@ header-crear
                 seleccion.addRange(rango);
             }
             setTimeout(function () { boton.textContent = '📋 Copiar'; }, 2000);
+        });
+    });
+
+    // Un clic en cualquier parte de la tarjeta abre la plantilla (menos en los botones y enlaces)
+    document.querySelectorAll('.tarjeta-plantilla').forEach(function (tarjeta) {
+        tarjeta.addEventListener('click', function (evento) {
+            if (evento.target.closest('a, button')) return;
+            window.location = tarjeta.dataset.href;
         });
     });
 </script>

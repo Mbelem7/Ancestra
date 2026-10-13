@@ -153,3 +153,35 @@ def actualizar_estado_verificacion(id_docente, estado_verificacion):
     )
 
     db.session.commit()
+
+def obtener_docente_detalle(id_docente):
+    # Todos los datos de un docente (su perfil y los datos personales con los que se registró).
+    # Devuelve: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1,
+    #            apellido_2, fecha_nacimiento, correo, estado, fecha_creacion)
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                d.id_docente,
+                d.estado_verificacion,
+                p.id_persona,
+                p.nombre_1,
+                p.nombre_2,
+                p.apellido_1,
+                p.apellido_2,
+                p.fecha_nacimiento,
+                p.correo,
+                p.estado,
+                p.fecha_creacion
+            FROM docente d
+            INNER JOIN persona p ON p.id_persona = d.persona_id
+            WHERE d.id_docente = :id_docente
+        """),
+        {
+            'id_docente': id_docente
+        }
+    )
+
+    docente = resultado.fetchone()
+
+    return docente

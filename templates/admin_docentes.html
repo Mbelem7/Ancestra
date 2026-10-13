@@ -49,6 +49,7 @@ header-crear
                     <td><span class="estado {{ d[1] }}">{{ d[1] }}</span></td>
                     <td>
                         <div class="acciones-fila">
+                            <a href="{{ url_for('admin_docente_detalle', id_docente=d[0]) }}" class="btn-tabla secundario" style="text-decoration:none;">👁 Ver datos</a>
                             {% if d[1] != 'verificado' %}
                             <form action="{{ url_for('admin_docente_estado', id_docente=d[0]) }}" method="POST">
                                 <input type="hidden" name="estado" value="verificado">

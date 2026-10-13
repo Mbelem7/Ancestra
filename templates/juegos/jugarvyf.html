@@ -9,7 +9,7 @@
 <style>
     [hidden] { display: none !important; }
 
-    .partida { max-width: 720px; margin: 30px auto; }
+    .pj-partida { max-width: 720px; margin: 30px auto; }
     .pj-tarjeta { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 28px; }
 
     .pj-cabecera { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 10px; }
@@ -28,6 +28,11 @@
     .pj-opcion:hover:not(:disabled) { border-color: #5a7a1e; background: #f1f7e4; }
     .pj-opcion.elegida { border-color: #5a7a1e; background: #e4f1cf; font-weight: 700; }
     .pj-opcion:disabled { cursor: default; }
+
+    /* Verdadero y Falso: dos botones grandes, lado a lado */
+    #opciones.dos-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    #opciones.dos-opciones .pj-opcion { margin-bottom: 0; text-align: center; font-size: 1.25rem; font-weight: 700; padding: 22px 12px; }
+    @media (max-width: 480px) { #opciones.dos-opciones { grid-template-columns: 1fr; } }
     .pj-aviso-tiempo { text-align: center; color: #c0392b; font-weight: 700; margin-top: 10px; }
 
     .pj-centrado { text-align: center; }
@@ -54,7 +59,7 @@ header-crear
 {% block body %}
 <div class="container content">
     {# Las preguntas viajan en un atributo (JSON) y NO incluyen cuál respuesta es la correcta #}
-    <div class="partida" id="partida"
+    <div class="pj-partida" id="partida"
          data-preguntas='{{ preguntas | tojson }}'
          data-tiempo="{{ tiempo }}"
          data-resultado-url="{{ url_for('jugar_resultado', id_plantilla=id_plantilla) }}">
@@ -92,7 +97,7 @@ header-crear
             </div>
             <ul class="pj-detalle" id="detalle"></ul>
             <div class="pj-acciones">
-                <a href="" class="btn-guardar" style="text-decoration:none;" onclick="location.reload(); return false;">Jugar de nuevo</a>
+                <a href="{{ url_for('index') }}" class="btn-guardar" style="text-decoration:none;">Volver al inicio</a>
                 <a href="/jugar" class="btn-guardar" style="text-decoration:none;">Usar otro código</a>
             </div>
         </div>
@@ -116,16 +121,6 @@ header-crear
         });
     }
 
-    // Baraja las opciones para que la posición de la respuesta correcta no se repita
-    function mezclar(lista) {
-        const copia = lista.slice();
-        for (let i = copia.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [copia[i], copia[j]] = [copia[j], copia[i]];
-        }
-        return copia;
-    }
-
     function mostrarPregunta() {
         const pregunta = preguntas[indice];
         bloqueado = false;
@@ -135,7 +130,9 @@ header-crear
 
         const cajaOpciones = document.getElementById('opciones');
         cajaOpciones.innerHTML = '';
-        mezclar(pregunta.opciones).forEach(function (opcion) {
+        // En Verdadero y Falso las dos opciones van siempre en el mismo orden (Verdadero, Falso)
+        cajaOpciones.className = pregunta.opciones.length === 2 ? 'dos-opciones' : '';
+        pregunta.opciones.forEach(function (opcion) {
             const boton = document.createElement('button');
             boton.type = 'button';
             boton.className = 'pj-opcion';
