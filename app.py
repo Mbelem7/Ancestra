@@ -1360,7 +1360,7 @@ def jugar_plantilla(id_plantilla):
         total_preguntas=len(preguntas),
         tiempo=TIEMPO_POR_PREGUNTA,
         nombre_tipo=NOMBRES_TIPO.get(juego[3], juego[3]),
-        disponible=(juego[3] in JUEGOS_DISPONIBLES and len(preguntas) > 0)
+        disponible=(juego[3] in JUEGOS_DISPONIBLES and len(preguntas) > 0),
         es_estudiante=(session.get('tipo') == 'estudiante'),
     )
  
