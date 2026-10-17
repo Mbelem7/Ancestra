@@ -47,11 +47,12 @@ header-galeria
 
         <!-- Botón de admin para crear imagen -->
         <div>
-            <!-- {# {% if current_user.is_admin %} #} -->
+            {# Solo los administradores pueden agregar y editar imágenes #}
+            {% if session.get('tipo') == 'administrador' %}
             <a href="/crear-imagen" class="btn-crear-admin" style="margin: 0; display: inline-block;">
                 + Nueva Imagen
             </a>
-            <!-- {# {% endif %} #} -->
+            {% endif %}
             </div>
         </div>
 
@@ -97,9 +98,11 @@ header-galeria
                 <p style="margin: 4px 0; font-size: 0.85rem;">{{ item[1] }}</p>
 
                 <!-- BOTÓN DE EDITAR (El stopPropagation evita que se abra el carrusel) -->
+                {% if session.get('tipo') == 'administrador' %}
                 <a href="{{ url_for('editar_imagen', id_archivo=item[0]) }}" class="btn-editar" onclick="event.stopPropagation();">
                     ✏️ Editar
                 </a>
+                {% endif %}
             </div>
             {% endfor %}
 

@@ -6,57 +6,61 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 <style>
     .columna-detalle { max-width: 820px; margin: 0 auto; }
 
     .barra-regresar { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 0; }
     .boton-regresar {
-        display: inline-block; padding: 9px 20px; background: #fff; color: #5a7a1e;
-        border: 2px solid #5a7a1e; border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+        display: inline-block; padding: 9px 20px; background: #fff; color: var(--t-texto, #5a7a1e);
+        border: 2px solid var(--t-borde, #5a7a1e); border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
     }
-    .boton-regresar:hover { background: #5a7a1e; color: #fff; }
+    .boton-regresar:hover { background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); }
 
-    .resumen { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 24px; margin: 16px 0 28px; }
+    .resumen { background: var(--t-fondo, #fafcf6); color: #222; border: 2px solid var(--t-borde, #c9d6b0); border-radius: 16px; padding: 24px; margin: 16px 0 28px; }
     .resumen h2 { margin: 0 0 10px; }
     .etiquetas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    .etiqueta { font-size: 0.8rem; font-weight: 700; padding: 3px 12px; border-radius: 12px; background: #e4f1cf; color: #3d5a10; }
-    .etiqueta.inactiva { background: #eee; color: #777; }
+    .etiqueta { font-size: 0.8rem; font-weight: 700; padding: 3px 12px; border-radius: 12px; background: var(--t-claro, #e4f1cf); color: var(--t-texto, #3d5a10); }
+    .etiqueta.inactiva { background: #eee; color: #5f5f5f; }
     .resumen .descripcion { margin: 0 0 16px; color: #555; line-height: 1.5; }
     .caja-codigo {
         display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-        background: #e4f1cf; border: 2px dashed #5a7a1e; border-radius: 10px; padding: 8px 14px; margin-bottom: 10px;
+        background: var(--t-claro, #e4f1cf); border: 2px dashed var(--t-borde, #5a7a1e); border-radius: 10px; padding: 8px 14px; margin-bottom: 10px;
     }
-    .caja-codigo .rotulo { font-size: 0.85rem; color: #3d5a10; font-weight: 700; }
-    .caja-codigo .codigo { font-size: 1.5rem; font-weight: 700; letter-spacing: 5px; color: #2f4a0c; user-select: all; }
+    .caja-codigo .rotulo { font-size: 0.85rem; color: var(--t-texto, #3d5a10); font-weight: 700; }
+    .caja-codigo .codigo { font-size: 1.5rem; font-weight: 700; letter-spacing: 5px; color: var(--t-texto, #2f4a0c); user-select: all; }
     .btn-copiar-mini {
-        background: #fff; color: #5a7a1e; border: 2px solid #5a7a1e; border-radius: 16px;
+        background: #fff; color: var(--t-texto, #5a7a1e); border: 2px solid var(--t-borde, #5a7a1e); border-radius: 16px;
         padding: 4px 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer;
     }
-    .btn-copiar-mini:hover { background: #5a7a1e; color: #fff; }
-    .fecha { font-size: 0.8rem; color: #777; }
+    .btn-copiar-mini:hover { background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); }
+    .fecha { font-size: 0.8rem; color: #5f5f5f; }
 
     .titulo-lista { margin: 8px 0 14px; }
 
-    .pregunta { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
-    .pregunta .numero { font-size: 0.8rem; font-weight: 700; color: #3d5a10; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .pregunta { background: var(--t-fondo, #fafcf6); color: #222; border: 2px solid var(--t-borde-suave, #c9d6b0); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+    .pregunta .numero { font-size: 0.8rem; font-weight: 700; color: var(--t-texto, #3d5a10); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
     .pregunta .enunciado { font-size: 1.1rem; font-weight: 700; margin: 0 0 12px; line-height: 1.4; }
 
     .respuesta {
         display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 8px;
-        background: #fff; color: #222; border: 2px solid #e3e8d6; border-radius: 10px;
+        background: #fff; color: #222; border: 2px solid var(--t-borde-suave, #e3e8d6); border-radius: 10px;
     }
-    .respuesta .marca { font-weight: 700; color: #aaa; width: 1.2em; text-align: center; }
-    .respuesta.correcta { background: #e4f1cf; border-color: #5a7a1e; }
-    .respuesta.correcta .marca { color: #3d5a10; }
-    .respuesta .aviso-correcta { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: #3d5a10; }
+    .respuesta .marca { font-weight: 700; color: #6b6b6b; width: 1.2em; text-align: center; }
+    .respuesta.correcta { background: var(--t-claro, #e4f1cf); border-color: var(--t-borde, #5a7a1e); }
+    .respuesta.correcta .marca { color: var(--t-texto, #3d5a10); }
+    .respuesta .aviso-correcta { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--t-texto, #3d5a10); }
 
     .pareja { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .pareja .lado { flex: 1 1 200px; padding: 10px 14px; background: #fff; border: 2px solid #e3e8d6; border-radius: 10px; }
-    .pareja .lado.derecho { background: #e4f1cf; border-color: #5a7a1e; }
-    .pareja .flecha { font-weight: 700; color: #5a7a1e; font-size: 1.2rem; }
+    .pareja .lado { flex: 1 1 200px; padding: 10px 14px; background: #fff; border: 2px solid var(--t-borde-suave, #e3e8d6); border-radius: 10px; }
+    .pareja .lado.derecho { background: var(--t-claro, #e4f1cf); border-color: var(--t-borde, #5a7a1e); }
+    .pareja .flecha { font-weight: 700; color: var(--t-texto, #5a7a1e); font-size: 1.2rem; }
 
     .sin-preguntas { text-align: center; margin: 40px 0; color: #666; }
-    .enunciado .blanco { display: inline-block; min-width: 110px; margin: 0 4px; border-bottom: 3px solid #5a7a1e; background: #eef4e2; }
+    .enunciado .blanco { display: inline-block; min-width: 110px; margin: 0 4px; border-bottom: 3px solid var(--t-borde, #5a7a1e); background: var(--t-muy-claro, #eef4e2); }
+
+    .cabecera-resumen { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; }
+    .cabecera-resumen h2 { margin: 0; }
 </style>
 {% endblock %}
 
@@ -69,12 +73,13 @@ header-crear
 {% endblock %}
 
 {% block body %}
+{% from 'juegos/_pieza.html' import pieza %}
 {# plantilla: (id_plantilla, codigo_acceso, fecha_creacion, fecha_modificacion, juego_id, docente_id, administrador_id)
    juego: (id_juego, nombre, descripcion, tipo, fecha_creacion, fecha_modificacion, administrador_id, estado)
    preguntas: lista de (pregunta, respuestas)
      pregunta: (id_pregunta, enunciado, ...)   respuesta: (id_respuesta, respuesta, tipo, ...) #}
 {% set tipo = juego[3] %}
-<div class="container content">
+<div class="container content tema-{{ juego[3] }}">
   <div class="columna-detalle">
 
     <div class="barra-regresar">
@@ -83,7 +88,10 @@ header-crear
     </div>
 
     <div class="resumen">
-        <h2>{{ juego[1] }}</h2>
+        <div class="cabecera-resumen">
+            {{ pieza(juego[3], 58) }}
+            <h2>{{ juego[1] }}</h2>
+        </div>
         <div class="etiquetas">
             <span class="etiqueta">{{ nombre_tipo }}</span>
             <span class="etiqueta">{{ preguntas|length }} {{ 'pregunta' if preguntas|length == 1 else 'preguntas' }}</span>

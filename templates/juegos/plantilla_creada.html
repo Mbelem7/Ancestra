@@ -6,6 +6,7 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 <style>
     /* Tarjeta centrada con el código en grande */
     /* Botón para volver a "Mis plantillas", alineado con el borde de la tarjeta */
@@ -15,23 +16,23 @@
         display: inline-block;
         padding: 9px 20px;
         background: #fff;
-        color: #5a7a1e;
-        border: 2px solid #5a7a1e;
+        color: var(--t-texto, #5a7a1e);
+        border: 2px solid var(--t-borde, #5a7a1e);
         border-radius: 24px;
         font-weight: 700;
         font-size: 0.95rem;
         text-decoration: none;
     }
-    .boton-regresar:hover { background: #5a7a1e; color: #fff; }
+    .boton-regresar:hover { background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); }
 
     .tarjeta-codigo {
         max-width: 640px;
         margin: 16px 0 40px;
         padding: 40px 32px;
         text-align: center;
-        background: #fafcf6;
+        background: var(--t-fondo, #fafcf6);
         color: #222;
-        border: 2px solid #c9d6b0;
+        border: 2px solid var(--t-borde, #c9d6b0);
         border-radius: 16px;
     }
     .tarjeta-codigo .titulo-exito { font-size: 1.2rem; margin: 0 0 10px; }
@@ -43,9 +44,9 @@
         font-weight: 700;
         letter-spacing: 12px;
         padding: 18px 24px 18px 36px;   /* más a la izquierda para compensar el espacio final de las letras */
-        background: #e4f1cf;
-        color: #2f4a0c;
-        border: 3px dashed #5a7a1e;
+        background: var(--t-claro, #e4f1cf);
+        color: var(--t-texto, #2f4a0c);
+        border: 3px dashed var(--t-borde, #5a7a1e);
         border-radius: 14px;
         user-select: all;               /* un clic selecciona todo el código */
         margin-bottom: 28px;
@@ -59,29 +60,31 @@
     }
     .btn-copiar {
         background: #fff;
-        color: #5a7a1e;
-        border: 2px solid #5a7a1e;
+        color: var(--t-texto, #5a7a1e);
+        border: 2px solid var(--t-borde, #5a7a1e);
         border-radius: 20px;
         padding: 10px 22px;
         font-weight: 700;
         font-size: 1rem;
         cursor: pointer;
     }
-    .btn-copiar:hover { background: #5a7a1e; color: #fff; }
+    .btn-copiar:hover { background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); }
     .boton-principal {
         display: inline-block;
         position: static;
         margin: 0;
         padding: 10px 22px;
-        background: #5a7a1e;
-        color: #fff;
-        border: 2px solid #5a7a1e;
+        background: var(--t-boton, #5a7a1e);
+        color: var(--t-boton-texto, #fff);
+        border: 2px solid var(--t-borde, #5a7a1e);
         border-radius: 20px;
         font-weight: 700;
         font-size: 1rem;
         text-decoration: none;
     }
-    .boton-principal:hover { background: #46611a; border-color: #46611a; }
+    .boton-principal:hover { background: var(--t-boton-hover, #46611a); border-color: var(--t-boton-hover, #46611a); }
+
+    .pc-pieza { display: block; margin: 0 auto 12px; line-height: 0; }
 </style>
 {% endblock %}
 
@@ -94,13 +97,15 @@ header-crear
 {% endblock %}
 
 {% block body %}
-<div class="container content">
+{% from 'juegos/_pieza.html' import pieza %}
+<div class="container content tema-{{ tipo|default('') }}">
   <div class="columna-codigo">
     <div class="barra-regresar">
         <a href="{{ url_for('mis_plantillas') }}" class="boton-regresar">← Regresar a Mis plantillas</a>
     </div>
 
     <div class="tarjeta-codigo">
+        {% if tipo %}<div class="pc-pieza">{{ pieza(tipo, 76) }}</div>{% endif %}
         <p class="titulo-exito">Tu plantilla "<strong>{{ nombre }}</strong>" ya está lista.</p>
         <p class="instruccion">Comparte este código con tus estudiantes para que puedan jugarla:</p>
 

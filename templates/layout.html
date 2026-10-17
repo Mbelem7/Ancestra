@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANCESTRA</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/sesion.css') }}">
 
     {% block title %} {% endblock %}
     {% block css %} {% endblock %}
@@ -21,6 +22,13 @@
     <div class="header__pattern header__pattern--right"></div>
 </header>
 
+{% if aviso_contrasena %}
+<div class="aviso-cuenta" role="status">
+    🔑 Tu contraseña vence en <strong>{{ aviso_contrasena }} {{ 'día' if aviso_contrasena == 1 else 'días' }}</strong>.
+    <a href="/cambiar-contrasena">Cámbiala ahora</a>
+</div>
+{% endif %}
+
 <div class="content">
     <nav class="navbar"> 
         <a href="{{ url_for('index') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'index' else '' }}">Home</a>
@@ -28,7 +36,8 @@
         <a href="{{ url_for('galeria') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'galeria' else '' }}">Galería</a>
         <a href="{{ url_for('mapa') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'mapa' else '' }}">Mapa</a>
         <a href="{{ url_for('jugar') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'jugar' else '' }}">Jugar</a>
-                <!-- Los estudiantes ven aquí sus puntajes -->
+
+        <!-- Los estudiantes ven aquí sus puntajes -->
         {% if session.get('tipo') == 'estudiante' %}
         <a href="{{ url_for('mis_resultados') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'mis_resultados' else '' }}">Mis resultados</a>
         {% endif %}
@@ -39,17 +48,13 @@
         <a href="{{ url_for('crear') }}" class="nav__item {{ 'nav__item--active' if request.endpoint and (request.endpoint.startswith('crear') or request.endpoint == 'mis_plantillas') else '' }}">Crear</a>
         {% endif %}
 
+        {% if session.get('tipo') == 'docente' %}
+       <a href="{{ url_for('mis_plantillas') }}" class="nav__item {{ 'nav__item--active' if request.endpoint in ('mis_plantillas', 'ver_plantilla', 'resultados_plantilla') else '' }}">Mis plantillas</a>
+        {% endif %}
+
         <!-- Solo los administradores aprueban a los docentes -->
         {% if session.get('tipo') == 'administrador' %}
         <a href="{{ url_for('admin_docentes') }}" class="nav__item {{ 'nav__item--active' if request.endpoint and request.endpoint.startswith('admin') else '' }}">Docentes</a>
-        {% endif %}
-
-        <!-- Cuenta: nombre y salir si hay sesión; si no, ingresar -->
-        {% if session.get('persona_id') %}
-        <span class="nav__item" title="{{ session.get('tipo') }}">👤 {{ session.get('nombre') }}</span>
-        <a href="{{ url_for('logout') }}" class="nav__item">Salir</a>
-        {% else %}
-        <a href="{{ url_for('login') }}" class="nav__item {{ 'nav__item--active' if request.endpoint in ('login', 'registro') else '' }}">Ingresar</a>
         {% endif %}
 
         <form class="nav__search" role="search">
@@ -64,6 +69,36 @@
         <button id="btn-dark-mode" class="nav__item" style="cursor: pointer; background: none; border: none; font-size: 1.2rem;">
             🌙
         </button>
+
+        <!-- Cuenta (esquina superior derecha): quién eres y cerrar sesión; si no hay sesión, ingresar -->
+        {% if session.get('persona_id') %}
+        {% set rol = {'estudiante': 'Estudiante', 'docente': 'Docente', 'administrador': 'Administrador'}.get(session.get('tipo'), '') %}
+        {% set iniciales = (session.get('nombre', '').split() | map('first') | list)[:2] | join | upper %}
+        <div class="usuario-menu">
+            <button type="button" class="usuario-boton" id="usuario-boton" aria-haspopup="true" aria-expanded="false" aria-controls="usuario-panel">
+                <span class="usuario-avatar" aria-hidden="true">{{ iniciales or '👤' }}</span>
+                <span class="usuario-datos">
+                    <span class="usuario-nombre">{{ session.get('nombre') }}</span>
+                    <span class="usuario-rol">{{ rol }}</span>
+                </span>
+                <span class="usuario-flecha" aria-hidden="true">▾</span>
+            </button>
+            <div class="usuario-panel" id="usuario-panel" role="menu" hidden>
+                <div class="usuario-cabecera">
+                    <span class="usuario-avatar grande" aria-hidden="true">{{ iniciales or '👤' }}</span>
+                    <div class="usuario-quien">
+                        <strong>{{ session.get('nombre') }}</strong>
+                        <span>{{ rol }}</span>
+                        {% if session.get('correo') %}<span class="usuario-correo">{{ session.get('correo') }}</span>{% endif %}
+                    </div>
+                </div>
+                <a href="/cambiar-contrasena" class="usuario-opcion" role="menuitem">🔑 Cambiar contraseña</a>
+                <a href="{{ url_for('logout') }}" class="usuario-opcion salir" role="menuitem">↪ Cerrar sesión</a>
+            </div>
+        </div>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="nav__item {{ 'nav__item--active' if request.endpoint in ('login', 'registro') else '' }}">Ingresar</a>
+        {% endif %}
     </nav>
 </div>
 
@@ -90,6 +125,40 @@
         }
     });
 </script>
+    <script>
+    // Menú de la cuenta: se abre al hacer clic y se cierra al hacer clic afuera, con Esc o al mover la página
+    (function () {
+        const boton = document.getElementById('usuario-boton');
+        const panel = document.getElementById('usuario-panel');
+        if (!boton || !panel) return;
+
+        let abiertoEn = 0;
+        function abrir() {
+            const caja = boton.getBoundingClientRect();
+            abiertoEn = Date.now();
+            panel.hidden = false;
+            panel.style.top = (caja.bottom + 8) + 'px';
+            panel.style.right = Math.max(8, window.innerWidth - caja.right) + 'px';
+            boton.setAttribute('aria-expanded', 'true');
+        }
+        function cerrar() {
+            panel.hidden = true;
+            boton.setAttribute('aria-expanded', 'false');
+        }
+
+        boton.addEventListener('click', function (e) { e.stopPropagation(); if (panel.hidden) abrir(); else cerrar(); });
+        document.addEventListener('click', function (e) { if (!panel.hidden && !panel.contains(e.target)) cerrar(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) { cerrar(); boton.focus(); } });
+        window.addEventListener('resize', cerrar);
+        // Al deslizar la página se cierra (el panel está fijo en pantalla y quedaría suelto), pero no si el
+        // movimiento ocurre dentro del panel ni en los primeros instantes (el navegador puede estar acomodando la vista)
+        window.addEventListener('scroll', function (e) {
+            if (panel.hidden || panel.contains(e.target) || Date.now() - abiertoEn < 400) return;
+            cerrar();
+        }, true);
+    })();
+    </script>
+
     {% block body %}
     {% endblock %}
 

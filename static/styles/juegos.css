@@ -1,0 +1,151 @@
+/* =====================================================================
+   COLORES DE LOS JUEGOS  (paleta del proyecto)
+   ---------------------------------------------------------------------
+   Cada tipo de juego tiene su color. Las pantallas lo usan con
+   <div class="tema-NOMBRE_DEL_JUEGO">, y todo lo de adentro (botones,
+   etiquetas, tarjetas, barras) toma estos colores.
+
+   PARA CAMBIAR EL COLOR DE UN JUEGO: cambia SOLO los valores de su bloque
+   (copiándolos de otro bloque), o mueve su nombre de clase de un bloque a
+   otro. No hay que tocar ninguna pantalla.
+
+   Si una pantalla no está dentro de un .tema-..., usa el verde del sitio.
+   ===================================================================== */
+
+/* Paleta completa, por si hace falta consultarla */
+:root {
+    --paleta-rojo-oscuro: #8E0404;
+    --paleta-rojo-medio: #BF0000;
+    --paleta-rojo-brillante: #F22C0C;
+    --paleta-turquesa-oscuro: #025C66;
+    --paleta-turquesa-medio: #0B99A8;
+    --paleta-turquesa-brillante: #10C6D9;
+    --paleta-naranja-oscuro: #FFA105;
+    --paleta-naranja-medio: #FFAF2A;
+    --paleta-naranja-brillante: #FFC565;
+    --paleta-lima-oscuro: #6E7710;
+    --paleta-lima-medio: #9BA722;
+    --paleta-lima-brillante: #BECC29;
+    --paleta-cafe-oscuro: #632905;
+    --paleta-cafe-medio: #8C3601;
+    --paleta-cafe-brillante: #B84F0E;
+}
+
+/* NARANJA — Verdadero y Falso */
+.tema-verdadero_falso {
+    --t-brillante: #FFC565;      /* relleno de la pieza */
+    --t-medio: #FFAF2A;
+    --t-oscuro: #FFA105;         /* borde de la pieza */
+    --t-texto: #632905;          /* texto sobre fondos claros */
+    --t-fuerte: #FFC565;         /* barras de tiempo y de puntaje */
+    --t-boton: #FFAF2A;
+    --t-boton-hover: #FFA105;
+    --t-boton-texto: #632905;
+    --t-borde: #FFAF2A;
+    --t-borde-suave: #FFE5BA;
+    --t-fondo: #FFF9F0;          /* fondo de las tarjetas */
+    --t-muy-claro: #FFF6E6;
+    --t-claro: #FFEFD4;          /* etiquetas y selecciones */
+    --t-deshabilitado: #FFE1AE;
+    --t-urgente: #C0392B;        /* tiempo a punto de acabarse */
+}
+
+/* TURQUESA — Completar */
+.tema-completar {
+    --t-brillante: #10C6D9;      /* relleno de la pieza */
+    --t-medio: #0B99A8;
+    --t-oscuro: #025C66;         /* borde de la pieza */
+    --t-texto: #025C66;          /* texto sobre fondos claros */
+    --t-fuerte: #0B99A8;         /* barras de tiempo y de puntaje */
+    --t-boton: #025C66;
+    --t-boton-hover: #014750;
+    --t-boton-texto: #FFFFFF;
+    --t-borde: #10C6D9;
+    --t-borde-suave: #93E5EE;
+    --t-fondo: #E7F9FB;          /* fondo de las tarjetas */
+    --t-muy-claro: #D9F6F9;
+    --t-claro: #BCEFF4;          /* etiquetas y selecciones */
+    --t-deshabilitado: #9FC1C5;
+    --t-urgente: #C0392B;        /* tiempo a punto de acabarse */
+}
+
+/* ROJO — Unir con línea */
+.tema-union {
+    --t-brillante: #F22C0C;      /* relleno de la pieza */
+    --t-medio: #BF0000;
+    --t-oscuro: #8E0404;         /* borde de la pieza */
+    --t-texto: #8E0404;          /* texto sobre fondos claros */
+    --t-fuerte: #BF0000;         /* barras de tiempo y de puntaje */
+    --t-boton: #BF0000;
+    --t-boton-hover: #8E0404;
+    --t-boton-texto: #FFFFFF;
+    --t-borde: #F22C0C;
+    --t-borde-suave: #F9A092;
+    --t-fondo: #FEEAE7;          /* fondo de las tarjetas */
+    --t-muy-claro: #FDDDD8;
+    --t-claro: #FBC4BB;          /* etiquetas y selecciones */
+    --t-deshabilitado: #E79E9E;
+    --t-urgente: #5C0000;        /* tiempo a punto de acabarse */
+}
+
+/* LIMA — Selección múltiple */
+.tema-seleccion_multiple {
+    --t-brillante: #BECC29;      /* relleno de la pieza */
+    --t-medio: #9BA722;
+    --t-oscuro: #6E7710;         /* borde de la pieza */
+    --t-texto: #565D0B;          /* texto sobre fondos claros */
+    --t-fuerte: #9BA722;         /* barras de tiempo y de puntaje */
+    --t-boton: #6E7710;
+    --t-boton-hover: #565D0B;
+    --t-boton-texto: #FFFFFF;
+    --t-borde: #BECC29;
+    --t-borde-suave: #E2E89F;
+    --t-fondo: #F8FAEA;          /* fondo de las tarjetas */
+    --t-muy-claro: #F5F7DD;
+    --t-claro: #EDF1C3;          /* etiquetas y selecciones */
+    --t-deshabilitado: #C8CBA4;
+    --t-urgente: #C0392B;        /* tiempo a punto de acabarse */
+}
+
+/* ---------- La pieza de puzzle (relleno brillante + borde oscuro) ---------- */
+.pieza { display: inline-block; vertical-align: middle; flex: 0 0 auto; overflow: visible; }
+.pieza path { fill: var(--t-brillante, #BECC29); stroke: var(--t-oscuro, #6E7710); stroke-width: 5; stroke-linejoin: round; }
+
+/* ---------- Botones que cambian con el color del juego ---------- */
+.t-regresar, .t-guardar {
+    display: inline-block; position: static; margin: 0; padding: 10px 22px;
+    background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff);
+    border: none; border-radius: 24px; font-family: inherit; font-weight: 700; font-size: 1rem; line-height: 1.3;
+    text-decoration: none; cursor: pointer;
+}
+.t-regresar:hover, .t-guardar:hover { background: var(--t-boton-hover, #46611a); }
+.t-añadir {
+    display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 14px;
+    background: var(--t-fondo, #fff); color: var(--t-texto, #3d5a10);
+    border: 3px dashed var(--t-borde, #5a7a1e); border-radius: 4px;
+    font-family: inherit; font-weight: 700; font-size: 1rem; cursor: pointer;
+}
+.t-añadir:hover { background: var(--t-claro, #e4f1cf); }
+
+/* ---------- Tarjetas para elegir el tipo de juego (página Crear) ----------
+   Solo afectan a las .opcion-card que lleven una clase .tema-...  */
+.opcion-card[class*="tema-"] {
+    position: relative; overflow: hidden; cursor: pointer;
+    background: var(--t-fondo); border: 3px solid var(--t-borde); border-radius: 14px;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.opcion-card[class*="tema-"] span { position: relative; z-index: 1; color: var(--t-texto); max-width: calc(100% - 140px); }
+.opcion-card[class*="tema-"] .pieza {
+    position: absolute; right: 26px; top: 50%; transform: translateY(-50%);
+    width: 110px; height: 110px; transition: transform 0.2s;
+}
+.opcion-card[class*="tema-"]:hover { background: var(--t-claro); transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14); }
+.opcion-card[class*="tema-"]:hover .pieza { transform: translateY(-50%) rotate(-8deg) scale(1.06); }
+@media (max-width: 640px) {
+    .opcion-card[class*="tema-"] span { max-width: calc(100% - 88px); }
+    .opcion-card[class*="tema-"] .pieza { right: 14px; width: 68px; height: 68px; }
+}
+
+/* ---------- Cuando se acaba el tiempo, la barra y los segundos titilan ---------- */
+@keyframes pulso { from { opacity: 1; } to { opacity: 0.5; } }
+.pj-barra-relleno.urgente, .pj-segundos.urgente { animation: pulso 0.6s ease-in-out infinite alternate; }

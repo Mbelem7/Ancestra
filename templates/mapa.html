@@ -26,17 +26,18 @@ header-mapa
     
     <!-- Barra superior para el botón de admin (alineado a la derecha) -->
     <div class="barra-superior-galeria">
-        <!-- {# {% if current_user.is_admin %} #} -->
+        {# Solo los administradores pueden agregar y editar locales #}
+        {% if session.get('tipo') == 'administrador' %}
         <a href="/crear-local" class="btn-crear-admin" style="margin: 0; display: inline-block;">
             + Nuevo Local
         </a>
-        <!-- {# {% endif %} #} -->
+        {% endif %}
     </div>
 
     <!-- Contenedor principal del mapa.
          Los locales viajan en data-lugares (JSON), así el script de abajo no lleva código de Flask -->
     <div class="mapa-contenedor shadow-sm">
-        <div id="mapa" data-lugares='{{ puntos | tojson }}' style="width: 100%; height: 100%; min-height: 500px; border-radius: 8px;"></div>
+        <div id="mapa" data-lugares='{{ puntos | tojson }}' data-puede-editar="{{ 'si' if session.get('tipo') == 'administrador' else 'no' }}" style="width: 100%; height: 100%; min-height: 500px; border-radius: 8px;"></div>
     </div>
 </div>
 {% endblock %}
@@ -46,6 +47,8 @@ header-mapa
 <script>
     // Locales que vienen de la base de datos (los arma la ruta /mapa en app.py)
     const lugares = JSON.parse(document.getElementById('mapa').dataset.lugares);
+    // El enlace "Editar" del globo solo se muestra a los administradores
+    const PUEDE_EDITAR = document.getElementById('mapa').dataset.puedeEditar === 'si';
 
     // Evita que un texto con símbolos raros rompa el HTML del globito
     function esc(texto) {
@@ -68,7 +71,7 @@ header-mapa
             '<p style="margin:0; font-size:0.85rem; color:#555;">' + esc(l.descripcion) + '</p>' +
             '<p style="margin:4px 0 0 0; font-size:0.8rem; color:#777;">📍 ' + esc(l.direccion) + '</p>' +
             '<p style="margin:2px 0 6px 0; font-size:0.8rem; color:#777;">📞 ' + esc(l.contacto) + '</p>' +
-            '<a href="' + esc(l.editar) + '" class="btn-editar">✏️ Editar</a>'
+            (PUEDE_EDITAR && l.editar ? '<a href="' + esc(l.editar) + '" class="btn-editar">✏️ Editar</a>' : '')
         );
     });
 

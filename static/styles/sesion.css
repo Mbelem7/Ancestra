@@ -1,0 +1,68 @@
+/* =====================================================================
+   Menú de la cuenta (esquina superior derecha) y aviso de contraseña por vencer
+   ===================================================================== */
+
+/* ---------- Aviso: la contraseña está por vencer ---------- */
+.aviso-cuenta {
+    background: #fff4d6; color: #5c4400; border-bottom: 3px solid #e0a800;
+    padding: 10px 16px; text-align: center; font-size: 0.95rem;
+}
+.aviso-cuenta a { color: #5c4400; font-weight: 700; text-decoration: underline; margin-left: 6px; }
+
+/* ---------- Botón de la cuenta (dentro de la barra verde) ---------- */
+.usuario-menu { position: relative; display: inline-flex; align-items: center; margin-left: 8px; }
+.usuario-boton {
+    display: inline-flex; align-items: center; gap: 10px; margin: 0;
+    padding: 4px 12px 4px 4px; background: rgba(255, 255, 255, 0.2); color: #fff;
+    border: none; border-radius: 999px; cursor: pointer;
+    font-family: inherit; font-size: 0.85rem; font-weight: 700; line-height: 1.15;
+}
+.usuario-boton:hover, .usuario-boton[aria-expanded="true"] { background: rgba(255, 255, 255, 0.32); }
+.usuario-boton:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+.usuario-avatar {
+    display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #fff; color: #46611a; font-weight: 700; font-size: 0.85rem;
+}
+.usuario-avatar.grande { width: 46px; height: 46px; font-size: 1.1rem; background: #e4f1cf; }
+.usuario-datos { display: flex; flex-direction: column; text-align: left; }
+.usuario-nombre { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usuario-rol { font-size: 0.7rem; font-weight: 400; opacity: 0.92; }
+.usuario-flecha { font-size: 0.8rem; opacity: 0.9; }
+
+/* ---------- Panel desplegable (fixed: no se corta aunque la barra tenga bordes redondeados) ---------- */
+.usuario-panel {
+    position: fixed; z-index: 3000; min-width: 250px; max-width: calc(100vw - 16px);
+    background: #fff; color: #222; border-radius: 14px; padding: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28); border: 1px solid #e3e8d6;
+}
+.usuario-panel[hidden] { display: none; }
+.usuario-cabecera { display: flex; align-items: center; gap: 12px; padding: 10px 10px 12px; border-bottom: 1px solid #e3e8d6; margin-bottom: 6px; }
+.usuario-quien { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.usuario-quien strong { overflow-wrap: anywhere; }
+.usuario-quien span { font-size: 0.82rem; color: #555; }
+.usuario-quien .usuario-correo { overflow-wrap: anywhere; color: #666; }
+.usuario-opcion {
+    display: block; padding: 10px 12px; border-radius: 8px; color: #222; text-decoration: none;
+    font-size: 0.95rem; font-weight: 700;
+}
+.usuario-opcion:hover, .usuario-opcion:focus-visible { background: #eef4e2; outline: none; }
+.usuario-opcion.salir { color: #a93226; }
+.usuario-opcion.salir:hover, .usuario-opcion.salir:focus-visible { background: #fdf0ee; }
+
+/* ---------- Modo oscuro ---------- */
+.dark-mode .usuario-panel { background: #2b2b2b; color: #eee; border-color: #444; }
+.dark-mode .usuario-cabecera { border-color: #444; }
+.dark-mode .usuario-quien span, .dark-mode .usuario-quien .usuario-correo { color: #bbb; }
+.dark-mode .usuario-opcion { color: #eee; }
+.dark-mode .usuario-opcion:hover, .dark-mode .usuario-opcion:focus-visible { background: #3a3a3a; }
+.dark-mode .usuario-opcion.salir { color: #ff8f84; }
+.dark-mode .usuario-opcion.salir:hover { background: #3d2b29; }
+.dark-mode .usuario-avatar.grande { background: #44503a; color: #fff; }
+
+/* ---------- Pantallas angostas: solo el círculo con las iniciales ---------- */
+@media (max-width: 760px) {
+    .usuario-datos, .usuario-flecha { display: none; }
+    .usuario-boton { padding: 4px; }
+}

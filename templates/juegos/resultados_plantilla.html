@@ -6,55 +6,59 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 <style>
     /* Los nombres de esta pantalla empiezan con "rs-" para que no choquen con clases del CSS del sitio */
     .rs-columna { display: block; max-width: 920px; margin: 0 auto; }
 
     .rs-botones { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 0; }
     .rs-boton {
-        display: inline-block; margin: 0; padding: 9px 20px; background: #fff; color: #5a7a1e;
-        border: 2px solid #5a7a1e; border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+        display: inline-block; margin: 0; padding: 9px 20px; background: #fff; color: var(--t-texto, #5a7a1e);
+        border: 2px solid var(--t-borde, #5a7a1e); border-radius: 24px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
     }
-    .rs-boton:hover { background: #5a7a1e; color: #fff; }
+    .rs-boton:hover { background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); }
 
-    .rs-cabecera { display: block; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 22px 24px; margin: 16px 0 18px; }
+    .rs-cabecera { display: block; background: var(--t-fondo, #fafcf6); color: #222; border: 2px solid var(--t-borde, #c9d6b0); border-radius: 16px; padding: 22px 24px; margin: 16px 0 18px; }
     .rs-cabecera h2 { margin: 0 0 10px; }
     .rs-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .rs-chip { display: inline-block; padding: 4px 14px; background: #e4f1cf; color: #3d5a10; border-radius: 14px; font-weight: 700; font-size: 0.82rem; }
-    .rs-chip.codigo { background: #fff; border: 2px dashed #5a7a1e; letter-spacing: 3px; }
+    .rs-chip { display: inline-block; padding: 4px 14px; background: var(--t-claro, #e4f1cf); color: var(--t-texto, #3d5a10); border-radius: 14px; font-weight: 700; font-size: 0.82rem; }
+    .rs-chip.codigo { background: #fff; border: 2px dashed var(--t-borde, #5a7a1e); letter-spacing: 3px; }
 
     /* Cuatro cajas con los números principales */
     .rs-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 0 22px; }
-    .rs-dato { display: block; text-align: center; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 14px; padding: 16px 8px; }
-    .rs-dato .numero { display: block; font-size: 1.9rem; font-weight: 700; color: #2f4a0c; line-height: 1.1; }
+    .rs-dato { display: block; text-align: center; background: var(--t-fondo, #fafcf6); color: #222; border: 2px solid var(--t-borde, #c9d6b0); border-radius: 14px; padding: 16px 8px; }
+    .rs-dato .numero { display: block; font-size: 1.9rem; font-weight: 700; color: var(--t-texto, #2f4a0c); line-height: 1.1; }
     .rs-dato .rotulo { display: block; margin-top: 4px; font-size: 0.8rem; color: #666; }
     @media (max-width: 640px) { .rs-resumen { grid-template-columns: 1fr 1fr; } }
 
-    .rs-tabla-caja { display: block; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 8px 18px 14px; overflow-x: auto; margin-bottom: 40px; }
+    .rs-tabla-caja { display: block; background: var(--t-fondo, #fafcf6); color: #222; border: 2px solid var(--t-borde-suave, #c9d6b0); border-radius: 16px; padding: 8px 18px 14px; overflow-x: auto; margin-bottom: 40px; }
     .rs-tabla { width: 100%; border-collapse: collapse; min-width: 560px; }
-    .rs-tabla th { text-align: left; padding: 12px 8px; border-bottom: 2px solid #c9d6b0; font-size: 0.85rem; color: #3d5a10; }
-    .rs-tabla td { padding: 12px 8px; border-bottom: 1px solid #e3e8d6; vertical-align: top; }
+    .rs-tabla th { text-align: left; padding: 12px 8px; border-bottom: 2px solid var(--t-borde-suave, #c9d6b0); font-size: 0.85rem; color: var(--t-texto, #3d5a10); }
+    .rs-tabla td { padding: 12px 8px; border-bottom: 1px solid var(--t-borde-suave, #e3e8d6); vertical-align: top; }
     .rs-tabla tr:last-child td { border-bottom: none; }
-    .rs-tabla .pos { width: 34px; font-weight: 700; color: #888; }
+    .rs-tabla .pos { width: 34px; font-weight: 700; color: #666666; }
     .rs-tabla .nombre { font-weight: 700; }
-    .rs-tabla .correo { display: block; font-size: 0.8rem; color: #777; margin-top: 2px; }
-    .rs-tabla .fecha { display: block; font-size: 0.78rem; color: #888; margin-top: 2px; }
+    .rs-tabla .correo { display: block; font-size: 0.8rem; color: #5f5f5f; margin-top: 2px; }
+    .rs-tabla .fecha { display: block; font-size: 0.78rem; color: #666666; margin-top: 2px; }
 
     /* El puntaje se pinta según el porcentaje: verde, amarillo o rojo */
     .rs-nota { display: inline-block; padding: 3px 12px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; }
     .rs-nota.alto { background: #e4f1cf; color: #2f4a0c; }
     .rs-nota.medio { background: #fff4d6; color: #7a5b00; }
     .rs-nota.bajo { background: #fdf0ee; color: #7b241c; }
-    .rs-pista { display: block; width: 110px; height: 7px; background: #e3e8d6; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+    .rs-pista { display: block; width: 110px; height: 7px; background: var(--t-borde-suave, #e3e8d6); border-radius: 4px; margin-top: 6px; overflow: hidden; }
     .rs-pista span { display: block; height: 100%; border-radius: 4px; }
     .rs-pista .alto { background: #5a7a1e; } .rs-pista .medio { background: #e0a800; } .rs-pista .bajo { background: #c0392b; }
 
-    .rs-intentos summary { cursor: pointer; font-weight: 700; color: #5a7a1e; }
+    .rs-intentos summary { cursor: pointer; font-weight: 700; color: var(--t-texto, #5a7a1e); }
     .rs-intentos ul { margin: 8px 0 0; padding: 0; list-style: none; font-size: 0.82rem; color: #444; }
     .rs-intentos li { padding: 3px 0; white-space: nowrap; }
 
-    .rs-vacio { display: block; text-align: center; background: #fafcf6; color: #444; border: 2px dashed #c9d6b0; border-radius: 16px; padding: 44px 20px; margin-bottom: 40px; line-height: 1.6; }
-    .rs-vacio .codigo { display: inline-block; margin-top: 8px; padding: 6px 16px; background: #e4f1cf; border: 2px dashed #5a7a1e; border-radius: 10px; font-size: 1.4rem; font-weight: 700; letter-spacing: 5px; color: #2f4a0c; }
+    .rs-vacio { display: block; text-align: center; background: var(--t-fondo, #fafcf6); color: #444; border: 2px dashed var(--t-borde-suave, #c9d6b0); border-radius: 16px; padding: 44px 20px; margin-bottom: 40px; line-height: 1.6; }
+    .rs-vacio .codigo { display: inline-block; margin-top: 8px; padding: 6px 16px; background: var(--t-claro, #e4f1cf); border: 2px dashed var(--t-borde, #5a7a1e); border-radius: 10px; font-size: 1.4rem; font-weight: 700; letter-spacing: 5px; color: var(--t-texto, #2f4a0c); }
+
+    .rs-titulo { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; }
+    .rs-titulo h2 { margin: 0; }
 </style>
 {% endblock %}
 
@@ -67,9 +71,10 @@ header-crear
 {% endblock %}
 
 {% block body %}
+{% from 'juegos/_pieza.html' import pieza %}
 {# plantilla: (id_plantilla, codigo_acceso, ...)   juego: (id_juego, nombre, descripcion, tipo, ...)
    participantes: lista de {nombre, correo, intento}   resumen: {participantes, promedio, mejor, menor} #}
-<div class="container content">
+<div class="container content tema-{{ juego[3] }}">
   <div class="rs-columna">
 
     <div class="rs-botones">
@@ -78,7 +83,10 @@ header-crear
     </div>
 
     <div class="rs-cabecera">
-        <h2>{{ juego[1] }}</h2>
+        <div class="rs-titulo">
+            {{ pieza(juego[3], 58) }}
+            <h2>{{ juego[1] }}</h2>
+        </div>
         <div class="rs-chips">
             <span class="rs-chip">{{ nombre_tipo }}</span>
             <span class="rs-chip codigo">{{ plantilla[1] }}</span>

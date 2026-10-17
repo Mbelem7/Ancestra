@@ -6,6 +6,7 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 <style>
     /* Todos los nombres de esta pantalla empiezan con "pi-" para que no choquen con clases del CSS del sitio */
     .pi-tarjeta {
@@ -14,9 +15,9 @@
         margin: 40px auto 60px;
         padding: 36px 34px 30px;
         text-align: center;
-        background: #fafcf6;
+        background: var(--t-fondo, #fafcf6);
         color: #222;
-        border: 2px solid #c9d6b0;
+        border: 2px solid var(--t-borde, #c9d6b0);
         border-radius: 20px;
         box-shadow: 0 6px 22px rgba(90, 122, 30, 0.12);
     }
@@ -25,33 +26,35 @@
     .pi-etiquetas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 0 0 26px; padding: 0; }
     .pi-etiqueta {
         display: inline-block; margin: 0; padding: 6px 16px;
-        background: #e4f1cf; color: #3d5a10; border-radius: 16px; font-weight: 700; font-size: 0.9rem;
+        background: var(--t-claro, #e4f1cf); color: var(--t-texto, #3d5a10); border-radius: 16px; font-weight: 700; font-size: 0.9rem;
     }
 
     /* Las reglas, cada una con su icono */
     .pi-reglas {
         display: block; text-align: left; margin: 0 0 28px; padding: 6px 18px;
-        background: #fff; border: 2px solid #e3e8d6; border-radius: 14px;
+        background: #fff; border: 2px solid var(--t-borde-suave, #e3e8d6); border-radius: 14px;
     }
-    .pi-titulo-reglas { display: block; margin: 12px 0 2px; font-weight: 700; color: #3d5a10; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+    .pi-titulo-reglas { display: block; margin: 12px 0 2px; font-weight: 700; color: var(--t-texto, #3d5a10); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
     .pi-regla { display: flex; align-items: flex-start; gap: 14px; margin: 0; padding: 12px 0; }
-    .pi-regla + .pi-regla { border-top: 1px solid #eef1e4; }
+    .pi-regla + .pi-regla { border-top: 1px solid var(--t-borde-suave, #eef1e4); }
     .pi-importante { background: #fff4d6; margin: 6px -10px 8px; padding: 12px 10px; border-radius: 10px; border-top: none !important; }
     .pi-icono { flex: 0 0 30px; text-align: center; font-size: 1.35rem; line-height: 1.3; }
     .pi-texto { flex: 1; line-height: 1.5; color: #333; }
 
     .pi-boton {
         display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 16px;
-        position: static; background: #5a7a1e; color: #fff; border: none; border-radius: 30px;
+        position: static; background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); border: none; border-radius: 30px;
         font-weight: 700; font-size: 1.25rem; text-align: center; text-decoration: none; cursor: pointer;
     }
-    .pi-boton:hover { background: #46611a; }
+    .pi-boton:hover { background: var(--t-boton-hover, #46611a); }
 
     .pi-aviso {
         display: block; text-align: left; margin: 0 0 8px; padding: 12px 16px;
         background: #fff4d6; border-left: 5px solid #e0a800; border-radius: 8px; color: #5c4400;
     }
-    .pi-volver { display: inline-block; margin: 20px 0 0; color: #5a7a1e; font-weight: 700; text-decoration: underline; }
+    .pi-volver { display: inline-block; margin: 20px 0 0; color: var(--t-texto, #5a7a1e); font-weight: 700; text-decoration: underline; }
+
+    .pi-pieza { display: block; margin: 0 auto 14px; line-height: 0; }
 </style>
 {% endblock %}
 
@@ -64,20 +67,36 @@ header-crear
 {% endblock %}
 
 {% block body %}
+{% from 'juegos/_pieza.html' import pieza %}
 {# juego: (id_juego, nombre, descripcion, tipo, fecha_creacion, fecha_modificacion, administrador_id, estado) #}
-<div class="container content">
+<div class="container content tema-{{ juego[3] }}">
     <div class="pi-tarjeta">
+        <div class="pi-pieza">{{ pieza(juego[3], 88) }}</div>
 
         <p class="pi-descripcion">{{ juego[2] }}</p>
 
         <div class="pi-etiquetas">
             <span class="pi-etiqueta">{{ nombre_tipo }}</span>
             <span class="pi-etiqueta">{{ total_preguntas }} {{ 'pregunta' if total_preguntas == 1 else 'preguntas' }}</span>
+            {% if juego[3] == 'union' %}
+            <span class="pi-etiqueta">⏱ {{ tiempo_total }} s en total</span>
+            {% else %}
             <span class="pi-etiqueta">⏱ {{ tiempo }} s por pregunta</span>
+            {% endif %}
         </div>
 
         <div class="pi-reglas">
             <span class="pi-titulo-reglas">Antes de empezar</span>
+            {% if juego[3] == 'union' %}
+            <div class="pi-regla">
+                <span class="pi-icono" aria-hidden="true">⏱</span>
+                <span class="pi-texto">Tienes <strong>{{ tiempo_total }} segundos en total</strong> para unir todas las parejas.</span>
+            </div>
+            <div class="pi-regla">
+                <span class="pi-icono" aria-hidden="true">🔗</span>
+                <span class="pi-texto">Toca un elemento de la izquierda y luego su pareja de la derecha. Puedes cambiar las uniones antes de terminar.</span>
+            </div>
+            {% else %}
             <div class="pi-regla">
                 <span class="pi-icono" aria-hidden="true">⏱</span>
                 <span class="pi-texto">Tienes <strong>{{ tiempo }} segundos</strong> para responder cada pregunta.</span>
@@ -86,16 +105,23 @@ header-crear
                 <span class="pi-icono" aria-hidden="true">➡️</span>
                 <span class="pi-texto">Si respondes (bien o mal), o se acaba el tiempo, pasas a la siguiente.</span>
             </div>
+            {% endif %}
+            {% if juego[3] == 'completar' %}
+            <div class="pi-regla">
+                <span class="pi-icono" aria-hidden="true">✍️</span>
+                <span class="pi-texto">Escribe la palabra que falta. No importan las mayúsculas, las tildes ni el artículo del principio (el, la, los...); la ñ sí cuenta.</span>
+            </div>
+            {% endif %}
             <div class="pi-regla">
                 <span class="pi-icono" aria-hidden="true">🏁</span>
                 <span class="pi-texto">Al final verás tu puntaje y cuáles eran las respuestas correctas.</span>
             </div>
-            {% if es_estudiante %}
+            {% if disponible and es_estudiante %}
             <div class="pi-regla pi-importante">
                 <span class="pi-icono" aria-hidden="true">⚠️</span>
                 <span class="pi-texto"><strong>Solo tienes un intento.</strong> Cuenta desde que presionas Jugar: si cierras la página, las preguntas sin responder quedan en 0 y no podrás repetirla.</span>
             </div>
-            {% else %}
+            {% elif disponible %}
             <div class="pi-regla">
                 <span class="pi-icono" aria-hidden="true">🧪</span>
                 <span class="pi-texto">Como docente puedes probar el juego las veces que quieras: tu resultado no se guarda.</span>

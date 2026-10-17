@@ -256,7 +256,8 @@ def obtener_resultados_de_estudiante_en_juego(estudiante_id, juego_id):
                 puntaje,
                 fecha_creacion,
                 fecha_modificacion,
-                respuesta_id
+                respuesta_id,
+                respuesta_texto
             FROM resultado
             WHERE estudiante_id = :estudiante_id
               AND juego_id = :juego_id
@@ -273,8 +274,9 @@ def obtener_resultados_de_estudiante_en_juego(estudiante_id, juego_id):
     return filas
 
 
-def registrar_respuesta_en_resultado(id_resultado, puntaje, respuesta_id, fecha_modificacion):
-    # Guarda la respuesta y el puntaje de UNA pregunta, en la fila que se creó al abrir la evaluación
+def registrar_respuesta_en_resultado(id_resultado, puntaje, respuesta_id, fecha_modificacion, respuesta_texto=None):
+    # Guarda la respuesta y el puntaje de UNA pregunta, en la fila que se creó al abrir la evaluación.
+    # respuesta_texto es lo que escribió el estudiante (solo en "Completar"; en los demás juegos queda vacío)
 
     db.session.execute(
         text("""
@@ -282,12 +284,14 @@ def registrar_respuesta_en_resultado(id_resultado, puntaje, respuesta_id, fecha_
             SET
                 puntaje = :puntaje,
                 respuesta_id = :respuesta_id,
+                respuesta_texto = :respuesta_texto,
                 fecha_modificacion = :fecha_modificacion
             WHERE id_resultado = :id_resultado
         """),
         {
             'puntaje': puntaje,
             'respuesta_id': respuesta_id,
+            'respuesta_texto': respuesta_texto,
             'fecha_modificacion': fecha_modificacion,
             'id_resultado': id_resultado
         }

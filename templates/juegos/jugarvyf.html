@@ -6,27 +6,28 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 <style>
     [hidden] { display: none !important; }
 
     .pj-partida { max-width: 720px; margin: 30px auto; }
-    .pj-tarjeta { background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; padding: 28px; }
+    .pj-tarjeta { background: var(--t-fondo, #fafcf6); color: #222; border: 2px solid var(--t-borde, #c9d6b0); border-radius: 16px; padding: 28px; }
 
     .pj-cabecera { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 10px; }
-    .pj-segundos { font-size: 1.6rem; color: #2f4a0c; min-width: 3ch; text-align: right; }
-    .pj-segundos.urgente { color: #c0392b; }
-    .pj-barra { height: 12px; background: #e3e8d6; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
-    .pj-barra-relleno { height: 100%; width: 100%; background: #5a7a1e; transition: width .25s linear, background .3s; }
-    .pj-barra-relleno.urgente { background: #c0392b; }
+    .pj-segundos { font-size: 1.6rem; color: var(--t-texto, #2f4a0c); min-width: 3ch; text-align: right; }
+    .pj-segundos.urgente { color: var(--t-urgente, #c0392b); }
+    .pj-barra { height: 12px; background: var(--t-borde-suave, #e3e8d6); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .pj-barra-relleno { height: 100%; width: 100%; background: var(--t-fuerte, #5a7a1e); transition: width .25s linear, background .3s; }
+    .pj-barra-relleno.urgente { background: var(--t-urgente, #c0392b); }
 
     .pj-enunciado { font-size: 1.4rem; margin: 0 0 22px; line-height: 1.35; }
     .pj-opcion {
         display: block; width: 100%; text-align: left; padding: 16px 18px; margin-bottom: 12px;
         font-size: 1.05rem; font-family: inherit; background: #fff; color: #222;
-        border: 2px solid #c9d6b0; border-radius: 12px; cursor: pointer;
+        border: 2px solid var(--t-borde-suave, #c9d6b0); border-radius: 12px; cursor: pointer;
     }
-    .pj-opcion:hover:not(:disabled) { border-color: #5a7a1e; background: #f1f7e4; }
-    .pj-opcion.elegida { border-color: #5a7a1e; background: #e4f1cf; font-weight: 700; }
+    .pj-opcion:hover:not(:disabled) { border-color: var(--t-borde, #5a7a1e); background: var(--t-muy-claro, #f1f7e4); }
+    .pj-opcion.elegida { border-color: var(--t-borde, #5a7a1e); background: var(--t-claro, #e4f1cf); font-weight: 700; }
     .pj-opcion:disabled { cursor: default; }
 
     /* Verdadero y Falso: dos botones grandes, lado a lado */
@@ -36,15 +37,17 @@
     .pj-aviso-tiempo { text-align: center; color: #c0392b; font-weight: 700; margin-top: 10px; }
 
     .pj-centrado { text-align: center; }
-    .pj-puntaje { font-size: 3.2rem; font-weight: 700; color: #2f4a0c; margin: 6px 0; }
+    .pj-puntaje { font-size: 3.2rem; font-weight: 700; color: var(--t-texto, #2f4a0c); margin: 6px 0; }
     .pj-aviso-guardado { font-size: 0.9rem; color: #555; margin: 4px 0 0; }
     .pj-detalle { list-style: none; padding: 0; margin: 24px 0; text-align: left; }
-    .pj-detalle li { border: 2px solid #c9d6b0; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; background: #fff; }
+    .pj-detalle li { border: 2px solid var(--t-borde-suave, #c9d6b0); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; background: #fff; }
     .pj-detalle li.acierto { border-color: #5a7a1e; background: #eef6df; }
     .pj-detalle li.fallo { border-color: #c0392b; background: #fdf0ee; }
     .pj-detalle .pregunta { font-weight: 700; margin-bottom: 4px; }
     .pj-detalle .linea { font-size: 0.92rem; color: #444; }
     .pj-acciones { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    .pj-titulo { display: inline-flex; align-items: center; gap: 10px; }
 </style>
 {% endblock %}
 
@@ -57,7 +60,8 @@ header-crear
 {% endblock %}
 
 {% block body %}
-<div class="container content">
+{% from 'juegos/_pieza.html' import pieza %}
+<div class="container content tema-verdadero_falso">
     {# Las preguntas viajan en un atributo (JSON) y NO incluyen cuál respuesta es la correcta #}
     <div class="pj-partida" id="partida"
          data-preguntas='{{ preguntas | tojson }}'
@@ -68,7 +72,7 @@ header-crear
         <!-- PREGUNTA ACTUAL -->
         <div class="pj-tarjeta" id="pantalla-pregunta">
             <div class="pj-cabecera">
-                <span id="contador-pregunta"></span>
+                <span class="pj-titulo">{{ pieza('verdadero_falso', 36) }}<span id="contador-pregunta"></span></span>
                 <span class="pj-segundos" id="segundos"></span>
             </div>
             <div class="pj-barra"><div class="pj-barra-relleno" id="barra"></div></div>
@@ -85,7 +89,7 @@ header-crear
         <!-- ERROR AL ENVIAR -->
         <div class="pj-tarjeta pj-centrado" id="pantalla-error" hidden>
             <p>No se pudo calcular tu puntaje. Revisa tu conexión.</p>
-            <button type="button" class="btn-guardar" id="btn-reintentar">Reintentar</button>
+            <button type="button" class="t-guardar" id="btn-reintentar">Reintentar</button>
         </div>
 
         <!-- RESULTADO -->
@@ -98,8 +102,8 @@ header-crear
             </div>
             <ul class="pj-detalle" id="detalle"></ul>
             <div class="pj-acciones">
-                <a href="{{ url_for('index') }}" class="btn-guardar" style="text-decoration:none;">Volver al inicio</a>
-                <a href="/jugar" class="btn-guardar" style="text-decoration:none;">Usar otro código</a>
+                <a href="{{ url_for('index') }}" class="t-guardar">Volver al inicio</a>
+                <a href="/jugar" class="t-guardar">Usar otro código</a>
             </div>
         </div>
     </div>

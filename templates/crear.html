@@ -6,6 +6,7 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 {% endblock %}
 
 {% block titulo_header %}
@@ -17,6 +18,7 @@ header-crear
 {% endblock %}
 
 {% block body %}
+{% from 'juegos/_pieza.html' import pieza %}
 <div class="container content">
 
     <!-- Acceso a las plantillas ya creadas -->
@@ -29,17 +31,21 @@ header-crear
     <!-- VISTA: SELECCIÓN DEL TIPO DE JUEGO -->
     <div id="vista-opciones">
         <div class="opciones-grid">
-            <div class="opcion-card" onclick="irAJuego('/juegos/verdadero-falso/crear')">
+            <div class="opcion-card tema-verdadero_falso" onclick="irAJuego('/juegos/verdadero-falso/crear')">
                 <span>Verdadero y Falso</span>
+                {{ pieza('verdadero_falso', 110) }}
             </div>
-            <div class="opcion-card" onclick="irAJuego('/juegos/completar/crear')">
+            <div class="opcion-card tema-completar" onclick="irAJuego('/juegos/completar/crear')">
                 <span>Completar</span>
+                {{ pieza('completar', 110) }}
             </div>
-            <div class="opcion-card" onclick="irAJuego('/juegos/union/crear')">
+            <div class="opcion-card tema-union" onclick="irAJuego('/juegos/union/crear')">
                 <span>Unir con línea</span>
+                {{ pieza('union', 110) }}
             </div>
-            <div class="opcion-card" onclick="irAJuego('/juegos/multiple/crear')">
+            <div class="opcion-card tema-seleccion_multiple" onclick="irAJuego('/juegos/multiple/crear')">
                 <span>Selección múltiple</span>
+                {{ pieza('seleccion_multiple', 110) }}
             </div>
         </div>
     </div>

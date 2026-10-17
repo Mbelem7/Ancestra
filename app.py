@@ -71,7 +71,9 @@ from modulos.estudiante import *
 from modulos.lugares import *
 from modulos.ruta import *
 from modulos.administrador import *
+from modulos import seguridad
 import random
+import unicodedata
 import string
 import re
 import uuid
@@ -216,14 +218,21 @@ def registro():
     elif obtener_persona_por_correo(correo):
         erroresR.append("Ya existe una cuenta con ese correo.")
 
-    if len(contrasena) < 8:
-        erroresR.append("La contraseña debe tener al menos 8 caracteres.")
-    elif contrasena != confirmar:
+     # Norma 2.1: complejidad de la contraseña (2.1.1) y que no esté en filtraciones conocidas (2.1.3)
+    if contrasena != confirmar:
         erroresR.append("Las contraseñas no coinciden.")
+    else:
+        nombre_completo = f"{nombre_1} {nombre_2} {apellido_1} {apellido_2}"
+        erroresR += seguridad.evaluar_y_registrar(contrasena, correo, nombre_completo, 'registro')
+
+    if not erroresR:
+        mensaje_filtracion = seguridad.revisar_filtracion(contrasena, correo, 'registro')
+        if mensaje_filtracion:
+            erroresR.append(mensaje_filtracion)
 
     if erroresR:
         return render_template('registro.html', erroresR=erroresR, datos=request.form)
-
+    
     ahora = datetime.now()
     id_persona = insertar_persona(
         nombre_1, nombre_2 or None, apellido_1, apellido_2 or None,
@@ -276,6 +285,18 @@ def login():
         return render_template('login.html', error="Tu cuenta no tiene un perfil asignado. Habla con un administrador.", siguiente=siguiente, correo=correo)
 
     iniciar_sesion(persona[0], persona[1], persona[2], persona[4], rol_id)
+    session['correo'] = persona[3]
+
+    # Norma 2.1: toda contraseña caduca y debe cumplir la complejidad actual; si no, debe cambiarla antes de seguir
+    ultimo_cambio = persona[8] or persona[7] or datetime.now()
+    session['contrasena_vence'] = seguridad.vencimiento(ultimo_cambio).isoformat()
+    if seguridad.dias_para_vencer(ultimo_cambio) <= 0:
+        session['debe_cambiar_contrasena'] = 'caducada'
+    elif seguridad.evaluar_contrasena(contrasena, persona[3], f"{persona[1]} {persona[2]}"):
+        session['debe_cambiar_contrasena'] = 'no_cumple'
+    if session.get('debe_cambiar_contrasena'):
+        return redirect(url_for('cambiar_contrasena'))
+
     return redirect(destino_seguro(siguiente) or url_for('index'))
 
 
@@ -285,6 +306,94 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
+########################################################################
+#NORMA DE CONTRASEÑAS (2.1): complejidad, caducidad y filtraciones conocidas
+RUTAS_LIBRES_SI_DEBE_CAMBIAR = ('cambiar_contrasena', 'logout', 'static')
+
+
+@app.before_request
+def exigir_cambio_de_contrasena():
+    # Si su contraseña caducó o ya no cumple la norma, la persona solo puede cambiarla o cerrar sesión
+    if session.get('debe_cambiar_contrasena') and request.endpoint not in RUTAS_LIBRES_SI_DEBE_CAMBIAR:
+        return redirect(url_for('cambiar_contrasena'))
+
+
+@app.context_processor
+def datos_de_seguridad():
+    # Lo que reciben todas las pantallas: la norma (para el registro) y el aviso "tu contraseña vence en N días"
+    datos = {'norma_contrasena': {'longitud': seguridad.LONGITUD_MINIMA}, 'aviso_contrasena': None}
+    vence = session.get('contrasena_vence')
+    if vence and request.endpoint != 'cambiar_contrasena':
+        dias = seguridad.dias_hasta_vencimiento(datetime.fromisoformat(vence))
+        if 0 < dias <= seguridad.AVISO_EN_PANTALLA_DIAS:
+            datos['aviso_contrasena'] = dias
+    return datos
+
+
+@app.route('/cambiar-contrasena', methods=['GET', 'POST'])
+@login_required
+def cambiar_contrasena():
+    motivo = session.get('debe_cambiar_contrasena')    # 'caducada', 'no_cumple' o None (cambio voluntario)
+
+    if request.method == 'GET':
+        return render_template('cambiar_contrasena.html', motivo=motivo)
+
+    actual = request.form.get('actual', '')
+    nueva = request.form.get('nueva', '')
+    confirmar = request.form.get('confirmar', '')
+    correo = session.get('correo', '')
+    errores = []
+
+    hash_actual = obtener_contrasena_por_id(session['persona_id'])
+    if not hash_actual or not check_password_hash(hash_actual, actual):
+        errores.append("La contraseña actual no es correcta.")
+    elif check_password_hash(hash_actual, nueva):
+        errores.append("La contraseña nueva debe ser distinta de la actual.")
+
+    if nueva != confirmar:
+        errores.append("Las contraseñas nuevas no coinciden.")
+    else:
+        errores += seguridad.evaluar_y_registrar(nueva, correo, session.get('nombre', ''), 'cambio')
+
+    # 2.1.3: solo si todo lo demás está bien se consulta si la contraseña apareció en filtraciones
+    if not errores:
+        mensaje_filtracion = seguridad.revisar_filtracion(nueva, correo, 'cambio')
+        if mensaje_filtracion:
+            errores.append(mensaje_filtracion)
+
+    if errores:
+        return render_template('cambiar_contrasena.html', motivo=motivo, errores=errores)
+
+    ahora = datetime.now()
+    actualizar_contrasena(session['persona_id'], generate_password_hash(nueva), ahora)
+    session.pop('debe_cambiar_contrasena', None)
+    session['contrasena_vence'] = seguridad.vencimiento(ahora).isoformat()
+    return render_template('cambiar_contrasena.html', exito=True)
+
+
+# 2.1.2: rutina diaria. Se programa con cron (Linux) o con el Programador de tareas (Windows):
+#   flask notificar-caducidad
+@app.cli.command('notificar-caducidad')
+def notificar_caducidad():
+    """Avisa por correo a quien su contraseña está por vencer (14, 7, 3 y 1 días antes, y el día que vence)."""
+    ahora = datetime.now()
+    personas = obtener_personas_para_aviso_caducidad(seguridad.limite_para_avisos(ahora))
+    # persona: (id_persona, nombre_1, apellido_1, correo, ultimo_cambio)
+    enviados = 0
+    sin_enviar = 0
+    for persona in personas:
+        dias = seguridad.dias_para_vencer(persona[4], ahora)
+        if dias not in seguridad.AVISOS_DIAS:
+            continue
+        asunto, cuerpo = seguridad.mensaje_de_caducidad(persona[1], dias)
+        if seguridad.enviar_correo(persona[3], asunto, cuerpo):
+            enviados += 1
+            seguridad.registrar_validacion('caducidad', persona[3], 'aviso_enviado', f'vence en {dias} día(s)')
+        else:
+            sin_enviar += 1
+            print(f"[sin enviar] {persona[3]}: su contraseña vence en {dias} día(s)")
+            seguridad.registrar_validacion('caducidad', persona[3], 'aviso_no_enviado', f'vence en {dias} día(s)')
+    print(f"Avisos de caducidad: {enviados} enviados, {sin_enviar} sin enviar.")
 
 #ADMIN - APROBAR DOCENTES
 @app.route('/admin/docentes')
@@ -686,7 +795,7 @@ def mapa():
             'contacto': l[8],
             'lat': float(l[9]),
             'lng': float(l[10]),
-            'editar': url_for('editar_lugar', id_lugar=l[0])
+            'editar': url_for('editar_lugar', id_lugar=l[0]) if session.get('tipo') == 'administrador' else None
         }
         for l in lugares if l[9] is not None and l[10] is not None
     ]
@@ -892,7 +1001,8 @@ def crear_vf():
                 )
  
         return render_template('juegos/plantilla_creada.html',
-                                nombre=nombre, codigo_acceso=codigo_acceso)
+                            nombre=nombre, codigo_acceso=codigo_acceso,
+                            tipo='verdadero_falso')
  
  
 ############################
@@ -972,7 +1082,8 @@ def crear_multiple():
                 )
  
         return render_template('juegos/plantilla_creada.html',
-                                nombre=nombre, codigo_acceso=codigo_acceso)
+                            nombre=nombre, codigo_acceso=codigo_acceso,
+                            tipo='seleccion_multiple')
  
  
 ####################
@@ -1039,7 +1150,8 @@ def crear_completar():
             )
  
         return render_template('juegos/plantilla_creada.html',
-                                nombre=nombre, codigo_acceso=codigo_acceso)
+                            nombre=nombre, codigo_acceso=codigo_acceso,
+                            tipo='completar')
  
  
 #########################
@@ -1104,10 +1216,10 @@ def crear_union():
             )
  
         return render_template('juegos/plantilla_creada.html',
-                                nombre=nombre, codigo_acceso=codigo_acceso)
+                            nombre=nombre, codigo_acceso=codigo_acceso,
+                            tipo='union')
  
  #############################################################################
- 
 #MIS PLANTILLAS
 @app.route('/mis-plantillas')
 @puede_crear_plantillas
@@ -1244,6 +1356,7 @@ def mis_resultados():
                 'id_juego': fila[0],
                 'nombre': fila[1],
                 'tipo': NOMBRES_TIPO.get(fila[2], fila[2]),
+                'tipo_clave': fila[2],
                 'intento': intento
             }
 
@@ -1261,21 +1374,32 @@ def mi_resultado(id_juego):
     filas = []
     if juego:
         filas = intento_oficial(obtener_resultados_de_estudiante_en_juego(session['rol_id'], id_juego))
-        # filas: (id_resultado, puntaje, fecha_creacion, fecha_modificacion, respuesta_id), una por pregunta
+        # filas: (id_resultado, puntaje, fecha_creacion, fecha_modificacion, respuesta_id, respuesta_texto),
+        #        una por pregunta
     if not filas:
         return redirect(url_for('mis_resultados'))
 
     # Pregunta por pregunta: la fila 1 es la pregunta 1, y así (se crearon en ese orden)
-    detalle = []
     preguntas = sorted(obtener_preguntas_por_juego(id_juego), key=lambda p: p[0])
+    respuestas_de = {p[0]: obtener_respuestas_por_pregunta(p[0]) for p in preguntas}
+    todas = {r[0]: r for rs in respuestas_de.values() for r in rs}    # en "unir" la elegida puede ser de otra pareja
+
+    detalle = []
     for indice, pregunta in enumerate(preguntas):
-        respuestas = obtener_respuestas_por_pregunta(pregunta[0])
-        correcta = next((r for r in respuestas if r[2] == 'correcta'), None)
+        correcta = next((r for r in respuestas_de[pregunta[0]] if r[2] == 'correcta'), None)
         fila = filas[indice] if indice < len(filas) else None
-        elegida = next((r for r in respuestas if fila is not None and r[0] == fila[4]), None)
+
+        if fila is None:
+            tu_respuesta = None
+        elif juego[3] == 'completar':
+            tu_respuesta = fila[5]                      # lo que escribió
+        else:
+            elegida = todas.get(fila[4]) if fila[4] is not None else None
+            tu_respuesta = elegida[1] if elegida else None
+
         detalle.append({
             'enunciado': pregunta[1],
-            'tu_respuesta': elegida[1] if elegida else None,
+            'tu_respuesta': tu_respuesta,
             'correcta': correcta[1] if correcta else None,
             'acerto': fila is not None and fila[1] > 0
         })
@@ -1293,16 +1417,30 @@ def mi_resultado(id_juego):
 
 #############################################################################
 #JUGAR
-TIEMPO_POR_PREGUNTA = 20      # segundos que tiene el estudiante para cada pregunta
+TIEMPO_POR_PREGUNTA = 20      # (el valor de siempre; ya casi no se usa)
 PUNTOS_POR_PREGUNTA = 10      # puntos por cada respuesta correcta
-JUEGOS_DISPONIBLES = ['verdadero_falso']   # a medida que se construyan los demás juegos, se agregan aquí
+JUEGOS_DISPONIBLES = ['verdadero_falso', 'seleccion_multiple', 'completar', 'union']
 NOMBRES_TIPO = {
     'verdadero_falso': 'Verdadero y Falso',
     'seleccion_multiple': 'Selección múltiple',
     'completar': 'Completar',
     'union': 'Unir con línea'
 }
- 
+# Segundos que tiene el estudiante en cada tipo de juego.
+# En "union" son segundos POR PAREJA: el tiempo total es ese número por la cantidad de parejas.
+TIEMPOS_POR_TIPO = {
+    'verdadero_falso': 20,
+    'seleccion_multiple': 30,
+    'completar': 40,
+    'union': 30
+}
+# La pantalla de la partida de cada tipo de juego
+PANTALLAS_DE_PARTIDA = {
+    'verdadero_falso': 'juegos/jugarvyf.html',
+    'seleccion_multiple': 'juegos/jugarmult.html',
+    'completar': 'juegos/jugarcomp.html',
+    'union': 'juegos/jugarun.html'
+}
  
 def cargar_plantilla_activa(id_plantilla):
     # Devuelve (plantilla, juego) si la plantilla existe y su juego está activo; si no, None
@@ -1318,7 +1456,16 @@ def cargar_plantilla_activa(id_plantilla):
         return None
     return plantilla, juego
  
- 
+def normalizar_respuesta(texto, ignorar_articulo=False):
+    # Para comparar lo que escribe el estudiante con la respuesta correcta:
+    # no importan las mayúsculas, los espacios de más ni las tildes (pero la ñ SÍ cuenta: año no es ano).
+    # Con ignorar_articulo=True tampoco importa el artículo del principio: "El Güegüense" = "Güegüense"
+    texto = ' '.join(str(texto).split()).lower().replace('ñ', '\0')
+    texto = ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
+    if ignorar_articulo:
+        texto = re.sub(r'^(el|la|los|las|un|una|unos|unas)\s+', '', texto)
+    return texto.replace('\0', 'ñ')
+
 #PASO 1: el estudiante escribe el código de acceso
 @app.route('/jugar', methods=['GET', 'POST'])
 @login_required
@@ -1351,21 +1498,23 @@ def jugar_plantilla(id_plantilla):
 
     if ya_realizo_la_evaluacion(juego[0]):
         return redirect(url_for('mi_resultado', id_juego=juego[0]))
- 
+
     preguntas = obtener_preguntas_por_plantilla(id_plantilla)
+    tiempo = TIEMPOS_POR_TIPO.get(juego[3], TIEMPO_POR_PREGUNTA)
     return render_template(
         'juegos/plantilla_encontrada.html',
         juego=juego,
         id_plantilla=id_plantilla,
         total_preguntas=len(preguntas),
-        tiempo=TIEMPO_POR_PREGUNTA,
+        tiempo=tiempo,
+        tiempo_total=tiempo * len(preguntas),    # solo se usa en "Unir con línea"
         nombre_tipo=NOMBRES_TIPO.get(juego[3], juego[3]),
         disponible=(juego[3] in JUEGOS_DISPONIBLES and len(preguntas) > 0),
-        es_estudiante=(session.get('tipo') == 'estudiante'),
+        es_estudiante=(session.get('tipo') == 'estudiante')
     )
- 
- 
-#PASO 3: la partida (por ahora solo Verdadero y Falso)
+
+
+#PASO 3: la partida (cada tipo de juego tiene su propia pantalla)
 @app.route('/jugar/<int:id_plantilla>/partida')
 @login_required
 def jugar_partida(id_plantilla):
@@ -1373,42 +1522,66 @@ def jugar_partida(id_plantilla):
     if not datos:
         return redirect(url_for('jugar'))
     plantilla, juego = datos
- 
-    if juego[3] not in JUEGOS_DISPONIBLES:
+    tipo = juego[3]
+
+    if tipo not in JUEGOS_DISPONIBLES:
         return redirect(url_for('jugar_plantilla', id_plantilla=id_plantilla))
 
-        # La evaluación se hace una sola vez
+    # La evaluación se hace una sola vez
     if ya_realizo_la_evaluacion(juego[0]):
         return redirect(url_for('mi_resultado', id_juego=juego[0]))
- 
-    # Al navegador se le mandan las preguntas y sus opciones, SIN decir cuál es la correcta
-    preguntas = []
-    for pregunta in sorted(obtener_preguntas_por_plantilla(id_plantilla), key=lambda p: p[0]):
-        opciones = [
-            {'id': r[0], 'texto': r[1]}
-            for r in sorted(obtener_respuestas_por_pregunta(pregunta[0]), key=lambda r: r[0])
-        ]
-        preguntas.append({'id': pregunta[0], 'enunciado': pregunta[1], 'opciones': opciones})
- 
-    if not preguntas:
+
+    lista = sorted(obtener_preguntas_por_plantilla(id_plantilla), key=lambda p: p[0])
+    if not lista:
         return redirect(url_for('jugar_plantilla', id_plantilla=id_plantilla))
-    
-        # Para un estudiante, el intento se cuenta desde que abre la evaluación: se crea una fila por pregunta
+
+    # Al navegador solo se le manda lo que necesita para jugar, NUNCA cuál es la respuesta correcta
+    tiempo = TIEMPOS_POR_TIPO.get(tipo, TIEMPO_POR_PREGUNTA)
+    contenido = {'tiempo': tiempo}
+
+    if tipo in ('verdadero_falso', 'seleccion_multiple'):
+        preguntas = []
+        for pregunta in lista:
+            opciones = [
+                {'id': r[0], 'texto': r[1]}
+                for r in sorted(obtener_respuestas_por_pregunta(pregunta[0]), key=lambda r: r[0])
+            ]
+            preguntas.append({'id': pregunta[0], 'enunciado': pregunta[1], 'opciones': opciones})
+        contenido['preguntas'] = preguntas
+
+    elif tipo == 'completar':
+        # Solo el enunciado: la respuesta correcta NO viaja al navegador
+        contenido['preguntas'] = [{'id': p[0], 'enunciado': p[1]} for p in lista]
+
+    elif tipo == 'union':
+        # Izquierda: el elemento de cada pareja. Derecha: sus parejas, MEZCLADAS para que el orden no delate la respuesta
+        izquierda = [{'id': p[0], 'texto': p[1]} for p in lista]
+        derecha = []
+        for pregunta in lista:
+            respuestas = obtener_respuestas_por_pregunta(pregunta[0])
+            if respuestas:
+                derecha.append({'id': respuestas[0][0], 'texto': respuestas[0][1]})
+        random.shuffle(derecha)
+        contenido['izquierda'] = izquierda
+        contenido['derecha'] = derecha
+        contenido['tiempo_total'] = tiempo * len(lista)
+
+    # Para un estudiante, el intento se cuenta desde que abre la evaluación: se crea una fila por pregunta
     # (con 0 puntos y sin respuesta). Al terminar se completan; si cierra la página, lo que falte queda en 0.
     if session.get('tipo') == 'estudiante':
         ahora = datetime.now()
-        for _ in preguntas:
+        for _ in lista:
             insertar_resultado(0, ahora, ahora, None, juego[0], session['rol_id'])
- 
+
     return render_template(
-        'juegos/jugarvyf.html',
+        PANTALLAS_DE_PARTIDA[tipo],
         juego=juego,
         id_plantilla=id_plantilla,
-        preguntas=preguntas,
-        tiempo=TIEMPO_POR_PREGUNTA
+        **contenido
     )
- 
- #PASO 4: el servidor califica lo que el estudiante respondió (y lo guarda si es estudiante)
+
+
+#PASO 4: el servidor califica lo que el estudiante respondió (y lo guarda si es estudiante)
 @app.route('/jugar/<int:id_plantilla>/resultado', methods=['POST'])
 @login_required
 def jugar_resultado(id_plantilla):
@@ -1416,6 +1589,7 @@ def jugar_resultado(id_plantilla):
     if not datos:
         return jsonify({'error': 'Plantilla no disponible'}), 404
     plantilla, juego = datos
+    tipo = juego[3]
 
     es_estudiante = session.get('tipo') == 'estudiante'
 
@@ -1428,33 +1602,59 @@ def jugar_resultado(id_plantilla):
         if any(f[3] > f[2] for f in filas):      # fecha_modificacion > fecha_creacion: ya la envió
             return jsonify({'error': 'Ya enviaste esta evaluación.'}), 409
 
-    # elegidas: {"id_pregunta": id_respuesta, ...} (null si no alcanzó a responder)
+    # elegidas: {"id_pregunta": lo que respondió, ...} (null si no alcanzó a responder).
+    # Lo que respondió es el id de una respuesta (V/F, múltiple y unir) o el texto que escribió (completar)
     cuerpo = request.get_json(silent=True)
     elegidas = cuerpo.get('respuestas', {}) if isinstance(cuerpo, dict) else {}
     if not isinstance(elegidas, dict):
         elegidas = {}
 
+    lista = sorted(obtener_preguntas_por_plantilla(id_plantilla), key=lambda p: p[0])
+    respuestas_de = {p[0]: obtener_respuestas_por_pregunta(p[0]) for p in lista}
+    todas = {r[0]: r for rs in respuestas_de.values() for r in rs}     # en "unir" la elegida puede ser de otra pareja
+
     detalle = []
-    por_guardar = []   # (id de la respuesta elegida o None, si acertó), una por pregunta
+    por_guardar = []   # (id de la respuesta o None, texto escrito o None, si acertó), una por pregunta
     aciertos = 0
-    for pregunta in sorted(obtener_preguntas_por_plantilla(id_plantilla), key=lambda p: p[0]):
-        respuestas = obtener_respuestas_por_pregunta(pregunta[0])
+    for pregunta in lista:
+        respuestas = respuestas_de[pregunta[0]]
         # respuesta: (id_respuesta, respuesta, tipo, fecha_creacion, fecha_modificacion,
         #             pregunta_id, juego_id, administrador_id)
         correcta = next((r for r in respuestas if r[2] == 'correcta'), None)
+        enviada = elegidas.get(str(pregunta[0]))
 
-        # Solo vale si la respuesta elegida pertenece a ESTA pregunta
-        id_elegida = elegidas.get(str(pregunta[0]))
-        elegida = next((r for r in respuestas if r[0] == id_elegida), None)
+        id_guardar = None
+        texto_guardar = None
+        tu_respuesta = None
 
-        acerto = elegida is not None and correcta is not None and elegida[0] == correcta[0]
+        if tipo == 'completar':
+            texto = enviada.strip()[:200] if isinstance(enviada, str) else ''
+            if texto:
+                texto_guardar = tu_respuesta = texto
+            acerto = bool(texto) and correcta is not None and normalizar_respuesta(texto, True) == normalizar_respuesta(correcta[1], True)
+            if acerto:
+                id_guardar = correcta[0]
+        else:
+            if tipo == 'union':
+                # Puede ser la pareja de OTRA fila; si dos parejas tienen el mismo texto, cualquiera de las dos vale
+                elegida = todas.get(enviada) if isinstance(enviada, int) else None
+                acerto = (elegida is not None and correcta is not None and
+                          (elegida[0] == correcta[0] or normalizar_respuesta(elegida[1]) == normalizar_respuesta(correcta[1])))
+            else:
+                # Solo vale si la respuesta elegida pertenece a ESTA pregunta
+                elegida = next((r for r in respuestas if r[0] == enviada), None)
+                acerto = elegida is not None and correcta is not None and elegida[0] == correcta[0]
+            if elegida is not None:
+                id_guardar = elegida[0]
+                tu_respuesta = elegida[1]
+
         if acerto:
             aciertos += 1
 
-        por_guardar.append((elegida[0] if elegida else None, acerto))
+        por_guardar.append((id_guardar, texto_guardar, acerto))
         detalle.append({
             'enunciado': pregunta[1],
-            'tu_respuesta': elegida[1] if elegida else None,
+            'tu_respuesta': tu_respuesta,
             'correcta': correcta[1] if correcta else None,
             'acerto': acerto
         })
@@ -1465,9 +1665,9 @@ def jugar_resultado(id_plantilla):
     if es_estudiante:
         ahora = datetime.now()
         try:
-            for fila, (id_respuesta, acerto) in zip(filas, por_guardar):
+            for fila, (id_respuesta, texto, acerto) in zip(filas, por_guardar):
                 registrar_respuesta_en_resultado(
-                    fila[0], PUNTOS_POR_PREGUNTA if acerto else 0, id_respuesta, ahora
+                    fila[0], PUNTOS_POR_PREGUNTA if acerto else 0, id_respuesta, ahora, texto
                 )
             guardado = True
         except Exception as error:
@@ -1483,7 +1683,7 @@ def jugar_resultado(id_plantilla):
         'guardado': guardado,
         'es_estudiante': es_estudiante
     })
- 
+
 #############################################################################
 
 if __name__ == "__main__":

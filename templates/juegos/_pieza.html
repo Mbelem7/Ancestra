@@ -1,0 +1,13 @@
+{# Pieza de puzzle de cada juego. Los colores vienen de la clase .tema-... que la rodea (ver juegos.css).
+   Uso:  {% from 'juegos/_pieza.html' import pieza %}   y luego   {{ pieza('completar', 48) }} #}
+{% macro pieza(tipo, tamano=48) -%}
+{%- set formas = {
+    'seleccion_multiple': 'M23 15 L77 15 A8 8 0 0 1 85 23 L85 43.5 L83.1 43.5 A10 10 0 1 0 83.1 56.5 L85 56.5 L85 77 A8 8 0 0 1 77 85 L56.5 85 L56.5 86.9 A10 10 0 1 1 43.5 86.9 L43.5 85 L23 85 A8 8 0 0 1 15 77 L15 23 A8 8 0 0 1 23 15 Z',
+    'union': 'M23 15 L77 15 A8 8 0 0 1 85 23 L85 77 A8 8 0 0 1 77 85 L56.5 85 L56.5 83.1 A10 10 0 1 0 43.5 83.1 L43.5 85 L23 85 A8 8 0 0 1 15 77 L15 56.5 L13.1 56.5 A10 10 0 1 1 13.1 43.5 L15 43.5 L15 23 A8 8 0 0 1 23 15 Z',
+    'verdadero_falso': 'M23 15 L43.5 15 L43.5 16.9 A10 10 0 1 0 56.5 16.9 L56.5 15 L77 15 A8 8 0 0 1 85 23 L85 43.5 L86.9 43.5 A10 10 0 1 1 86.9 56.5 L85 56.5 L85 77 A8 8 0 0 1 77 85 L23 85 A8 8 0 0 1 15 77 L15 23 A8 8 0 0 1 23 15 Z',
+    'completar': 'M23 15 L43.5 15 L43.5 13.1 A10 10 0 1 1 56.5 13.1 L56.5 15 L77 15 A8 8 0 0 1 85 23 L85 77 A8 8 0 0 1 77 85 L23 85 A8 8 0 0 1 15 77 L15 56.5 L16.9 56.5 A10 10 0 1 0 16.9 43.5 L15 43.5 L15 23 A8 8 0 0 1 23 15 Z'
+} -%}
+{%- if tipo in formas -%}
+<svg class="pieza" width="{{ tamano }}" height="{{ tamano }}" viewBox="-6 -6 112 112" aria-hidden="true"><path d="{{ formas[tipo] }}"/></svg>
+{%- endif -%}
+{%- endmacro %}

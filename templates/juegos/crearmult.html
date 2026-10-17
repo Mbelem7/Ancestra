@@ -6,21 +6,22 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 <style>
     /* Cada pregunta va en su propia tarjeta, para que no se mezcle con la siguiente */
     .pregunta-bloque {
-        border: 2px solid #B84F0E;
+        border: 2px solid var(--t-borde, #c9d6b0);
         border-radius: 14px;
         padding: 18px 20px;
-        background: #fafcf6;
+        background: var(--t-fondo, #fafcf6);
         margin-bottom: 28px;
     }
     .pregunta-bloque.sin-correcta { border-color: #c0392b; background: #fdf0ee; }
 
     /* Cuadro de ayuda: explica cómo marcar la respuesta */
     .ayuda-correcta {
-        background: #eef4e2;
-        border-left: 5px solid #8C3601;
+        background: var(--t-muy-claro, #eef4e2);
+        border-left: 5px solid var(--t-borde, #5a7a1e);
         border-radius: 8px;
         padding: 12px 16px;
         margin-bottom: 22px;
@@ -52,19 +53,19 @@
         margin-bottom: 8px;
     }
     .respuesta-fila .col-radio { width: 110px; display: flex; justify-content: center; margin: 0; }
-    .respuesta-fila .radio-correcta { width: 24px; height: 24px; accent-color: #8C3601; cursor: pointer; margin: 0; }
+    .respuesta-fila .radio-correcta { width: 24px; height: 24px; accent-color: var(--t-fuerte, #5a7a1e); cursor: pointer; margin: 0; }
     .respuesta-fila .respuesta-texto { flex: 1; width: auto; margin: 0; }
-    .respuesta-fila .badge-estado { width: 100px; font-size: 0.8rem; font-weight: 700; color: #8a8a8a; }
+    .respuesta-fila .badge-estado { width: 100px; font-size: 0.8rem; font-weight: 700; color: #666666; }
 
     /* La respuesta marcada se pinta de verde */
-    .respuesta-fila.es-correcta { background: #e4f1cf; border-color: #8C3601; }
-    .respuesta-fila.es-correcta .badge-estado { color: #3d5a10; }
+    .respuesta-fila.es-correcta { background: var(--t-claro, #e4f1cf); border-color: var(--t-borde, #5a7a1e); }
+    .respuesta-fila.es-correcta .badge-estado { color: var(--t-texto, #3d5a10); }
 
     /* Botón chico para añadir una respuesta DENTRO de la pregunta */
     .btn-mini-respuesta {
         background: #fff;
-        color: #8C3601;
-        border: 2px solid #8C3601;
+        color: var(--t-texto, #5a7a1e);
+        border: 2px solid var(--t-borde, #5a7a1e);
         border-radius: 20px;
         padding: 6px 16px;
         font-weight: 700;
@@ -72,7 +73,7 @@
         cursor: pointer;
         margin-top: 6px;
     }
-    .btn-mini-respuesta:hover { background: #8C3601; color: #fff; }
+    .btn-mini-respuesta:hover { background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); }
 
     /* Espaciado y botones propios: no dependen de clases de utilidad (d-flex, mt-5...) que el CSS del sitio no define */
     .cabecera-pregunta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -86,13 +87,16 @@
     .barra-guardar { display: flex; justify-content: flex-end; margin-top: 32px; margin-bottom: 40px; }
     .boton-guardar {
         position: static; margin: 0; padding: 12px 30px;
-        background: #8C3601; color: #fff; border: none; border-radius: 24px;
+        background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); border: none; border-radius: 24px;
         font-weight: 700; font-size: 1rem; cursor: pointer;
     }
-    .boton-guardar:hover { background: #632905; }
+    .boton-guardar:hover { background: var(--t-boton-hover, #46611a); }
 
     /* Zona separada para añadir otra pregunta */
-    .zona-nueva-pregunta { border-top: 3px solid #B84F0E; margin-top: 8px; padding-top: 22px; }
+    .zona-nueva-pregunta { border-top: 3px solid var(--t-borde-suave, #c9d6b0); margin-top: 8px; padding-top: 22px; }
+
+    .ayuda-correcta { display: flex; align-items: center; gap: 16px; }
+    .ayuda-pieza { flex: 0 0 auto; line-height: 0; }
 </style>
 {% endblock %}
 
@@ -105,10 +109,11 @@ header-crear
 {% endblock %}
 
 {% block body %}
-<div class="container content">
+{% from 'juegos/_pieza.html' import pieza %}
+<div class="container content tema-seleccion_multiple">
 
     <div class="barra-superior-galeria mb-3">
-        <a href="/crear" class="btn-cancelar" style="text-decoration:none;">← Regresar</a>
+        <a href="/crear" class="t-regresar">← Regresar</a>
     </div>
 
     {% if erroresP %}
@@ -130,17 +135,20 @@ header-crear
         </div>
 
         <div class="ayuda-correcta">
+            <span class="ayuda-pieza">{{ pieza('seleccion_multiple', 56) }}</span>
+            <div>
             <strong>¿Cómo se arma cada pregunta?</strong><br>
             1. Escribe la pregunta.<br>
             2. Escribe las opciones.<br>
             3. Marca con el círculo cuál es la <strong>CORRECTA</strong> (solo una).<br>
             Las demás se guardan automáticamente como <strong>INCORRECTAS</strong>.
         </div>
+        </div>
 
         <div id="preguntas-container"></div>
 
         <div class="zona-nueva-pregunta">
-            <button type="button" class="btn-añadir-respuesta" onclick="agregarPregunta()">
+            <button type="button" class="t-añadir" onclick="agregarPregunta()">
                 + Añadir otra pregunta
             </button>
         </div>

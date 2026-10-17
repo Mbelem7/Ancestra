@@ -19,11 +19,14 @@ header-biblioteca
 {% block body %}
 <div class="container mt-5">
     <!-- Contenedor que empuja el botón a la derecha, debajo de la lupa -->
+    {# Solo los administradores pueden agregar y editar documentos #}
+    {% if session.get('tipo') == 'administrador' %}
     <div class="contenedor-btn-admin">
         <a href="/crear-documento" class="btn-crear-admin">
             + Nuevo Documento
         </a>
     </div>
+    {% endif %}
 
     <h2 class="titulo-seccion">Recomendaciones</h2>
 
@@ -31,6 +34,8 @@ header-biblioteca
     <div class="grid-biblioteca">
 
         {% for archivo in libritos %}
+        <!-- archivo: (id_archivo, nombre, descripcion, URL, categoria_id, tipo,
+                       fecha_creacion, fecha_modificacion, administrador_id, estado) -->
         <div class="tarjeta-biblioteca">
             <div class="biblioteca-img-placeholder">
                 <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -49,9 +54,11 @@ header-biblioteca
                 </div>
                 <a href="{{ url_for('static', filename=archivo[3].split('static/')[1]) }}"
                    class="btn-ver" target="_blank">Ver</a>
+                {% if session.get('tipo') == 'administrador' %}
                 <a href="{{ url_for('editar_documento', id_archivo=archivo[0]) }}" class="btn-editar">
                     ✏️ Editar
                 </a>
+                {% endif %}
             </div>
         </div>
         {% else %}

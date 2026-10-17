@@ -1,0 +1,404 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>{{ juego[1] }}</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
+<style>
+    [hidden] { display: none !important; }
+
+    .pj-partida { max-width: 720px; margin: 30px auto; }
+    .pj-tarjeta { background: var(--t-fondo, #fafcf6); color: #222; border: 2px solid var(--t-borde, #c9d6b0); border-radius: 16px; padding: 28px; }
+
+    .pj-cabecera { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 10px; }
+    .pj-segundos { font-size: 1.6rem; color: var(--t-texto, #2f4a0c); min-width: 3ch; text-align: right; }
+    .pj-segundos.urgente { color: var(--t-urgente, #c0392b); }
+    .pj-barra { height: 12px; background: var(--t-borde-suave, #e3e8d6); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .pj-barra-relleno { height: 100%; width: 100%; background: var(--t-fuerte, #5a7a1e); transition: width .25s linear, background .3s; }
+    .pj-barra-relleno.urgente { background: var(--t-urgente, #c0392b); }
+
+    .pj-enunciado { font-size: 1.4rem; margin: 0 0 22px; line-height: 1.35; }
+    .pj-opcion {
+        display: block; width: 100%; text-align: left; padding: 16px 18px; margin-bottom: 12px;
+        font-size: 1.05rem; font-family: inherit; background: #fff; color: #222;
+        border: 2px solid var(--t-borde-suave, #c9d6b0); border-radius: 12px; cursor: pointer;
+    }
+    .pj-opcion:hover:not(:disabled) { border-color: var(--t-borde, #5a7a1e); background: var(--t-muy-claro, #f1f7e4); }
+    .pj-opcion.elegida { border-color: var(--t-borde, #5a7a1e); background: var(--t-claro, #e4f1cf); font-weight: 700; }
+    .pj-opcion:disabled { cursor: default; }
+
+    /* Verdadero y Falso: dos botones grandes, lado a lado */
+    #opciones.dos-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    #opciones.dos-opciones .pj-opcion { margin-bottom: 0; text-align: center; font-size: 1.25rem; font-weight: 700; padding: 22px 12px; }
+    @media (max-width: 480px) { #opciones.dos-opciones { grid-template-columns: 1fr; } }
+    .pj-aviso-tiempo { text-align: center; color: #c0392b; font-weight: 700; margin-top: 10px; }
+
+    .pj-centrado { text-align: center; }
+    .pj-puntaje { font-size: 3.2rem; font-weight: 700; color: var(--t-texto, #2f4a0c); margin: 6px 0; }
+    .pj-aviso-guardado { font-size: 0.9rem; color: #555; margin: 4px 0 0; }
+    .pj-detalle { list-style: none; padding: 0; margin: 24px 0; text-align: left; }
+    .pj-detalle li { border: 2px solid var(--t-borde-suave, #c9d6b0); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; background: #fff; }
+    .pj-detalle li.acierto { border-color: #5a7a1e; background: #eef6df; }
+    .pj-detalle li.fallo { border-color: #c0392b; background: #fdf0ee; }
+    .pj-detalle .pregunta { font-weight: 700; margin-bottom: 4px; }
+    .pj-detalle .linea { font-size: 0.92rem; color: #444; }
+    .pj-acciones { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+
+    /* Unir con línea: dos columnas con las líneas dibujadas en medio */
+    .pu-instruccion { margin: 0 0 16px; color: #444; line-height: 1.5; min-height: 3em; }
+    .pu-tablero { position: relative; display: grid; grid-template-columns: 1fr 70px 1fr; align-items: start; margin-bottom: 18px; }
+    .pu-columna { display: flex; flex-direction: column; gap: 14px; }
+    .pu-columna.izq { grid-column: 1; }
+    .pu-columna.der { grid-column: 3; }
+    .pu-lineas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .pu-item {
+        display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 14px 12px; position: static;
+        font-family: inherit; font-size: 1rem; line-height: 1.35; text-align: center; word-break: break-word;
+        background: #fff; color: #222; border: 3px solid var(--t-borde-suave, #c9d6b0); border-radius: 12px; cursor: pointer;
+    }
+    .pu-item:hover:not(:disabled) { background: var(--t-muy-claro, #f1f7e4); }
+    .pu-item.unida { font-weight: 700; background: var(--t-fondo, #fafcf6); }
+    .pu-item.seleccionada { background: #fff4d6; border-color: #e0a800 !important; box-shadow: 0 0 0 3px rgba(224, 168, 0, 0.3); }
+    .pu-item:disabled { cursor: default; }
+    .pu-acciones { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .pu-acciones .pj-enviar { flex: 1 1 200px; }
+    .pu-quitar {
+        margin: 0; padding: 10px 18px; background: #fff; color: #c0392b; border: 2px solid #c0392b; border-radius: 22px;
+        font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .pu-quitar:hover { background: #c0392b; color: #fff; }
+    .pj-enviar {
+        display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 14px; position: static;
+        background: var(--t-boton, #5a7a1e); color: var(--t-boton-texto, #fff); border: none; border-radius: 28px;
+        font-family: inherit; font-weight: 700; font-size: 1.1rem; cursor: pointer;
+    }
+    .pj-enviar:hover:not(:disabled) { background: var(--t-boton-hover, #46611a); }
+    .pj-enviar:disabled { background: var(--t-deshabilitado, #b9c7a1); cursor: not-allowed; }
+    @media (max-width: 520px) { .pu-tablero { grid-template-columns: 1fr 44px 1fr; } .pu-item { font-size: 0.92rem; padding: 12px 8px; } }
+
+    .pj-titulo { display: inline-flex; align-items: center; gap: 10px; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+{{ juego[1] }}
+{% endblock %}
+
+{% block clase_header %}
+header-crear
+{% endblock %}
+
+{% block body %}
+{% from 'juegos/_pieza.html' import pieza %}
+<div class="container content tema-union">
+    {# Izquierda: el elemento de cada pareja. Derecha: sus parejas, ya mezcladas. NO se manda cuál va con cuál #}
+    <div class="pj-partida" id="partida"
+         data-izquierda='{{ izquierda | tojson }}'
+         data-derecha='{{ derecha | tojson }}'
+         data-tiempo-total="{{ tiempo_total }}"
+         data-resultado-url="{{ url_for('jugar_resultado', id_plantilla=id_plantilla) }}"
+         data-detalle-url="{{ url_for('mi_resultado', id_juego=juego[0]) }}">
+
+        <!-- EL JUEGO -->
+        <div class="pj-tarjeta" id="pantalla-juego">
+            <div class="pj-cabecera">
+                <span class="pj-titulo">{{ pieza('union', 36) }}<span id="contador-uniones"></span></span>
+                <span class="pj-segundos" id="segundos"></span>
+            </div>
+            <div class="pj-barra"><div class="pj-barra-relleno" id="barra"></div></div>
+            <p class="pu-instruccion" id="instruccion"></p>
+
+            <div class="pu-tablero" id="tablero">
+                <svg class="pu-lineas" id="lineas" aria-hidden="true"></svg>
+                <div class="pu-columna izq" id="col-izq"></div>
+                <div class="pu-columna der" id="col-der"></div>
+            </div>
+
+            <div class="pu-acciones">
+                <button type="button" class="pu-quitar" id="btn-quitar" hidden>Quitar esta unión</button>
+                <button type="button" class="pj-enviar" id="btn-terminar">Terminar</button>
+            </div>
+        </div>
+
+        <!-- CALCULANDO -->
+        <div class="pj-tarjeta pj-centrado" id="pantalla-cargando" hidden>
+            <p>Calculando tu puntaje...</p>
+        </div>
+
+        <!-- ERROR AL ENVIAR -->
+        <div class="pj-tarjeta pj-centrado" id="pantalla-error" hidden>
+            <p>No se pudo calcular tu puntaje. Revisa tu conexión.</p>
+            <button type="button" class="t-guardar" id="btn-reintentar">Reintentar</button>
+        </div>
+
+        <!-- RESULTADO -->
+        <div class="pj-tarjeta" id="pantalla-resultado" hidden>
+            <div class="pj-centrado">
+                <h2>¡Terminaste!</h2>
+                <div class="pj-puntaje" id="puntaje"></div>
+                <p id="aciertos"></p>
+                <p class="pj-aviso-guardado" id="aviso-guardado"></p>
+            </div>
+            <ul class="pj-detalle" id="detalle"></ul>
+            <div class="pj-acciones">
+                <a href="{{ url_for('index') }}" class="t-guardar">Volver al inicio</a>
+                <a href="/jugar" class="t-guardar">Usar otro código</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const contenedor = document.getElementById('partida');
+    const izquierda = JSON.parse(contenedor.dataset.izquierda);
+    const derecha = JSON.parse(contenedor.dataset.derecha);
+    const TOTAL = parseInt(contenedor.dataset.tiempoTotal, 10);
+    const URL_RESULTADO = contenedor.dataset.resultadoUrl;
+
+    const COLORES = ['#2e86c1', '#d35400', '#8e44ad', '#16a085', '#c0392b', '#b7950b', '#2c3e50', '#e91e63'];
+
+    const uniones = new Map();        // id de la pregunta (izquierda) -> id de la respuesta (derecha)
+    const botonesIzq = new Map();
+    const botonesDer = new Map();
+    const tablero = document.getElementById('tablero');
+    const svg = document.getElementById('lineas');
+    let seleccionada = null;          // elemento de la izquierda que se está uniendo
+    let terminado = false;
+    let reloj = null;
+    let respuestas = {};
+
+    function mostrar(idPantalla) {
+        ['pantalla-juego', 'pantalla-cargando', 'pantalla-error', 'pantalla-resultado'].forEach(function (id) {
+            document.getElementById(id).hidden = (id !== idPantalla);
+        });
+    }
+
+    function colorDe(idIzq) {
+        const posicion = izquierda.findIndex(function (x) { return x.id === idIzq; });
+        return COLORES[posicion % COLORES.length];
+    }
+
+    function duenoDe(idDer) {
+        let dueno = null;
+        uniones.forEach(function (der, izq) { if (der === idDer) dueno = izq; });
+        return dueno;
+    }
+
+    function construir() {
+        izquierda.forEach(function (item) {
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.className = 'pu-item';
+            boton.textContent = item.texto;
+            boton.addEventListener('click', function () { clicIzquierda(item.id); });
+            document.getElementById('col-izq').appendChild(boton);
+            botonesIzq.set(item.id, boton);
+        });
+        derecha.forEach(function (item) {
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.className = 'pu-item';
+            boton.textContent = item.texto;
+            boton.addEventListener('click', function () { clicDerecha(item.id); });
+            document.getElementById('col-der').appendChild(boton);
+            botonesDer.set(item.id, boton);
+        });
+    }
+
+    function clicIzquierda(id) {
+        if (terminado) return;
+        seleccionada = (seleccionada === id) ? null : id;
+        actualizar();
+    }
+
+    function clicDerecha(id) {
+        if (terminado) return;
+        if (seleccionada === null) {
+            // Si ya está unida, se selecciona su pareja de la izquierda para poder cambiarla o quitarla
+            const dueno = duenoDe(id);
+            if (dueno !== null) { seleccionada = dueno; actualizar(); }
+            return;
+        }
+        // Cada elemento de la derecha solo puede estar unido a uno de la izquierda
+        const anterior = duenoDe(id);
+        if (anterior !== null) uniones.delete(anterior);
+        uniones.set(seleccionada, id);
+        seleccionada = null;
+        actualizar();
+    }
+
+    function actualizar() {
+        botonesIzq.forEach(function (boton, id) {
+            boton.classList.toggle('seleccionada', seleccionada === id);
+            boton.classList.toggle('unida', uniones.has(id));
+            boton.style.borderColor = uniones.has(id) ? colorDe(id) : '';
+        });
+        botonesDer.forEach(function (boton, id) {
+            const dueno = duenoDe(id);
+            boton.classList.toggle('unida', dueno !== null);
+            boton.style.borderColor = dueno !== null ? colorDe(dueno) : '';
+        });
+        document.getElementById('contador-uniones').textContent = 'Unidas: ' + uniones.size + ' de ' + izquierda.length;
+        document.getElementById('btn-quitar').hidden = !(seleccionada !== null && uniones.has(seleccionada));
+        document.getElementById('instruccion').textContent = seleccionada === null
+            ? 'Toca un elemento de la izquierda y luego su pareja de la derecha. Puedes cambiar las uniones antes de terminar.'
+            : 'Ahora toca su pareja en la columna de la derecha.';
+        dibujarLineas();
+    }
+
+    // Una línea curva de cada elemento de la izquierda hasta su pareja de la derecha
+    function dibujarLineas() {
+        const caja = tablero.getBoundingClientRect();
+        svg.setAttribute('width', caja.width);
+        svg.setAttribute('height', caja.height);
+        svg.innerHTML = '';
+        uniones.forEach(function (idDer, idIzq) {
+            const a = botonesIzq.get(idIzq).getBoundingClientRect();
+            const b = botonesDer.get(idDer).getBoundingClientRect();
+            const x1 = a.right - caja.left, y1 = a.top + a.height / 2 - caja.top;
+            const x2 = b.left - caja.left, y2 = b.top + b.height / 2 - caja.top;
+            const medio = (x1 + x2) / 2;
+            const linea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            linea.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + medio + ' ' + y1 + ', ' + medio + ' ' + y2 + ', ' + x2 + ' ' + y2);
+            linea.setAttribute('stroke', colorDe(idIzq));
+            linea.setAttribute('stroke-width', '4');
+            linea.setAttribute('fill', 'none');
+            linea.setAttribute('stroke-linecap', 'round');
+            svg.appendChild(linea);
+            [[x1, y1], [x2, y2]].forEach(function (punto) {
+                const circulo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circulo.setAttribute('cx', punto[0]);
+                circulo.setAttribute('cy', punto[1]);
+                circulo.setAttribute('r', '5');
+                circulo.setAttribute('fill', colorDe(idIzq));
+                svg.appendChild(circulo);
+            });
+        });
+    }
+
+    function textoTiempo(segundos) {
+        const minutos = Math.floor(segundos / 60);
+        const resto = segundos % 60;
+        return minutos + ':' + (resto < 10 ? '0' : '') + resto;
+    }
+
+    function pintarTiempo(restanteMs) {
+        const segundos = Math.max(0, Math.ceil(restanteMs / 1000));
+        const urgente = segundos <= 10;
+        const textoSegundos = document.getElementById('segundos');
+        const barra = document.getElementById('barra');
+        textoSegundos.textContent = textoTiempo(segundos);
+        textoSegundos.classList.toggle('urgente', urgente);
+        barra.style.width = Math.max(0, restanteMs / (TOTAL * 1000) * 100) + '%';
+        barra.classList.toggle('urgente', urgente);
+    }
+
+    // El tiempo es para TODAS las parejas; al llegar a 0 se envía lo que haya unido
+    function iniciarReloj() {
+        const fin = Date.now() + TOTAL * 1000;
+        pintarTiempo(TOTAL * 1000);
+        reloj = setInterval(function () {
+            const restante = fin - Date.now();
+            pintarTiempo(restante);
+            if (restante <= 0) { clearInterval(reloj); terminar(true); }
+        }, 250);
+    }
+
+    function terminar(porTiempo) {
+        if (terminado) return;
+        const sinUnir = izquierda.length - uniones.size;
+        if (!porTiempo && sinUnir > 0) {
+            const mensaje = 'Te ' + (sinUnir === 1 ? 'falta 1 pareja' : 'faltan ' + sinUnir + ' parejas') + ' por unir. ¿Terminar de todos modos?';
+            if (!confirm(mensaje)) return;
+        }
+        terminado = true;
+        clearInterval(reloj);
+        botonesIzq.forEach(function (b) { b.disabled = true; });
+        botonesDer.forEach(function (b) { b.disabled = true; });
+
+        respuestas = {};
+        izquierda.forEach(function (item) {
+            respuestas[item.id] = uniones.has(item.id) ? uniones.get(item.id) : null;
+        });
+        enviar();
+    }
+
+    // Al terminar, el SERVIDOR califica (así nadie puede cambiar su nota desde el navegador)
+    function enviar() {
+        mostrar('pantalla-cargando');
+        fetch(URL_RESULTADO, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ respuestas: respuestas })
+        })
+        .then(function (r) {
+            // 409 = esta evaluación ya se envió (por ejemplo, si se perdió la respuesta y se reintentó)
+            if (r.status === 409) {
+                window.location.href = contenedor.dataset.detalleUrl;
+                return null;
+            }
+            if (!r.ok) throw new Error('Respuesta no válida');
+            return r.json();
+        })
+        .then(function (datos) { if (datos) mostrarResultado(datos); })
+        .catch(function () { mostrar('pantalla-error'); });
+    }
+
+    function mostrarResultado(datos) {
+        document.getElementById('puntaje').textContent = datos.puntaje + ' / ' + datos.maximo;
+        document.getElementById('aciertos').textContent =
+            'Acertaste ' + datos.aciertos + ' de ' + datos.total + ' preguntas.';
+
+        const aviso = document.getElementById('aviso-guardado');
+        if (datos.guardado) {
+            aviso.textContent = '✔ Tu resultado quedó guardado.';
+        } else if (datos.es_estudiante) {
+            aviso.textContent = '⚠ No se pudo guardar tu resultado. Avísale a tu docente.';
+        } else {
+            aviso.textContent = 'Modo prueba: este resultado no se guarda (solo se guardan los de estudiantes).';
+        }
+
+        const lista = document.getElementById('detalle');
+        lista.innerHTML = '';
+        datos.detalle.forEach(function (d, i) {
+            const item = document.createElement('li');
+            item.className = d.acerto ? 'acierto' : 'fallo';
+
+            const titulo = document.createElement('div');
+            titulo.className = 'pregunta';
+            titulo.textContent = (d.acerto ? '✔ ' : (d.tu_respuesta === null ? '⏱ ' : '✘ ')) + (i + 1) + '. ' + d.enunciado;
+            item.appendChild(titulo);
+
+            const tuya = document.createElement('div');
+            tuya.className = 'linea';
+            tuya.textContent = d.tu_respuesta === null ? 'No respondiste a tiempo.' : 'Tu respuesta: ' + d.tu_respuesta;
+            item.appendChild(tuya);
+
+            if (!d.acerto) {
+                const correcta = document.createElement('div');
+                correcta.className = 'linea';
+                correcta.textContent = 'Respuesta correcta: ' + d.correcta;
+                item.appendChild(correcta);
+            }
+            lista.appendChild(item);
+        });
+
+        mostrar('pantalla-resultado');
+    }
+
+    document.getElementById('btn-reintentar').addEventListener('click', enviar);
+    document.getElementById('btn-terminar').addEventListener('click', function () { terminar(false); });
+    document.getElementById('btn-quitar').addEventListener('click', function () {
+        if (seleccionada !== null) { uniones.delete(seleccionada); seleccionada = null; actualizar(); }
+    });
+    window.addEventListener('resize', dibujarLineas);
+
+    construir();
+    actualizar();
+    iniciarReloj();
+</script>
+{% endblock %}
