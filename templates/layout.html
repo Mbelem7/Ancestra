@@ -1,93 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANCESTRA</title>
+    <title>Ancestra</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caprasimo&display=swap" rel="stylesheet">
     {% block title %} {% endblock %}
     {% block css %} {% endblock %}
 </head>
 <body>
-    <!-- NAVBAR-->
-<header class="header {% block clase_header %}{% endblock %}"> 
-    <div class="header__pattern header__pattern--left"></div>
-    
-    <h1 class="header__title">
-        {% block titulo_header %}Ancestra{% endblock %}
-    </h1>
-
-    <div class="header__pattern header__pattern--right"></div>
-</header>
-
-<div class="content">
-    <nav class="navbar"> 
-        <a href="{{ url_for('index') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'index' else '' }}">Home</a>
-        <a href="{{ url_for('biblioteca') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'biblioteca' else '' }}">Biblioteca</a>
-        <a href="{{ url_for('galeria') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'galeria' else '' }}">Galería</a>
-        <a href="{{ url_for('mapa') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'mapa' else '' }}">Mapa</a>
-        <a href="{{ url_for('jugar') }}" class="nav__item {{ 'nav__item--active' if request.endpoint == 'jugar' else '' }}">Jugar</a>
+    <!-- HEADER DINÁMICO -->
+    <header class="header {% block clase_header %}{% endblock %}"> 
         
-        <!-- "Crear" solo lo ven docentes y administradores.
-             Usamos .startswith() para que 'crear-local' o 'crear-plantilla' mantengan este botón activo (y también 'Mis plantillas') -->
-        {% if session.get('tipo') in ('docente', 'administrador') %}
-        <a href="{{ url_for('crear') }}" class="nav__item {{ 'nav__item--active' if request.endpoint and (request.endpoint.startswith('crear') or request.endpoint == 'mis_plantillas') else '' }}">Crear</a>
-        {% endif %}
-
-        <!-- Solo los administradores aprueban a los docentes -->
-        {% if session.get('tipo') == 'administrador' %}
-        <a href="{{ url_for('admin_docentes') }}" class="nav__item {{ 'nav__item--active' if request.endpoint and request.endpoint.startswith('admin') else '' }}">Docentes</a>
-        {% endif %}
-
-        <!-- Cuenta: nombre y salir si hay sesión; si no, ingresar -->
-        {% if session.get('persona_id') %}
-        <span class="nav__item" title="{{ session.get('tipo') }}">👤 {{ session.get('nombre') }}</span>
-        <a href="{{ url_for('logout') }}" class="nav__item">Salir</a>
-        {% else %}
-        <a href="{{ url_for('login') }}" class="nav__item {{ 'nav__item--active' if request.endpoint in ('login', 'registro') else '' }}">Ingresar</a>
-        {% endif %}
-
-        <form class="nav__search" role="search">
-            <input type="search" placeholder="Buscar..." aria-label="Buscar">
-            <button type="submit" aria-label="Buscar">
-                <svg viewBox="0 0 24 24" width="18" height="18">
-                    <circle cx="10" cy="10" r="7" fill="none" stroke="#5a7a1e" stroke-width="2"/>
-                    <line x1="15" y1="15" x2="21" y2="21" stroke="#5a7a1e" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </button>
-        </form>
-        <button id="btn-dark-mode" class="nav__item" style="cursor: pointer; background: none; border: none; font-size: 1.2rem;">
-            🌙
-        </button>
-    </nav>
-</div>
-
-    <script>
-    const toggleBtn = document.getElementById('btn-dark-mode');
-    const body = document.body;
-    
-    // Revisar si el usuario ya tenía el modo oscuro activado antes
-    if (localStorage.getItem('darkMode') === 'enabled') {
-        body.classList.add('dark-mode');
-        toggleBtn.textContent = '☀️'; // Cambia el ícono a un sol
-    }
-
-    toggleBtn.addEventListener('click', () => {
-        body.classList.toggle('dark-mode');
         
-        // Guardar la preferencia y cambiar el ícono
-        if (body.classList.contains('dark-mode')) {
-            localStorage.setItem('darkMode', 'enabled');
-            toggleBtn.textContent = '☀️';
-        } else {
-            localStorage.setItem('darkMode', 'disabled');
-            toggleBtn.textContent = '🌙';
-        }
-    });
-</script>
-    {% block body %}
-    {% endblock %}
+        <!-- Aquí inyectamos el título o el gran Logo de la página principal -->
+        <div class="header__title_container">
+
+            {% block titulo_header %}
+                        <img src="/static/assets/img/logoinicio.svg" alt="Logo Ancestra">
+                        <h2>“... en la costa del Pacifico de america central” </h2>
+            {% endblock %}
+        </div>
+
+            <div class="contenedor-header" style="display: flex; justify-content: center; z-index: 10; margin-top: auto;">
+                <nav class="nav-principal-home" style="display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 5px;"> 
+                
+                <!-- Enlaces Públicos -->
+                    <a href="{{ url_for('index') }}" class="nav-link-home {% if request.endpoint == 'index' %}active{% endif %}">Inicio</a>
+                    <a href="{{ url_for('biblioteca') }}" class="nav-link-home {% if request.endpoint == 'memorias' %}active{% endif %}">Memorias</a>
+                    <a href="{{ url_for('galeria') }}" class="nav-link-home {% if request.endpoint == 'vestigio' %}active{% endif %}">Vestigio</a>
+                    <a href="{{ url_for('mapa') }}" class="nav-link-home {% if request.endpoint == 'huellas' %}active{% endif %}">Huellas</a>
+
+                    <!-- Enlaces Privados (Solo Docentes/Admin) -->
+                    {% if session.get('tipo') in ('docente', 'administrador') %}
+                    <a href="{{ url_for('crear') }}" class="nav-link-home {% if request.endpoint and (request.endpoint.startswith('crear') or request.endpoint == 'mis_plantillas') %}active{% endif %}">Crear</a>
+                    {% endif %}
+
+                    <!-- Enlaces Privados (Solo Admin) -->
+                    {% if session.get('tipo') == 'administrador' %}
+                    <a href="{{ url_for('admin_docentes') }}" class="nav-link-home {% if request.endpoint and request.endpoint.startswith('admin') %}active{% endif %}">Docentes</a>
+                    {% endif %}
+
+                    <!-- Control de Cuenta (Ingresar / Salir) -->
+                    {% if session.get('persona_id') %}
+                    <span class="nav-link-home" style="cursor: default; font-weight: normal; padding-right: 5px;" title="{{ session.get('tipo') }}">👤 {{ session.get('nombre') }}</span>
+                    <a href="{{ url_for('logout') }}" class="nav-link-home">Salir</a>
+                    {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link-home {% if request.endpoint in ('login', 'registro') %}active{% endif %}">Ingresar</a>
+                    {% endif %}
+                </nav>
+            </div>
+    </header>
+
+
+
+    <!-- CONTENIDO DE CADA PÁGINA -->
+    <div class="content" >
+        {% block body %}
+        {% endblock %}
+    </div>
 
     {% block js %}
     {% endblock %}

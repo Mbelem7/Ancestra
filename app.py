@@ -384,7 +384,7 @@ def indices_de_preguntas():
  
 ########################################################################
 #BIBLIOTECA
-@app.route('/biblioteca')
+@app.route('/memorias')
 def biblioteca():
     archivos = obtener_archivos_biblioteca()
     return render_template('biblioteca.html', libritos=archivos)
@@ -529,7 +529,7 @@ def buscar_documento():
  
 ########################################################################
 #GALERIA
-@app.route('/galeria')
+@app.route('/vestigios')
 def galeria():
     imagenes = obtener_archivos_galeria()
     categorias = mostrar_categorias()
@@ -675,7 +675,7 @@ def buscar_imagen():
 
 ##############################################################################
 #MAPA
-@app.route('/mapa')
+@app.route('/huellas')
 def mapa():
     lugares = obtener_lugares()
     puntos = [

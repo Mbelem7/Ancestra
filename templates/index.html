@@ -1,18 +1,12 @@
 {% extends "layout.html" %}
 
 {% block title %}
-<title>Pagina principal</title>
+<title>Ancestra - Inicio</title>
 {% endblock %}
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
-{% endblock %}
-
-
-
-<!-- 2. BLOQUE TITULO_HEADER: Esto es para el texto grande del header -->
-{% block titulo_header %}
-Home
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock %}
 
 {% block clase_header %}
@@ -20,36 +14,121 @@ header-home
 {% endblock %}
 
 {% block body %}
-<div class="container">
-    <!-- Sección: ¿Tienes una cuenta? -->
-    <div class="contenedor-cuenta">
-        <h2 class="titulo-ancestra">¿Tienes una cuenta?</h2>
-        <div class="d-flex flex-column mt-4">
-            <a href="/registro" class="btn-cuenta">Registrate</a>
-            <a href="/login" class="btn-cuenta mb-0">Iniciar sesión</a>
+<!-- CONTENEDOR PRINCIPAL -->
+<main class="fondo-principal">
+    
+    <!-- SECCIÓN 1: Historia -->
+    <section class="seccion container">
+        <h1 class="titulo">Mangue, la Raiz de Nuestra Historia</h1>
+        
+        <div class="fila-doble">
+            <!-- Mapa -->
+            <div class="columna relativo">
+                <img src="{{ url_for('static', filename='assets/img/mapaindex.png') }}" alt="Mapa de Mangue" class="img-borde shadow" style="z-index: 2; height: 360; width: 560;">
+            </div>
+            
+            <!-- Texto en Pergamino PNG -->
+            <div class="columna papel-png rotar-fondo-der" >
+                <p class="texto">
+                    Tras su llegada en la década de 1520 a la región de la costa del Pacífico de las actuales Honduras y Costa Rica, los españoles hallaron un territorio organizado en múltiples cacicazgos de diferentes tamaños e importancia, pero habitado por un pueblo, los chorotegas, que hablaba una lengua semejante a la de los nativos de Tenochtitlán. El cacique de Nicoya era el más poderoso de todos, de ahí la denominación de Reino de Nicoya, a pesar de que no se trataba de un estado centralizado. <n/> </n>
+                    Era una sociedad guerrera de claras raíces mesoamericanas, encabezada por un cacique que declaraba la guerra, exigía tributos y dirigía la comunidad, cuya religión creía que el mundo fue creado y destruido varias veces por disputas de los dioses.
+                </p>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- BANDA ROJA -->
+    <div class="banda-roja">
+        <div class="container">
+            <p>Gracias a los relatos legendarios de los propios chorotegas, los españoles pudieron reconstruir la historia de las migraciones que, en dos etapas, los había llevado hasta allí desde el Valle de México. La primera tuvo lugar alrededor del siglo VII, cuando los olmecas xicalanca asaltaron la región de Cholula y expulsaron a los chorotegas hacia el sur. Estos se asentaron en el istmo de Rivas, junto al lago de Nicaragua. Más adelante, en los siglos XI-XII, de nuevo la presión olmeca empujó hacia el sur a los pipiles nicaraos, los cuales a su vez desplazaron a los chorotegas, que se instalaron en la península de Nicoya.</p>
         </div>
     </div>
+<img src="/static/assets/img/lineasindigenas.svg" alt="Lineas divisorias" style="width: 100vw; margin-left: calc(50% - 50vw); margin-top: -50px; margin-bottom: 10px;">
+    <!-- SECCIÓN 2: Economía y Arte -->
+    <section class="seccion container py-5">
+        <div class="fila-doble alturas-iguales">
+            <!-- Izquierda -->
+            <div class="columna">
+                <p class="texto">
+                    Su economía se basaba en la agricultura, la caza y la pesca. También existía una artesanía especializada que elaboraba productos para la exportación, desde cerámica policromada y metates o morteros ceremoniales hasta textiles de algodón, de la que han quedado espléndidos testimonios.
+                </p>
+                <p class="texto my-3">
+                    Los metates, utilizados para moler maíz, son un elemento cotidiano en las culturas prehispánicas. En el mundo nicoya se convirtieron en un objeto ceremonial y se depositaban en los enterramientos. Su decoración incluye bandas y figuras zoomorfas, sobre todo aves que se creía que acompañaban al difunto a la otra vida.
+                </p>
+                
+                <div class="relativo mt-4" style="display: inline-block;">
 
-    <!-- Sección: Cuadrícula de Juegos -->
-    <div class="grid-juegos">
-        <a href="/juego/1" class="tarjeta-juego">
-            <h3 class="titulo-ancestra">Juego 1</h3>
-        </a>
+                    <img src="{{ url_for('static', filename='assets/img/ceramicachorotega.jpg') }}" alt="Cerámica Policromada" class="img-borde shadow" style="height: 458px; width: 610px; margin-bottom: -100px; position: relative; z-index: 2;">
+                </div>
+            </div>
+
+            <!-- Derecha -->
+            <div class="columna alinear-abajo">
+                <div class="relativo mb-4" style="display: inline-block;">
+                    <img src="{{ url_for('static', filename='assets/img/chorotegas.jpg') }}" alt="Indígenas Chorotegas" class="img-borde shadow" style="height: 458px; width: 610px; margin-top: -300px; position: relative; z-index: 2;">
+                </div>
+                
+                <p class="texto">
+                    La cerámica es la forma artística más característica del área cultural de Nicoya. Desde el siglo VI, las piezas se distinguen por una decoración polícroma que alcanzó su apogeo en el período Polícromo Medio (siglos IX-XIII), en el que abundan las representaciones de animales como chompipes, jaguares, serpientes, monos o lagartos.
+                </p>
+                <p class="texto font-weight-bold mt-2" style="padding-bottom: 100px;">[BUSCAR MAS TEXTO PARA PONER AQUI]</p>
+            </div>
+        </div>
+    </section>
+<img src="/static/assets/img/lineasindigenas.svg" alt="Lineas divisorias" style="width: 100vw; margin-left: calc(50% - 50vw); margin-bottom: -40px; margin-top: 25px;" >
+
+    <!-- SECCIÓN 3: Sociedad (Verde) -->
+    <section class="bloque-verde">
+        <div class="container py-4">
+            <p class="texto texto-blanco">
+                Según los estudiosos en la sociedad chorotega la propiedad era comunal y se otorgaba en parcelas individuales a los cabeza de familia en usufructo que se podía heredar a sus hijos. El pueblo Chorotega vivía en pueblos y pequeñas ciudades que llegaron a tener aproximadamente 20000 habitantes. Las casas eran en su mayoría de madera con techo de paja. Los templos tuvieron un lugar importante dentro de los asentamientos. Las mujeres estaban a cargo de la casa y el comercio. También forma parte del trabajo en el campo hecho por mujeres. En la parte central construían una gran plaza donde se celebraban los mercados. Se utilizaron semillas de cacao como moneda. El maíz fue la base de la comida, junto con los frijoles, cacao, frutas, carne y pescado. Las tierras de cultivo fueron de propiedad colectiva y las cosechas se distribuyeron entre la población.
+            </p>
+        </div>
+    </section>
+
+    <!-- SECCIÓN 4: Consejo -->
+    <section class="seccion container py-4">
+        <div class="fila-doble centrado">
+            
+            <div class="columna papel-png rotar-fondo-izq">
+                <p class="texto">
+                    El pueblo Chorotega se regía por un consejo de ancianos y un jefe electo. En tiempos de guerra, un hombre era designado para actuar como un líder militar. Lucharon con frecuencia con las tribu vecinas. Llevaban un vestido de algodón y estaban armados con arco y flecha y una espada de madera adornada con pequeñas puntas de pedernal.
+                     Según estos registros españoles, los chorotegas llegaron alrededor del año 800 d. C. y hablaban un dialecto del otomangue. Esta familia lingüística incluye las que hablaban los mixtecos en las tierras altas del centro-sur de México, así como los zapotecas, que establecieron algunos de los primeros centros urbanos de Mesoamérica a partir del siglo VI a. C.
+                </p>
+            </div>
+
+            <div class="columna relativo" style="text-align: right;">
+                <img src="{{ url_for('static', filename='assets/img/petroglifo.png') }}" alt="Petroglifo Ancestral" class="img-borde shadow" style="max-height: 380px; width: auto; max-width: 100%;">
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container footer-grid">
+        <!-- Redes -->
+        <div class="footer-redes">
+            <h3 class="footer-titulo">Síguenos</h3>
+            <ul class="lista-redes">
+                <li><a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i> Facebook</a></li>
+                <li><a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i> Instagram</a></li>
+                <li><a href="https://tiktok.com" target="_blank"><i class="fab fa-tiktok"></i> Tiktok</a></li>
+                <li><a href="https://youtube.com" target="_blank"><i class="fab fa-youtube"></i> YouTube</a></li>
+            </ul>
+        </div>
         
-        <a href="/juego/2" class="tarjeta-juego">
-            <h3 class="titulo-ancestra">Juego 2</h3>
-        </a>
-        
-        <a href="/juego/3" class="tarjeta-juego">
-            <h3 class="titulo-ancestra">Juego 3</h3>
-        </a>
-        
-        <a href="/juego/4" class="tarjeta-juego">
-            <h3 class="titulo-ancestra">Juego 4</h3>
-        </a>
+        <!-- Logo -->
+        <div class="footer-logo">
+            <div class="fondo-logo">
+                <img src="{{ url_for('static', filename='assets/img/logoancestra.svg') }}" alt="Ancestra" class="img-logo">
+            </div>
+        </div>
     </div>
-</div>
-{% endblock %}
-
-{% block js %}
+    
+    <div class="borde-footer"></div>
+</footer>
 {% endblock %}
