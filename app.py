@@ -396,6 +396,45 @@ def notificar_caducidad():
     print(f"Avisos de caducidad: {enviados} enviados, {sin_enviar} sin enviar.")
 
 #ADMIN - APROBAR DOCENTES
+# Colores de cada tipo de juego en las gráficas (los mismos de las piezas de puzzle)
+COLORES_TIPO = {'verdadero_falso': '#FFC565', 'seleccion_multiple': '#BECC29', 'completar': '#10C6D9', 'union': '#F22C0C'}
+NOMBRES_CORTOS = {'verdadero_falso': 'V/F', 'seleccion_multiple': 'Múltiple', 'completar': 'Completar', 'union': 'Unir'}
+
+
+def repartir_por_tipo(conteo):
+    # conteo: {tipo: cantidad}. Devuelve (filas, total): una fila por cada tipo de juego (también los que
+    # tienen 0) con su porcentaje entero, que siempre suma 100, y los datos para dibujar el pastel.
+    total = sum(conteo.get(tipo, 0) for tipo in JUEGOS_DISPONIBLES)
+    filas = []
+    for tipo in JUEGOS_DISPONIBLES:
+        cantidad = conteo.get(tipo, 0)
+        filas.append({
+            'tipo': tipo,
+            'nombre': NOMBRES_TIPO[tipo],
+            'cantidad': cantidad,
+            'exacto': cantidad * 100 / total if total else 0,
+            'color': COLORES_TIPO[tipo]
+        })
+
+    # Porcentajes enteros que suman 100 (los que faltan se reparten entre los de mayor decimal)
+    for fila in filas:
+        fila['porcentaje'] = int(fila['exacto'])
+    faltan = 100 - sum(fila['porcentaje'] for fila in filas) if total else 0
+    for fila in sorted(filas, key=lambda f: f['exacto'] - int(f['exacto']), reverse=True)[:faltan]:
+        fila['porcentaje'] += 1
+
+    # Dónde empieza y cuánto mide cada rebanada (el círculo completo mide 100; se deja un huequito entre rebanadas)
+    con_datos = sum(1 for fila in filas if fila['cantidad'])
+    espacio = 0.8 if con_datos > 1 else 0
+    acumulado = 0
+    for fila in filas:
+        fila['dash'] = round(max(fila['exacto'] - espacio, 0.3), 3) if fila['cantidad'] else 0
+        fila['desfase'] = round(25 - acumulado, 3)      # 25 = empezar arriba y avanzar hacia la derecha
+        acumulado += fila['exacto']
+
+    return filas, total
+
+
 @app.route('/admin/docentes')
 @rol_requerido('administrador')
 def admin_docentes():
@@ -404,7 +443,34 @@ def admin_docentes():
     #     fecha_nacimiento, correo, estado)
     orden = {'pendiente': 0, 'rechazado': 1, 'verificado': 2}
     docentes = sorted(docentes, key=lambda d: orden.get(d[1], 3))
-    return render_template('admin_docentes.html', docentes=docentes)
+
+    # Cuántas plantillas creó cada docente y de qué tipo: {id_docente: {'total': n, 'tipos': [...]}}
+    por_docente = {}
+    for docente_id, tipo, cantidad in contar_plantillas_por_docente():
+        por_docente.setdefault(docente_id, {})[tipo] = cantidad
+    plantillas_de = {}
+    for docente_id, tipos in por_docente.items():
+        plantillas_de[docente_id] = {
+            'total': sum(tipos.values()),
+            'tipos': [{'tipo': t, 'nombre': NOMBRES_TIPO[t], 'corto': NOMBRES_CORTOS[t], 'cantidad': tipos[t]}
+                      for t in JUEGOS_DISPONIBLES if t in tipos]
+        }
+
+    # El pastel: qué tipo de plantilla se crea más
+    pastel, total_plantillas = repartir_por_tipo(dict(contar_plantillas_por_tipo()))
+    mas_creadas = []
+    if total_plantillas:
+        maximo = max(fila['cantidad'] for fila in pastel)
+        mas_creadas = [fila for fila in pastel if fila['cantidad'] == maximo]
+
+    resumen = {
+        'docentes_activos': sum(1 for d in docentes if d[1] == 'verificado' and d[9] == 'activo'),
+        'docentes_pendientes': sum(1 for d in docentes if d[1] == 'pendiente'),
+        'estudiantes_activos': contar_estudiantes_activos(),
+        'plantillas': total_plantillas
+    }
+    return render_template('admin_docentes.html', docentes=docentes, plantillas_de=plantillas_de,
+                           pastel=pastel, mas_creadas=mas_creadas, resumen=resumen)
 
 
 @app.route('/admin/docentes/<int:id_docente>/estado', methods=['POST'])
@@ -430,7 +496,15 @@ def admin_docente_detalle(id_docente):
         hoy = date.today()
         edad = hoy.year - nacimiento.year - ((hoy.month, hoy.day) < (nacimiento.month, nacimiento.day))
 
-    return render_template('admin_docente_detalle.html', d=docente, edad=edad)
+        # Las plantillas que creó este docente (el administrador puede abrir sus preguntas y sus resultados)
+    plantillas = obtener_plantillas_resumen(docente[0])
+    # plantilla: (id_plantilla, codigo_acceso, fecha_creacion, nombre, descripcion, tipo, estado, total_preguntas)
+    por_tipo = {}
+    for plantilla in plantillas:
+        por_tipo[plantilla[5]] = por_tipo.get(plantilla[5], 0) + 1
+    tipos = [{'tipo': t, 'nombre': NOMBRES_TIPO[t], 'cantidad': por_tipo[t]} for t in JUEGOS_DISPONIBLES if t in por_tipo]
+
+    return render_template('admin_docente_detalle.html', d=docente, edad=edad, plantillas=plantillas, tipos=tipos)
 
 ########################################################################
 # PÁGINA PRINCIPAL
@@ -1224,8 +1298,8 @@ def crear_union():
 @app.route('/mis-plantillas')
 @puede_crear_plantillas
 def mis_plantillas():
-    docente_id, _ = ids_de_creador()   # el administrador no tiene docente_id, así que ve todas
-    plantillas = obtener_plantillas_resumen(docente_id)
+    docente_id, administrador_id = ids_de_creador()   # cada quien ve solo las plantillas que creó él mismo
+    plantillas = obtener_plantillas_resumen(docente_id, administrador_id)
     return render_template('juegos/mis_plantillas.html', plantillas=plantillas)
 
 #VER UNA PLANTILLA CON SUS PREGUNTAS Y RESPUESTAS

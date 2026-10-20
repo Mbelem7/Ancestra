@@ -6,6 +6,80 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Los nombres de este formulario empiezan con "fm-" para que no choquen con clases del CSS del sitio */
+    [hidden] { display: none !important; }
+    .fm-columna { display: block; max-width: 640px; margin: 28px auto 60px; }
+
+    .fm-volver {
+        display: inline-block; margin: 0 0 16px; padding: 8px 18px; background: #fff; color: #46611a;
+        border: 2px solid #5a7a1e; border-radius: 22px; font-weight: 700; font-size: 0.9rem; text-decoration: none;
+    }
+    .fm-volver:hover { background: #5a7a1e; color: #fff; }
+
+    .fm-tarjeta { display: block; background: #fff; color: #222; border: 1px solid #e0e0e0; border-radius: 18px; padding: 32px 34px 28px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08); }
+    .fm-titulo { margin: 0 0 4px; font-size: 1.5rem; }
+    .fm-sub { margin: 0 0 24px; color: #555; font-size: 0.95rem; line-height: 1.5; }
+
+    .fm-errores { margin: 0 0 20px; padding: 12px 16px; background: #fdf0ee; border-left: 5px solid #c0392b; border-radius: 8px; color: #7b241c; }
+    .fm-errores ul { margin: 6px 0 0; padding-left: 20px; }
+
+    .fm-grupo { display: block; margin: 0 0 20px; }
+    .fm-etiqueta { display: block; margin: 0 0 6px; font-weight: 700; font-size: 0.92rem; }
+    .fm-etiqueta .opcional { font-weight: 400; color: #666; }
+    .fm-ayuda { display: block; margin-top: 5px; font-size: 0.82rem; color: #666; }
+    .fm-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 560px) { .fm-fila { grid-template-columns: 1fr; gap: 0; } .fm-tarjeta { padding: 24px 18px; } }
+
+    .fm-campo {
+        display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 12px 14px;
+        background: #fff; color: #222; border: 2px solid #d0d0d0; border-radius: 10px;
+        font-family: inherit; font-size: 1rem; line-height: 1.4;
+    }
+    textarea.fm-campo { resize: vertical; min-height: 96px; }
+    .fm-campo:focus { outline: none; border-color: #5a7a1e; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.2); }
+    .fm-contador { display: block; margin-top: 4px; text-align: right; font-size: 0.8rem; color: #666; }
+
+    /* ---------- El archivo: una zona donde soltarlo o hacer clic ---------- */
+    .fm-zona {
+        position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        min-height: 150px; padding: 22px 16px; text-align: center;
+        background: #fafafa; border: 3px dashed #bdbdbd; border-radius: 14px; transition: background 0.15s, border-color 0.15s;
+    }
+    .fm-zona:hover, .fm-zona.arrastrando { background: #f3f8e6; border-color: #5a7a1e; }
+    .fm-zona .icono { font-size: 2rem; line-height: 1; }
+    .fm-zona .texto { font-size: 1rem; }
+    .fm-zona .formatos { font-size: 0.82rem; color: #666; }
+    /* El campo real cubre toda la zona, invisible: así el clic y el arrastrar funcionan solos */
+    .fm-archivo { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+    .fm-aviso { display: block; margin-top: 8px; padding: 8px 12px; background: #fff4d6; border-left: 5px solid #e0a800; border-radius: 8px; color: #5c4400; font-size: 0.88rem; }
+
+    .fm-previa { display: flex; gap: 16px; align-items: center; padding: 12px; background: #f6f9ee; border: 2px solid #c9d6b0; border-radius: 14px; }
+    .fm-previa + .fm-previa, .fm-zona + .fm-previa { margin-top: 0; }
+    .fm-actual { margin-bottom: 14px; background: #f4f4f4; border-color: #e0e0e0; }
+    .fm-miniatura { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 120px; height: 90px; background: #e6e6e6; border-radius: 10px; overflow: hidden; }
+    .fm-miniatura img, .fm-miniatura video { display: block; max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: cover; }
+    .fm-datos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .fm-datos .rotulo { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #46611a; }
+    .fm-actual .fm-datos .rotulo { color: #666; }
+    .fm-datos strong { overflow-wrap: anywhere; font-size: 0.95rem; }
+    .fm-datos .info { font-size: 0.82rem; color: #555; }
+    .fm-quitar { align-self: flex-start; margin: 4px 0 0; padding: 5px 14px; background: #fff; color: #a93226; border: 2px solid #c0392b; border-radius: 16px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+    .fm-quitar:hover { background: #c0392b; color: #fff; }
+    @media (max-width: 480px) { .fm-previa { flex-direction: column; align-items: flex-start; } .fm-miniatura { width: 100%; height: 160px; } }
+
+    /* ---------- Botones: bien separados, el principal a la derecha ---------- */
+    .fm-acciones { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 14px; margin-top: 28px; padding-top: 22px; border-top: 1px solid #ececec; }
+    .fm-boton {
+        display: inline-block; position: static; margin: 0; padding: 12px 30px;
+        background: #5a7a1e; color: #fff; border: 2px solid #5a7a1e; border-radius: 26px;
+        font-family: inherit; font-weight: 700; font-size: 1rem; line-height: 1.3; text-decoration: none; cursor: pointer;
+    }
+    .fm-boton:hover:not(:disabled) { background: #46611a; border-color: #46611a; }
+    .fm-boton:disabled { opacity: 0.65; cursor: progress; }
+    .fm-boton.sec { background: #fff; color: #46611a; }
+    .fm-boton.sec:hover { background: #eef4e2; color: #46611a; }
+</style>
 {% endblock %}
 
 {% block titulo_header %}
@@ -21,48 +95,74 @@ header-galeria
 {# archivo: (id_archivo, nombre, descripcion, url, categoria_id, tipo,
             fecha_creacion, fecha_modificacion, administrador_id, estado) #}
 <div class="container content">
-    
-    <!-- BARRA SUPERIOR: Botón de regresar a la galería -->
-    <div class="barra-superior-galeria mb-4">
-        <a href="{{ url_for('galeria') }}" class="btn-cancelar" style="border-radius: 50px; text-decoration: none; padding: 5px 15px; display: inline-block;">
-            ← Volver a la Galería
-        </a>
-    </div>
+  <div class="fm-columna">
 
-    <!-- CONTENEDOR DEL FORMULARIO -->
-    <div class="formulario-edicion shadow-sm">
-        <h2 class="titulo-seccion mb-4" style="text-align: center;">Actualizar Imagen o Video</h2>
+    <a href="{{ url_for('galeria') }}" class="fm-volver">← Volver a la galería</a>
 
-        <!-- Errores de validación que manda el backend -->
+    <form action="{{ url_for('editar_imagen', id_archivo=archivo[0]) }}" method="POST" enctype="multipart/form-data" class="fm-tarjeta" id="form-imagen">
+        <h2 class="fm-titulo">Actualizar imagen o video</h2>
+        <p class="fm-sub">Cambia los datos que necesites. Si no eliges un archivo nuevo, se queda el actual.</p>
+
         {% if erroresD %}
-        <ul style="color: red;">
-            {% for error in erroresD %}
-            <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
+        <div class="fm-errores" role="alert">
+            <strong>Revisa esto antes de guardar:</strong>
+            <ul>
+                {% for error in erroresD %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
         {% endif %}
-        
-        <form action="{{ url_for('editar_imagen', id_archivo=archivo[0]) }}" method="POST" enctype="multipart/form-data" class="form-ancestra">
-            
-            <!-- Campo: Nombre -->
-            <div class="form-group">
-                <label for="nombre" class="form-label">Título</label>
-                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" value="{{ archivo[1] }}" required>
+
+        <!-- El archivo actual y, si se quiere, uno nuevo -->
+        <div class="fm-grupo">
+            <span class="fm-etiqueta">Archivo <span class="opcional">(para cambiarlo, elige uno nuevo)</span></span>
+
+            {% set ruta = url_for('static', filename=archivo[3].split('static/')[1]) %}
+            <div class="fm-previa fm-actual">
+                <div class="fm-miniatura">
+                    {% if archivo[5] == 'video' %}
+                    <video src="{{ ruta }}" muted preload="metadata"></video>
+                    {% else %}
+                    <img src="{{ ruta }}" alt="{{ archivo[1] }}">
+                    {% endif %}
+                </div>
+                <div class="fm-datos">
+                    <span class="rotulo">Archivo actual</span>
+                    <strong>{{ archivo[3].split('/')[-1] }}</strong>
+                    <span class="info">{{ 'Video' if archivo[5] == 'video' else 'Imagen' }}</span>
+                </div>
             </div>
 
-            <!-- Campo: Tipo (imagen o video) -->
-            <div class="form-group">
-                <label for="tipo" class="form-label">Tipo</label>
-                <select id="tipo" name="tipo" class="form-input" required>
-                    <option value="imagen" {% if archivo[5] == 'imagen' %}selected{% endif %}>Imagen</option>
-                    <option value="video" {% if archivo[5] == 'video' %}selected{% endif %}>Video</option>
-                </select>
+            <div class="fm-zona" id="zona">
+                <span class="icono" aria-hidden="true">🔄</span>
+                <span class="texto"><strong>Haz clic para reemplazarlo</strong> o arrastra un archivo nuevo</span>
+                <span class="formatos">PNG, JPG, SVG, MP4 o WEBM (opcional)</span>
+                <input type="file" id="URL" name="URL" class="fm-archivo" accept=".png,.jpg,.jpeg,.svg,.mp4,.webm" aria-label="Archivo nuevo">
             </div>
+            <div class="fm-aviso" id="aviso-archivo" role="alert" hidden></div>
+            <div class="fm-previa" id="previa" hidden>
+                <div class="fm-miniatura" id="previa-miniatura"></div>
+                <div class="fm-datos">
+                    <span class="rotulo">Archivo nuevo (reemplazará al actual)</span>
+                    <strong id="previa-nombre"></strong>
+                    <span class="info" id="previa-info"></span>
+                    <button type="button" class="fm-quitar" id="previa-quitar">Quitar y dejar el actual</button>
+                </div>
+            </div>
+        </div>
 
+        <!-- Campo: Nombre -->
+        <div class="fm-grupo">
+            <label for="nombre" class="fm-etiqueta">Título</label>
+            <input type="text" id="nombre" name="nombre" class="fm-campo" maxlength="100" value="{{ archivo[1] }}" required>
+        </div>
+
+        <div class="fm-fila">
             <!-- Campo: Álbum / Categoría (viene de la tabla categorias) -->
-            <div class="form-group">
-                <label for="categoria" class="form-label">Álbum</label>
-                <select id="categoria" name="categoria" class="form-input" required>
+            <div class="fm-grupo">
+                <label for="categoria" class="fm-etiqueta">Álbum</label>
+                <select id="categoria" name="categoria" class="fm-campo" required>
                     {% for c in categ %}
                     {# c: (id_categoria, nombre_categoria) #}
                     <option value="{{ c[0] }}" {% if c[0] == archivo[4] %}selected{% endif %}>{{ c[1] }}</option>
@@ -70,46 +170,116 @@ header-galeria
                 </select>
             </div>
 
-            <!-- Campo: Descripción -->
-            <div class="form-group">
-                <label for="descripcion" class="form-label">Descripción o Historia</label>
-                <textarea id="descripcion" name="descripcion" class="form-input" rows="4" maxlength="500" required>{{ archivo[2] }}</textarea>
-            </div>
-
-            <!-- Campo: Estado (activar / desactivar) -->
-            <div class="form-group">
-                <label for="estado" class="form-label">Estado</label>
-                <select id="estado" name="estado" class="form-input">
-                    <option value="activo" {% if archivo[9] == 'activo' %}selected{% endif %}>Activo</option>
-                    <option value="inactivo" {% if archivo[9] == 'inactivo' %}selected{% endif %}>Inactivo</option>
+            <!-- Campo: Tipo (imagen o video) -->
+            <div class="fm-grupo">
+                <label for="tipo" class="fm-etiqueta">Tipo</label>
+                <select id="tipo" name="tipo" class="fm-campo" required>
+                    <option value="imagen" {% if archivo[5] == 'imagen' %}selected{% endif %}>Imagen</option>
+                    <option value="video" {% if archivo[5] == 'video' %}selected{% endif %}>Video</option>
                 </select>
             </div>
+        </div>
 
-            <!-- Campo: Reemplazar archivo -->
-            <div class="form-group">
-                <label for="URL" class="form-label">Reemplazar archivo (Opcional)</label>
-                
-                <!-- Vista previa del archivo actual -->
-                <div class="archivo-actual mb-3" style="text-align: center; padding: 10px; background-color: #f1f1f1; border-radius: 8px;">
-                    <span style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 8px;">Archivo actual:</span>
-                    {% set ruta = url_for('static', filename=archivo[3].split('static/')[1]) %}
-                    {% if archivo[5] == 'video' %}
-                    <video src="{{ ruta }}" controls style="max-width: 200px; max-height: 150px; border-radius: 5px;"></video>
-                    {% else %}
-                    <img src="{{ ruta }}" alt="{{ archivo[1] }}" style="max-width: 200px; max-height: 150px; border-radius: 5px;">
-                    {% endif %}
-                </div>
+        <!-- Campo: Descripción -->
+        <div class="fm-grupo">
+            <label for="descripcion" class="fm-etiqueta">Descripción o historia</label>
+            <textarea id="descripcion" name="descripcion" class="fm-campo" rows="4" maxlength="500" required>{{ archivo[2] }}</textarea>
+            <span class="fm-contador" id="contador-descripcion"></span>
+        </div>
 
-                <input type="file" id="URL" name="URL" class="form-input-file" accept=".png,.jpg,.jpeg,.svg,.mp4,.webm">
-            </div>
+        <!-- Campo: Estado (activar / desactivar) -->
+        <div class="fm-grupo">
+            <label for="estado" class="fm-etiqueta">Estado</label>
+            <select id="estado" name="estado" class="fm-campo">
+                <option value="activo" {% if archivo[9] == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if archivo[9] == 'inactivo' %}selected{% endif %}>Inactivo</option>
+            </select>
+        </div>
 
-            <!-- BOTONES DE ACCIÓN -->
-            <div class="form-acciones mt-4">
-                <button type="submit" class="btn-guardar">💾 Guardar Cambios</button>
-                <a href="{{ url_for('galeria') }}" class="btn-cancelar">Cancelar</a>
-            </div>
-        </form>
-    </div>
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="fm-acciones">
+            <a href="{{ url_for('galeria') }}" class="fm-boton sec">Cancelar</a>
+            <button type="submit" class="fm-boton" id="boton-enviar">💾 Guardar cambios</button>
+        </div>
+    </form>
 
+  </div>
 </div>
+
+<script>
+    (function () {
+        const entrada = document.getElementById('URL');
+        const zona = document.getElementById('zona');
+        const previa = document.getElementById('previa');
+        const aviso = document.getElementById('aviso-archivo');
+        const tipo = document.getElementById('tipo');
+        const formulario = document.getElementById('form-imagen');
+        const boton = document.getElementById('boton-enviar');
+        const VIDEOS = ['mp4', 'webm'];
+        const PERMITIDOS = ['png', 'jpg', 'jpeg', 'svg', 'mp4', 'webm'];
+        const tipoOriginal = tipo.value;      // en "editar": el que ya tenía
+        let urlTemporal = null;
+
+        function extension(nombre) { return nombre.split('.').pop().toLowerCase(); }
+        function tamano(bytes) { return bytes < 1048576 ? Math.max(1, Math.round(bytes / 1024)) + ' KB' : (bytes / 1048576).toFixed(1) + ' MB'; }
+        function liberar() { if (urlTemporal) { URL.revokeObjectURL(urlTemporal); urlTemporal = null; } }
+
+        function quitar() {
+            liberar();
+            entrada.value = '';
+            previa.hidden = true;
+            zona.hidden = false;
+            aviso.hidden = true;
+            tipo.value = tipoOriginal;        // vuelve a como estaba (en "crear", sin elegir)
+        }
+
+        function mostrar(archivo) {
+            const ext = extension(archivo.name);
+            if (!PERMITIDOS.includes(ext)) {
+                entrada.value = '';
+                aviso.textContent = 'Ese archivo no se puede subir (.' + ext + '). Elige un PNG, JPG, SVG, MP4 o WEBM.';
+                aviso.hidden = false;
+                return;
+            }
+            aviso.hidden = true;
+            liberar();
+            urlTemporal = URL.createObjectURL(archivo);
+
+            const esVideo = VIDEOS.includes(ext);
+            const miniatura = document.getElementById('previa-miniatura');
+            miniatura.innerHTML = '';
+            const elemento = document.createElement(esVideo ? 'video' : 'img');
+            elemento.src = urlTemporal;
+            if (esVideo) { elemento.muted = true; elemento.preload = 'metadata'; } else { elemento.alt = 'Vista previa'; }
+            miniatura.appendChild(elemento);
+
+            document.getElementById('previa-nombre').textContent = archivo.name;
+            document.getElementById('previa-info').textContent = (esVideo ? 'Video' : 'Imagen') + ' · ' + tamano(archivo.size);
+            tipo.value = esVideo ? 'video' : 'imagen';      // el tipo se detecta solo del archivo
+            zona.hidden = true;
+            previa.hidden = false;
+        }
+
+        entrada.addEventListener('change', function () { if (entrada.files.length) mostrar(entrada.files[0]); });
+        document.getElementById('previa-quitar').addEventListener('click', quitar);
+
+        // Resaltar la zona mientras se arrastra un archivo encima
+        ['dragenter', 'dragover'].forEach(function (nombre) { zona.addEventListener(nombre, function () { zona.classList.add('arrastrando'); }); });
+        ['dragleave', 'drop'].forEach(function (nombre) { zona.addEventListener(nombre, function () { zona.classList.remove('arrastrando'); }); });
+
+        // Contador de la descripción
+        const descripcion = document.getElementById('descripcion');
+        const contador = document.getElementById('contador-descripcion');
+        function contar() { contador.textContent = descripcion.value.length + ' / ' + descripcion.maxLength; }
+        descripcion.addEventListener('input', contar);
+        contar();
+
+        // Al enviar: el tipo siempre coincide con el archivo, y el botón avisa que está subiendo (los videos tardan)
+        formulario.addEventListener('submit', function () {
+            if (entrada.files.length) tipo.value = VIDEOS.includes(extension(entrada.files[0].name)) ? 'video' : 'imagen';
+            boton.disabled = true;
+            boton.textContent = 'Subiendo...';
+        });
+    })();
+</script>
 {% endblock %}

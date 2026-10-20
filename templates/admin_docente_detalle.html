@@ -6,8 +6,9 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/juegos.css') }}">
 <style>
-    .tarjeta-detalle { max-width: 640px; margin: 30px auto; padding: 32px; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; }
+    .tarjeta-detalle { max-width: 760px; margin: 30px auto; padding: 32px; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 16px; }
     .tarjeta-detalle h2 { margin: 0 0 6px; }
     .encabezado-detalle { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
     .estado { font-size: 0.85rem; font-weight: 700; padding: 4px 14px; border-radius: 12px; }
@@ -30,6 +31,21 @@
     .btn-detalle { border-radius: 20px; padding: 10px 22px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: 2px solid #5a7a1e; background: #5a7a1e; color: #fff; text-decoration: none; display: inline-block; }
     .btn-detalle.secundario { background: #fff; color: #5a7a1e; }
     .btn-detalle.peligro { background: #fff; color: #c0392b; border-color: #c0392b; }
+
+    /* Las plantillas que creó este docente */
+    .seccion-plantillas { margin-top: 30px; padding-top: 24px; border-top: 2px solid #e3e8d6; }
+    .seccion-plantillas h3 { margin: 0 0 4px; font-size: 1.15rem; }
+    .seccion-plantillas .ayuda { margin: 0 0 14px; color: #555; font-size: 0.9rem; line-height: 1.4; }
+    .chips-tipos { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+    .chip-tipo { display: inline-block; padding: 3px 12px; background: var(--t-claro, #eee); color: var(--t-texto, #222); border-radius: 12px; font-size: 0.8rem; font-weight: 700; }
+    .tabla-scroll { overflow-x: auto; }
+    .tabla-plantillas { width: 100%; border-collapse: collapse; }
+    .tabla-plantillas th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #c9d6b0; font-size: 0.85rem; white-space: nowrap; }
+    .tabla-plantillas td { padding: 10px; border-bottom: 1px solid #e3e8d6; vertical-align: middle; font-size: 0.9rem; }
+    .tabla-plantillas .nombre { font-weight: 700; }
+    .btn-fila { display: inline-block; margin: 0 6px 0 0; padding: 5px 12px; background: #fff; color: #46611a; border: 2px solid #5a7a1e; border-radius: 16px; font-weight: 700; font-size: 0.8rem; text-decoration: none; white-space: nowrap; }
+    .btn-fila:hover { background: #5a7a1e; color: #fff; }
+    .sin-plantillas { margin: 0; padding: 14px 16px; background: #f4f4f4; border-radius: 10px; color: #444; }
 </style>
 {% endblock %}
 
@@ -44,6 +60,12 @@ header-crear
 {% block body %}
 {# d: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1, apellido_2,
        fecha_nacimiento, correo, estado, fecha_creacion) #}
+{% set nombres_tipo = {
+    'verdadero_falso': 'Verdadero y Falso',
+    'seleccion_multiple': 'Selección múltiple',
+    'completar': 'Completar',
+    'union': 'Unir con línea'
+} %}
 <div class="container content">
     <div class="tarjeta-detalle">
 
@@ -94,6 +116,43 @@ header-crear
                 <input type="hidden" name="estado" value="pendiente">
                 <button type="submit" class="btn-detalle secundario">Volver a pendiente</button>
             </form>
+            {% endif %}
+        </div>
+
+        <!-- Las plantillas que creó este docente: el administrador puede abrir sus preguntas y sus resultados -->
+        <div class="seccion-plantillas">
+            <h3>Plantillas creadas</h3>
+            {# plantilla: (id_plantilla, codigo_acceso, fecha_creacion, nombre, descripcion, tipo, estado, total_preguntas) #}
+            {% if plantillas %}
+            <p class="ayuda">{{ plantillas | length }} {{ 'plantilla' if plantillas | length == 1 else 'plantillas' }} en total.</p>
+            <div class="chips-tipos">
+                {% for t in tipos %}
+                <span class="chip-tipo tema-{{ t.tipo }}">{{ t.nombre }} · {{ t.cantidad }}</span>
+                {% endfor %}
+            </div>
+            <div class="tabla-scroll">
+                <table class="tabla-plantillas">
+                    <thead>
+                        <tr><th>Nombre</th><th>Tipo</th><th>Preguntas</th><th>Creada</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in plantillas %}
+                        <tr>
+                            <td class="nombre">{{ p[3] }}</td>
+                            <td><span class="chip-tipo tema-{{ p[5] }}">{{ nombres_tipo.get(p[5], p[5]) }}</span></td>
+                            <td>{{ p[7] }}</td>
+                            <td>{{ p[2].strftime('%d/%m/%Y') if p[2] else '—' }}</td>
+                            <td>
+                                <a href="{{ url_for('ver_plantilla', id_plantilla=p[0]) }}" class="btn-fila">👁 Ver preguntas</a>
+                                <a href="{{ url_for('resultados_plantilla', id_plantilla=p[0]) }}" class="btn-fila">📊 Resultados</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="sin-plantillas">Este docente todavía no ha creado plantillas.</p>
             {% endif %}
         </div>
 

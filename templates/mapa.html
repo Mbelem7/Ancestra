@@ -8,6 +8,29 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 <!-- Leaflet: librería de mapas (usa los mapas gratuitos de OpenStreetMap) -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    /* El recuadro (globo) de cada local. Las clases propias empiezan con "mp-" para no chocar con otras.
+       Los selectores llevan ".leaflet-container" delante a propósito: Leaflet pinta de azul TODOS los
+       enlaces del mapa, y así nuestros colores le ganan. */
+    .mp-globo .leaflet-popup-content-wrapper { padding: 0; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28); }
+    .mp-globo .leaflet-popup-content { margin: 0; }
+    .leaflet-container .mp-globo a.leaflet-popup-close-button { top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 50%; font: 18px/26px Arial, sans-serif; color: #666; }
+    .leaflet-container .mp-globo a.leaflet-popup-close-button:hover { background: #eef4e2; color: #2f4a0c; }
+
+    .mp-tarjeta { padding: 18px 20px; color: #222; text-align: left; }
+    .mp-titulo { margin: 0 24px 0 0; padding-bottom: 8px; font-size: 1.1rem; line-height: 1.25; color: #2f4a0c; border-bottom: 2px solid #e4f1cf; }
+    .mp-descripcion { margin: 10px 0 12px; font-size: 0.9rem; line-height: 1.45; color: #444; }
+    .mp-datos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+    .mp-datos li { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: 0.85rem; line-height: 1.4; color: #444; }
+    .mp-icono { flex: 0 0 auto; width: 20px; text-align: center; }
+    .leaflet-container .mp-datos a { color: #2f4a0c; font-weight: 700; text-decoration: none; }
+    .leaflet-container .mp-datos a:hover { text-decoration: underline; }
+    .leaflet-container a.mp-editar {
+        display: block; margin-top: 14px; padding: 8px 16px; background: #fff; color: #46611a;
+        border: 2px solid #5a7a1e; border-radius: 20px; text-align: center; font-weight: 700; font-size: 0.85rem; text-decoration: none;
+    }
+    .leaflet-container a.mp-editar:hover { background: #5a7a1e; color: #fff; }
+</style>
 {% endblock %}
 
 
@@ -65,14 +88,22 @@ header-mapa
         attribution: '&copy; Colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mapa);
 
+    // Lo que se ve dentro del recuadro de un local (los estilos están arriba, en las clases "mp-")
+    function contenidoGlobo(l) {
+        const telefono = String(l.contacto ?? '').replace(/[^0-9+]/g, '');   // para que el número se pueda tocar y llamar
+        return '<div class="mp-tarjeta">' +
+            '<h4 class="mp-titulo">' + esc(l.nombre) + '</h4>' +
+            (l.descripcion ? '<div class="mp-descripcion">' + esc(l.descripcion) + '</div>' : '') +
+            '<ul class="mp-datos">' +
+                (l.direccion ? '<li><span class="mp-icono" aria-hidden="true">📍</span><span>' + esc(l.direccion) + '</span></li>' : '') +
+                (telefono ? '<li><span class="mp-icono" aria-hidden="true">📞</span><a href="tel:' + telefono + '">' + esc(l.contacto) + '</a></li>' : '') +
+            '</ul>' +
+            (PUEDE_EDITAR && l.editar ? '<a class="mp-editar" href="' + esc(l.editar) + '">✏️ Editar local</a>' : '') +
+        '</div>';
+    }
+
     const marcadores = lugares.map(function (l) {
-        return L.marker([l.lat, l.lng]).addTo(mapa).bindPopup(
-            '<h4 style="margin:0 0 8px 0; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:4px;">' + esc(l.nombre) + '</h4>' +
-            '<p style="margin:0; font-size:0.85rem; color:#555;">' + esc(l.descripcion) + '</p>' +
-            '<p style="margin:4px 0 0 0; font-size:0.8rem; color:#777;">📍 ' + esc(l.direccion) + '</p>' +
-            '<p style="margin:2px 0 6px 0; font-size:0.8rem; color:#777;">📞 ' + esc(l.contacto) + '</p>' +
-            (PUEDE_EDITAR && l.editar ? '<a href="' + esc(l.editar) + '" class="btn-editar">✏️ Editar</a>' : '')
-        );
+        return L.marker([l.lat, l.lng]).addTo(mapa).bindPopup(contenidoGlobo(l), { className: 'mp-globo', minWidth: 230, maxWidth: 300 });
     });
 
     // Si ya hay locales, el mapa se ajusta para mostrarlos todos

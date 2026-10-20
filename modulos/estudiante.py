@@ -121,3 +121,18 @@ def actualizar_estado_estudiante(id_estudiante, estado):
     )
 
     db.session.commit()
+
+def contar_estudiantes_activos():
+    # Cuántos estudiantes tienen su registro y su cuenta activos
+
+    resultado = db.session.execute(
+        text("""
+            SELECT COUNT(*)
+            FROM estudiante e
+            INNER JOIN persona p ON p.id_persona = e.persona_id
+            WHERE e.estado = 'activo'
+              AND p.estado = 'activo'
+        """)
+    )
+
+    return resultado.scalar() or 0

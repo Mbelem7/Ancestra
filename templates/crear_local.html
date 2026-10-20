@@ -7,72 +7,135 @@
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    /* Los nombres de este formulario empiezan con "fm-" para que no choquen con clases del CSS del sitio */
+    [hidden] { display: none !important; }
+    .fm-columna { display: block; max-width: 640px; margin: 28px auto 60px; }
+
+    a.fm-volver {
+        display: inline-block; margin: 0 0 16px; padding: 8px 18px; background: #fff; color: #46611a;
+        border: 2px solid #5a7a1e; border-radius: 22px; font-weight: 700; font-size: 0.9rem; text-decoration: none;
+    }
+    a.fm-volver:hover { background: #5a7a1e; color: #fff; }
+
+    .fm-tarjeta { display: block; background: #fff; color: #222; border: 1px solid #e0e0e0; border-radius: 18px; padding: 32px 34px 28px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08); }
+    .fm-titulo { margin: 0 0 4px; font-size: 1.5rem; }
+    .fm-sub { margin: 0 0 24px; color: #555; font-size: 0.95rem; line-height: 1.5; }
+    @media (max-width: 560px) { .fm-tarjeta { padding: 24px 18px; } }
+
+    .fm-errores { margin: 0 0 20px; padding: 12px 16px; background: #fdf0ee; border-left: 5px solid #c0392b; border-radius: 8px; color: #7b241c; }
+    .fm-errores ul { margin: 6px 0 0; padding-left: 20px; }
+
+    .fm-grupo { display: block; margin: 0 0 20px; }
+    .fm-etiqueta { display: block; margin: 0 0 6px; font-weight: 700; font-size: 0.92rem; }
+    .fm-ayuda { display: block; margin-top: 5px; font-size: 0.82rem; color: #666; }
+    .fm-campo {
+        display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 12px 14px;
+        background: #fff; color: #222; border: 2px solid #d0d0d0; border-radius: 10px;
+        font-family: inherit; font-size: 1rem; line-height: 1.4;
+    }
+    textarea.fm-campo { resize: vertical; min-height: 84px; }
+    .fm-campo:focus { outline: none; border-color: #5a7a1e; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.2); }
+    .fm-contador { display: block; margin-top: 4px; text-align: right; font-size: 0.8rem; color: #666; }
+
+    /* ---------- El mapa donde se marca la ubicación ---------- */
+    .fm-mapa { height: 340px; border: 2px solid #d0d0d0; border-radius: 14px; overflow: hidden; }
+    .fm-mapa.falta { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
+    .fm-ubicacion { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 14px; background: #f4f4f4; border-radius: 10px; color: #555; font-size: 0.9rem; }
+    .fm-ubicacion.lista { background: #eef4e2; color: #2f4a0c; font-weight: 700; }
+    .fm-ubicacion .coordenadas { margin-left: auto; font-weight: 400; font-size: 0.8rem; color: #555; }
+
+    /* ---------- Botones: bien separados, el principal a la derecha ---------- */
+    .fm-acciones { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 14px; margin-top: 28px; padding-top: 22px; border-top: 1px solid #ececec; }
+    .fm-boton {
+        display: inline-block; position: static; margin: 0; padding: 12px 30px;
+        background: #5a7a1e; color: #fff; border: 2px solid #5a7a1e; border-radius: 26px;
+        font-family: inherit; font-weight: 700; font-size: 1rem; line-height: 1.3; text-decoration: none; cursor: pointer;
+    }
+    .fm-boton:hover:not(:disabled) { background: #46611a; border-color: #46611a; }
+    .fm-boton:disabled { opacity: 0.65; cursor: progress; }
+    a.fm-boton.sec { background: #fff; color: #46611a; }
+    a.fm-boton.sec:hover { background: #eef4e2; color: #46611a; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+Nuevo Local
+{% endblock %}
+
+<!-- Usamos el color de fondo del mapa -->
+{% block clase_header %}
+header-mapa
 {% endblock %}
 
 {% block body %}
-<div class="container content mt-5 mb-5">
-    
-    <div class="d-flex justify-content-center mb-4">
-        <h2 class="titulo-seccion">Registrar Nuevo Local</h2>
-    </div>
+<div class="container content">
+  <div class="fm-columna">
 
-    <div class="formulario-admin">
+    <a href="/mapa" class="fm-volver">← Volver al mapa</a>
+
+    <form action="/crear-local" method="POST" id="form-local" class="fm-tarjeta">
+        <h2 class="fm-titulo">Registrar nuevo local</h2>
+        <p class="fm-sub">Completa los datos y marca en el mapa dónde queda. El local aparecerá en el mapa de la plataforma.</p>
 
         <!-- Errores de validación que manda el backend -->
         {% if erroresL %}
-        <ul style="color: red;">
-            {% for error in erroresL %}
-            <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
+        <div class="fm-errores" role="alert">
+            <strong>Revisa esto antes de guardar:</strong>
+            <ul>
+                {% for error in erroresL %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
         {% endif %}
 
-        <form action="/crear-local" method="POST" id="form-local">
-            
-            <!-- Campo: Nombre del Local (El título del cuadrito) -->
-            <div class="form-group">
-                <label class="form-label" for="nombre">Nombre del Local</label>
-                <input type="text" id="nombre" name="nombre" class="form-input" maxlength="100" placeholder="Ej: Mercado de Artesanías" required>
-            </div>
+        <!-- Campo: Nombre del Local (El título del cuadrito) -->
+        <div class="fm-grupo">
+            <label class="fm-etiqueta" for="nombre">Nombre del local</label>
+            <input type="text" id="nombre" name="nombre" class="fm-campo" maxlength="100" placeholder="Ej: Mercado de Artesanías" required>
+        </div>
 
-            <!-- Campo: Descripción / Qué venden -->
-            <div class="form-group">
-                <label class="form-label" for="descripcion">Descripción Breve</label>
-                <input type="text" id="descripcion" name="descripcion" class="form-input" maxlength="500" placeholder="Ej: Venta de cerámica y textiles" required>
-            </div>
+        <!-- Campo: Descripción / Qué venden -->
+        <div class="fm-grupo">
+            <label class="fm-etiqueta" for="descripcion">Descripción breve</label>
+            <textarea id="descripcion" name="descripcion" class="fm-campo" rows="3" maxlength="500" placeholder="Ej: Venta de cerámica y textiles" required></textarea>
+            <span class="fm-contador" id="contador-descripcion"></span>
+        </div>
 
-            <!-- Campo: Dirección -->
-            <div class="form-group">
-                <label class="form-label" for="direccion">Dirección</label>
-                <input type="text" id="direccion" name="direccion" class="form-input" maxlength="200" placeholder="Ej: De la iglesia 2c al sur" required>
-            </div>
-            
-            <!-- Campo: Contacto (solo números) -->
-            <div class="form-group">
-                <label class="form-label" for="contacto">Teléfono de contacto</label>
-                <input type="text" id="contacto" name="contacto" class="form-input" maxlength="8" inputmode="numeric" pattern="[0-9]+" placeholder="Ej: 88888888" required>
-            </div>
+        <!-- Campo: Dirección -->
+        <div class="fm-grupo">
+            <label class="fm-etiqueta" for="direccion">Dirección</label>
+            <input type="text" id="direccion" name="direccion" class="fm-campo" maxlength="200" placeholder="Ej: De la iglesia 2c al sur" required>
+        </div>
 
-            <!-- Ubicación: se elige haciendo clic en el mapa -->
-            <div class="form-group mt-4">
-                <label class="form-label">Ubicación en el Mapa</label>
-                <div id="mapa-selector" style="height: 350px; border-radius: 8px;"></div>
-                <small style="color: #666;">Haz clic en el mapa para marcar dónde está el local. Puedes volver a hacer clic para moverlo.</small>
-                <div class="d-flex gap-3 mt-2">
-                    <input type="text" id="latitud" name="latitud" class="form-input" placeholder="Latitud" readonly style="flex: 1;">
-                    <input type="text" id="longitud" name="longitud" class="form-input" placeholder="Longitud" readonly style="flex: 1;">
-                </div>
-            </div>
+        <!-- Campo: Contacto (solo números) -->
+        <div class="fm-grupo">
+            <label class="fm-etiqueta" for="contacto">Teléfono de contacto</label>
+            <input type="text" id="contacto" name="contacto" class="fm-campo" maxlength="8" inputmode="numeric" pattern="[0-9]+" placeholder="Ej: 88888888" title="Solo números, hasta 8 dígitos" required>
+            <span class="fm-ayuda">Solo números, sin espacios ni guiones.</span>
+        </div>
 
-            <!-- Botones de Acción -->
-            <div class="d-flex justify-content-end gap-3 mt-5">
-                <a href="/mapa" class="btn-cancelar">Cancelar</a>
-                <button type="submit" class="btn-guardar">Guardar Local</button>
-            </div>
+        <!-- Ubicación: se elige haciendo clic en el mapa -->
+        <div class="fm-grupo">
+            <span class="fm-etiqueta">Ubicación en el mapa</span>
+            <div class="fm-errores" id="aviso-mapa" role="alert" hidden>Haz clic en el mapa para marcar dónde está el local.</div>
+            <div id="mapa-selector" class="fm-mapa"></div>
+            <span class="fm-ayuda">Haz clic en el mapa para marcar dónde está el local. Puedes volver a hacer clic para moverlo.</span>
+            <div class="fm-ubicacion" id="estado-ubicacion"><span aria-hidden="true">📍</span><span id="texto-ubicacion">Todavía no has marcado la ubicación.</span><span class="coordenadas" id="coordenadas"></span></div>
+            <!-- Los datos que se guardan (el servidor recibe estos dos campos) -->
+            <input type="hidden" id="latitud" name="latitud">
+            <input type="hidden" id="longitud" name="longitud">
+        </div>
 
-        </form>
-    </div>
+        <!-- Botones de Acción -->
+        <div class="fm-acciones">
+            <a href="/mapa" class="fm-boton sec">Cancelar</a>
+            <button type="submit" class="fm-boton" id="boton-enviar">Guardar local</button>
+        </div>
+    </form>
 
+  </div>
 </div>
 {% endblock %}
 
@@ -88,6 +151,8 @@
     }).addTo(mapa);
 
     let marcador = null;
+    const contenedorMapa = document.getElementById('mapa-selector');
+    const aviso = document.getElementById('aviso-mapa');
 
     // Cada clic en el mapa coloca (o mueve) el pin y llena latitud y longitud
     mapa.on('click', function (e) {
@@ -98,14 +163,37 @@
         }
         document.getElementById('latitud').value = e.latlng.lat.toFixed(6);
         document.getElementById('longitud').value = e.latlng.lng.toFixed(6);
+
+        // Se avisa con palabras que ya quedó marcado
+        const estado = document.getElementById('estado-ubicacion');
+        estado.classList.add('lista');
+        estado.firstElementChild.textContent = '✔';
+        document.getElementById('texto-ubicacion').textContent = 'Ubicación marcada';
+        document.getElementById('coordenadas').textContent = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+        contenedorMapa.classList.remove('falta');
+        aviso.hidden = true;
     });
 
-    // Los campos de solo lectura no se validan solos, por eso se revisa aquí
+    // Contador de la descripción
+    const descripcion = document.getElementById('descripcion');
+    const contador = document.getElementById('contador-descripcion');
+    function contar() { contador.textContent = descripcion.value.length + ' / ' + descripcion.maxLength; }
+    descripcion.addEventListener('input', contar);
+    contar();
+
+    // Los campos ocultos no se validan solos, por eso se revisa aquí
     document.getElementById('form-local').addEventListener('submit', function (e) {
         if (!document.getElementById('latitud').value) {
             e.preventDefault();
-            alert('Haz clic en el mapa para marcar la ubicación del local.');
+            aviso.hidden = false;
+            contenedorMapa.classList.add('falta');
+            aviso.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
         }
+        // Evita guardar el local dos veces si se hace doble clic
+        const boton = document.getElementById('boton-enviar');
+        boton.disabled = true;
+        boton.textContent = 'Guardando...';
     });
 </script>
 {% endblock %}

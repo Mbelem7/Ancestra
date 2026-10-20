@@ -7,6 +7,14 @@
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    /* Botón de volver al mapa */
+    a.volver-mapa {
+        display: inline-block; margin: 0; padding: 8px 18px; background: #fff; color: #46611a;
+        border: 2px solid #5a7a1e; border-radius: 22px; font-weight: 700; font-size: 0.9rem; text-decoration: none;
+    }
+    a.volver-mapa:hover { background: #5a7a1e; color: #fff; }
+</style>
 {% endblock %}
 
 {% block titulo_header %}
@@ -25,9 +33,7 @@ header-mapa
     
     <!-- BARRA SUPERIOR: Botón de regresar al mapa -->
     <div class="barra-superior-galeria mb-4">
-        <a href="{{ url_for('mapa') }}" class="btn-cancelar" style="border-radius: 50px; text-decoration: none; padding: 5px 15px; display: inline-block;">
-            ← Volver al Mapa
-        </a>
+        <a href="{{ url_for('mapa') }}" class="volver-mapa">← Volver al mapa</a>
     </div>
 
     <!-- CONTENEDOR DEL FORMULARIO -->

@@ -6,9 +6,83 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Los nombres de esta parte empiezan con "gal-" para que no choquen con clases del CSS del sitio */
+    [hidden] { display: none !important; }
+
+    /* ---------- Cuadrícula del álbum: cada archivo es una tarjeta con la imagen arriba y el título abajo ---------- */
+    .gal-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 24px; margin: 8px 0 50px; }
+
+    .gal-tarjeta {
+        display: flex; flex-direction: column; margin: 0;
+        background: #fff; color: #222; border: 1px solid #e0e0e0; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .gal-tarjeta:hover, .gal-tarjeta:focus-visible { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16); outline: none; }
+    .gal-tarjeta:focus-visible { box-shadow: 0 0 0 3px #5a7a1e, 0 8px 20px rgba(0, 0, 0, 0.16); }
+
+    .gal-marco { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #ececec; overflow: hidden; }
+    .gal-marco .media-archivo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gal-insignia {
+        position: absolute; left: 10px; top: 10px; padding: 3px 10px;
+        background: rgba(0, 0, 0, 0.65); color: #fff; border-radius: 12px; font-size: 0.75rem; font-weight: 700;
+    }
+    .gal-lupa {
+        position: absolute; right: 10px; bottom: 10px; width: 36px; height: 36px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255, 255, 255, 0.92); font-size: 1rem; opacity: 0; transition: opacity 0.15s;
+    }
+    .gal-tarjeta:hover .gal-lupa, .gal-tarjeta:focus-visible .gal-lupa { opacity: 1; }
+
+    .gal-pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; }
+    .gal-titulo {
+        flex: 1; min-width: 0; font-weight: 700; font-size: 0.95rem; line-height: 1.3;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+    }
+    .gal-editar {
+        flex: 0 0 auto; display: inline-block; margin: 0; padding: 6px 14px;
+        background: #fff; color: #46611a; border: 2px solid #5a7a1e; border-radius: 16px;
+        font-family: inherit; font-weight: 700; font-size: 0.8rem; text-decoration: none; white-space: nowrap;
+    }
+    .gal-editar:hover { background: #5a7a1e; color: #fff; }
+
+    /* ---------- Visor: la imagen ampliada ---------- */
+    .gal-visor {
+        position: fixed; inset: 0; z-index: 4000;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(15, 15, 15, 0.95);
+        -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    }
+    .gal-visor-centro { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 92vw; }
+    .gal-visor-medio { display: flex; align-items: center; justify-content: center; }
+    .gal-visor-media { display: block; max-width: min(92vw, 1200px); max-height: 74vh; width: auto; height: auto; object-fit: contain; border-radius: 8px; background: #000; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+    .gal-visor-pie { max-width: min(92vw, 760px); text-align: center; color: #fff; line-height: 1.45; }
+    .gal-visor-pie strong { display: block; font-size: 1.15rem; }
+    .gal-visor-pie .descripcion { display: block; margin-top: 4px; font-size: 0.92rem; color: #ddd; }
+    .gal-visor-pie .contador { display: inline-block; margin-top: 8px; padding: 2px 12px; background: rgba(255, 255, 255, 0.16); border-radius: 12px; font-size: 0.8rem; }
+    .gal-visor-cerrar, .gal-flecha {
+        position: absolute; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0;
+        width: 46px; height: 46px; border: none; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.16); color: #fff; font-family: inherit; font-size: 1.6rem; line-height: 1; cursor: pointer;
+    }
+    .gal-visor-cerrar:hover, .gal-flecha:hover:not(:disabled) { background: rgba(255, 255, 255, 0.32); }
+    .gal-visor-cerrar:focus-visible, .gal-flecha:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+    .gal-visor-cerrar { top: 18px; right: 18px; font-size: 1.3rem; }
+    .gal-flecha { top: 50%; transform: translateY(-50%); }
+    .gal-flecha.izq { left: 18px; }
+    .gal-flecha.der { right: 18px; }
+    .gal-flecha:disabled { opacity: 0.25; cursor: default; }
+    @media (max-width: 640px) {
+        .gal-rejilla { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .gal-pie { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; }
+        .gal-flecha { top: auto; bottom: 22px; transform: none; }
+        .gal-flecha.izq { left: calc(50% - 60px); }
+        .gal-flecha.der { right: calc(50% - 60px); }
+        .gal-visor-media { max-height: 62vh; }
+    }
+</style>
 {% endblock %}
-
-
 
 <!-- 2. BLOQUE TITULO_HEADER: Esto es para el texto grande del header -->
 {% block titulo_header %}
@@ -85,45 +159,57 @@ header-galeria
     <!-- ==========================================
          VISTA 2: CUADRÍCULA DEL ÁLBUM
          ========================================== -->
- <div id="vista-cuadricula" style="display: none;">
+    <div id="vista-cuadricula" style="display: none;">
         <h2 class="titulo-seccion mb-4" id="titulo-cuadricula">Álbum</h2>
         <p id="album-vacio" style="display: none;">Este álbum todavía no tiene imágenes ni videos.</p>
-        <div class="galeria-grid">
+        <div class="gal-rejilla">
 
             {# Se dibujan TODOS los archivos; el JS muestra solo los de la categoría elegida #}
             {% for item in imag %}
-            <div class="galeria-item" data-categoria="{{ item[4] }}" onclick="abrirCarrusel(this)" style="text-align: center; padding-bottom: 10px;">
-                {{ media(item) }}
-
-                <p style="margin: 4px 0; font-size: 0.85rem;">{{ item[1] }}</p>
-
-                <!-- BOTÓN DE EDITAR (El stopPropagation evita que se abra el carrusel) -->
-                {% if session.get('tipo') == 'administrador' %}
-                <a href="{{ url_for('editar_imagen', id_archivo=item[0]) }}" class="btn-editar" onclick="event.stopPropagation();">
-                    ✏️ Editar
-                </a>
-                {% endif %}
-            </div>
+            <figure class="gal-tarjeta" data-categoria="{{ item[4] }}" data-titulo="{{ item[1] }}" data-descripcion="{{ item[2] }}"
+                    tabindex="0" role="button" aria-label="Ampliar: {{ item[1] }}">
+                <div class="gal-marco">
+                    {{ media(item) }}
+                    {% if item[5] == 'video' %}<span class="gal-insignia" aria-hidden="true">▶ Video</span>{% endif %}
+                    <span class="gal-lupa" aria-hidden="true">🔍</span>
+                </div>
+                <figcaption class="gal-pie">
+                    <span class="gal-titulo" title="{{ item[1] }}">{{ item[1] }}</span>
+                    {% if session.get('tipo') == 'administrador' %}
+                    <a href="{{ url_for('editar_imagen', id_archivo=item[0]) }}" class="gal-editar" aria-label="Editar {{ item[1] }}">✏️ Editar</a>
+                    {% endif %}
+                </figcaption>
+            </figure>
             {% endfor %}
 
         </div>
     </div>
+
     <!-- ==========================================
-         VISTA 3: CARRUSEL ENFOCADO
+         VISOR: LA IMAGEN O VIDEO AMPLIADO
          ========================================== -->
-    <div id="vista-carrusel" style="display: none;">
-        <div class="carrusel-container">
-            <div class="carrusel-item lateral" id="carrusel-izq" onclick="moverCarrusel(-1)"></div>
-            <div class="carrusel-item central" id="carrusel-centro"></div>
-            <div class="carrusel-item lateral" id="carrusel-der" onclick="moverCarrusel(1)"></div>
+    <div class="gal-visor" id="visor" role="dialog" aria-modal="true" aria-label="Vista ampliada" hidden>
+        <button type="button" class="gal-visor-cerrar" id="visor-cerrar" aria-label="Cerrar">✕</button>
+        <button type="button" class="gal-flecha izq" id="visor-anterior" aria-label="Anterior">‹</button>
+        <div class="gal-visor-centro">
+            <div class="gal-visor-medio" id="visor-medio"></div>
+            <div class="gal-visor-pie">
+                <strong id="visor-titulo"></strong>
+                <span class="descripcion" id="visor-descripcion"></span>
+                <span class="contador" id="visor-contador"></span>
+            </div>
         </div>
+        <button type="button" class="gal-flecha der" id="visor-siguiente" aria-label="Siguiente">›</button>
     </div>
 
 
 <!-- Funciones dinámicas para cambiar vistas y botones -->
 <script>
-    let itemsAlbum = [];   // archivos del álbum que se está viendo
-    let indiceActual = 0;  // cuál está en el centro del carrusel
+    let itemsAlbum = [];   // tarjetas del álbum que se está viendo
+    let indiceActual = 0;  // cuál está ampliada en el visor
+    let tarjetaOrigen = null;
+
+    const visor = document.getElementById('visor');
 
     function abrirCuadricula(tarjeta) {
         const idCategoria = tarjeta.dataset.id;
@@ -134,78 +220,115 @@ header-galeria
 
         // Mostrar solo los archivos de esta categoría
         itemsAlbum = [];
-        document.querySelectorAll('.galeria-item').forEach(function (item) {
+        document.querySelectorAll('.gal-tarjeta').forEach(function (item) {
             const esDeEsteAlbum = item.dataset.categoria === idCategoria;
             item.style.display = esDeEsteAlbum ? '' : 'none';
             if (esDeEsteAlbum) itemsAlbum.push(item);
         });
         document.getElementById('album-vacio').style.display = itemsAlbum.length ? 'none' : 'block';
-        
-        // Muestra el botón de regresar y le dice que vuelva a los álbumes
+
+        // Muestra el botón de regresar
         document.getElementById('btn-regresar-container').style.visibility = 'visible';
-        let btnRegresar = document.getElementById('btn-regresar-accion');
-        btnRegresar.setAttribute('onclick', 'volverAAlbumes()');
-        btnRegresar.innerText = '←';
     }
 
     function volverAAlbumes() {
         document.getElementById('vista-cuadricula').style.display = 'none';
         document.getElementById('vista-albumes').style.display = 'block';
-        
+
         // Oculta el botón porque ya estamos en el inicio
         document.getElementById('btn-regresar-container').style.visibility = 'hidden';
     }
 
-    function abrirCarrusel(item) {
-        indiceActual = itemsAlbum.indexOf(item);
-        pintarCarrusel();
-
-        document.getElementById('vista-cuadricula').style.display = 'none';
-        document.getElementById('vista-carrusel').style.display = 'block';
-        
-        // Cambia el botón para que ahora regrese a la cuadrícula
-        let btnRegresar = document.getElementById('btn-regresar-accion');
-        btnRegresar.setAttribute('onclick', 'volverACuadricula()');
-        btnRegresar.innerText = '←';
+    // ---------- Visor ----------
+    function abrirVisor(tarjeta) {
+        indiceActual = itemsAlbum.indexOf(tarjeta);
+        if (indiceActual < 0) return;
+        tarjetaOrigen = tarjeta;
+        pintarVisor();
+        visor.hidden = false;
+        document.body.style.overflow = 'hidden';          // la página de atrás no se desliza mientras está abierto
+        document.getElementById('visor-cerrar').focus();
     }
 
-    function volverACuadricula() {
-        document.getElementById('vista-carrusel').style.display = 'none';
-        document.getElementById('vista-cuadricula').style.display = 'block';
-        
-        // Restaura el botón para que vuelva a álbumes
-        let btnRegresar = document.getElementById('btn-regresar-accion');
-        btnRegresar.setAttribute('onclick', 'volverAAlbumes()');
-        btnRegresar.innerText = '←';
+    function cerrarVisor() {
+        if (visor.hidden) return;
+        const video = document.querySelector('#visor-medio video');
+        if (video) video.pause();
+        document.getElementById('visor-medio').innerHTML = '';
+        visor.hidden = true;
+        document.body.style.overflow = '';
+        if (tarjetaOrigen) tarjetaOrigen.focus();
     }
 
-    // Llena los 3 lugares del carrusel: anterior, actual y siguiente
-    function pintarCarrusel() {
-        function poner(idSlot, item, esCentral) {
-            const slot = document.getElementById(idSlot);
-            slot.innerHTML = '';
-            if (!item) return;
-            const media = item.querySelector('.media-archivo').cloneNode(true);
-            if (esCentral) {
-                media.style.objectFit = 'contain';
-                if (media.tagName === 'VIDEO') {
-                    media.controls = true;
-                    media.muted = false;
-                }
-            }
-            slot.appendChild(media);
+    function pintarVisor() {
+        const tarjeta = itemsAlbum[indiceActual];
+        const medio = document.getElementById('visor-medio');
+        const anterior = medio.querySelector('video');
+        if (anterior) anterior.pause();
+        medio.innerHTML = '';
+
+        // Se copia la imagen o el video de la tarjeta, sin los estilos que lo recortan
+        const copia = tarjeta.querySelector('.media-archivo').cloneNode(true);
+        copia.removeAttribute('style');
+        copia.className = 'gal-visor-media';
+        if (copia.tagName === 'VIDEO') {
+            copia.controls = true;
+            copia.muted = false;
+            copia.preload = 'auto';
         }
-        poner('carrusel-izq', itemsAlbum[indiceActual - 1], false);
-        poner('carrusel-centro', itemsAlbum[indiceActual], true);
-        poner('carrusel-der', itemsAlbum[indiceActual + 1], false);
+        medio.appendChild(copia);
+
+        document.getElementById('visor-titulo').textContent = tarjeta.dataset.titulo;
+        document.getElementById('visor-descripcion').textContent = tarjeta.dataset.descripcion || '';
+        document.getElementById('visor-contador').textContent = (indiceActual + 1) + ' de ' + itemsAlbum.length;
+        document.getElementById('visor-anterior').disabled = indiceActual === 0;
+        document.getElementById('visor-siguiente').disabled = indiceActual === itemsAlbum.length - 1;
+        tarjetaOrigen = tarjeta;
     }
 
-    // Clic en el lateral izquierdo (-1) o derecho (+1)
-    function moverCarrusel(paso) {
+    function moverVisor(paso) {
         const nuevo = indiceActual + paso;
         if (nuevo < 0 || nuevo >= itemsAlbum.length) return;
         indiceActual = nuevo;
-        pintarCarrusel();
+        pintarVisor();
     }
+
+    // Clic en una tarjeta (pero no en "Editar") abre el visor; con el teclado, Enter o espacio
+    document.querySelectorAll('.gal-tarjeta').forEach(function (tarjeta) {
+        tarjeta.addEventListener('click', function (e) {
+            if (e.target.closest('a')) return;
+            abrirVisor(tarjeta);
+        });
+        tarjeta.addEventListener('keydown', function (e) {
+            if (e.target !== tarjeta) return;
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirVisor(tarjeta); }
+        });
+    });
+
+    document.getElementById('visor-cerrar').addEventListener('click', cerrarVisor);
+    document.getElementById('visor-anterior').addEventListener('click', function () { moverVisor(-1); });
+    document.getElementById('visor-siguiente').addEventListener('click', function () { moverVisor(1); });
+
+    // Un clic en el fondo oscuro (no sobre la imagen, el texto ni los botones) lo cierra
+    visor.addEventListener('click', function (e) {
+        if (e.target === visor || e.target.classList.contains('gal-visor-centro') || e.target.id === 'visor-medio') cerrarVisor();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (visor.hidden) return;
+        if (e.key === 'Escape') cerrarVisor();
+        else if (e.key === 'ArrowLeft') moverVisor(-1);
+        else if (e.key === 'ArrowRight') moverVisor(1);
+    });
+
+    // En el celular: deslizar el dedo hacia los lados cambia de imagen
+    let inicioX = null;
+    visor.addEventListener('touchstart', function (e) { inicioX = e.changedTouches[0].clientX; }, { passive: true });
+    visor.addEventListener('touchend', function (e) {
+        if (inicioX === null) return;
+        const dx = e.changedTouches[0].clientX - inicioX;
+        inicioX = null;
+        if (Math.abs(dx) > 60) moverVisor(dx < 0 ? 1 : -1);
+    }, { passive: true });
 </script>
 {% endblock %}

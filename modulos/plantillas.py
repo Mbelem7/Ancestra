@@ -177,9 +177,10 @@ def actualizar_plantilla(
     db.session.commit()
 
 
-def obtener_plantillas_resumen(docente_id=None):
+def obtener_plantillas_resumen(docente_id=None, administrador_id=None):
     # Lista las plantillas con el nombre y el tipo de su juego, y cuántas preguntas tienen.
-    # Sin docente_id trae todas (mientras no haya login); con docente_id solo las de ese docente.
+    # Con docente_id: solo las de ese docente. Con administrador_id: solo las de ese administrador.
+    # Sin ninguno trae todas.
 
     consulta = """
         SELECT
@@ -199,6 +200,9 @@ def obtener_plantillas_resumen(docente_id=None):
     if docente_id is not None:
         consulta += " WHERE p.docente_id = :docente_id"
         parametros['docente_id'] = docente_id
+    elif administrador_id is not None:
+        consulta += " WHERE p.administrador_id = :administrador_id"
+        parametros['administrador_id'] = administrador_id
 
     consulta += " ORDER BY p.id_plantilla DESC"
 
@@ -207,3 +211,45 @@ def obtener_plantillas_resumen(docente_id=None):
     plantillas = resultado.fetchall()
 
     return plantillas
+
+
+def contar_plantillas_por_tipo():
+    # Cuántas plantillas hay de cada tipo de juego (las de todos los docentes y administradores)
+    # Devuelve una fila por tipo: (tipo, cantidad)
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                j.tipo,
+                COUNT(*) AS cantidad
+            FROM plantilla p
+            INNER JOIN juego j ON j.id_juego = p.juego_id
+            GROUP BY j.tipo
+        """)
+    )
+
+    conteo = resultado.fetchall()
+
+    return conteo
+
+
+def contar_plantillas_por_docente():
+    # Cuántas plantillas creó cada docente y de qué tipo
+    # Devuelve una fila por docente y tipo: (docente_id, tipo, cantidad)
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                p.docente_id,
+                j.tipo,
+                COUNT(*) AS cantidad
+            FROM plantilla p
+            INNER JOIN juego j ON j.id_juego = p.juego_id
+            WHERE p.docente_id IS NOT NULL
+            GROUP BY p.docente_id, j.tipo
+        """)
+    )
+
+    conteo = resultado.fetchall()
+
+    return conteo
