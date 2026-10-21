@@ -32,13 +32,13 @@
                 
                 <!-- Enlaces Públicos -->
                     <a href="{{ url_for('index') }}" class="nav-link-home {% if request.endpoint == 'index' %}active{% endif %}">Inicio</a>
-                    <a href="{{ url_for('biblioteca') }}" class="nav-link-home {% if request.endpoint == 'memorias' %}active{% endif %}">Memorias</a>
-                    <a href="{{ url_for('galeria') }}" class="nav-link-home {% if request.endpoint == 'vestigio' %}active{% endif %}">Vestigio</a>
-                    <a href="{{ url_for('mapa') }}" class="nav-link-home {% if request.endpoint == 'huellas' %}active{% endif %}">Huellas</a>
+                    <a href="{{ url_for('biblioteca') }}"  class="nav-link-home {% if request.endpoint in ['biblioteca', 'crear_documento', 'editar_documento'] %}active{% endif %}">Memorias</a>
+                    <a href="{{ url_for('galeria') }}" class="nav-link-home {% if request.endpoint in ['galeria', 'crear_imagen', 'editar_imagen'] %}active{% endif %}">Vestigio</a>
+                    <a href="{{ url_for('mapa') }}" class="nav-link-home {% if request.endpoint in ['mapa', 'crear_local', 'editar_lugar'] %}active{% endif %}">Huellas</a>
 
                     <!-- Enlaces Privados (Solo Docentes/Admin) -->
                     {% if session.get('tipo') in ('docente', 'administrador') %}
-                    <a href="{{ url_for('crear') }}" class="nav-link-home {% if request.endpoint and (request.endpoint.startswith('crear') or request.endpoint == 'mis_plantillas') %}active{% endif %}">Crear</a>
+                    <a href="{{ url_for('crear') }}" class="nav-link-home {% if request.endpoint in ['crear','mis_plantillas','ver_plantilla','crear_vf','crear_multiple','crear_completar','crear_union'] %}active{% endif %}">Crear</a>
                     {% endif %}
 
                     <!-- Enlaces Privados (Solo Admin) -->
