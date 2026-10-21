@@ -567,7 +567,7 @@ def indices_de_preguntas():
  
 ########################################################################
 #BIBLIOTECA
-@app.route('/biblioteca')
+@app.route('/memorias')
 def biblioteca():
     archivos = obtener_archivos_biblioteca()
     return render_template('biblioteca.html', libritos=archivos)
@@ -624,7 +624,7 @@ def crear_documento():
             propietario_id,
             estado
         )
-        return redirect('/biblioteca')
+        return redirect(url_for('biblioteca'))
  
     return render_template('crear_documento.html')
  
@@ -683,7 +683,7 @@ def editar_documento(id_archivo):
             administrador_id,
             estado
         )
-        return redirect('/biblioteca')
+        return redirect(url_for('biblioteca'))
     else:
         archivo = obtener_un_archivo(id_archivo)
         categorias = mostrar_categorias()
@@ -712,7 +712,7 @@ def buscar_documento():
  
 ########################################################################
 #GALERIA
-@app.route('/galeria')
+@app.route('/vestigios')
 def galeria():
     imagenes = obtener_archivos_galeria()
     categorias = mostrar_categorias()
@@ -770,7 +770,7 @@ def crear_imagen():
             propietario_id,
             estado
         )
-        return redirect('/galeria')
+        return redirect(url_for('galeria'))
  
     return render_template('crear_imagen.html')
  
@@ -829,7 +829,7 @@ def editar_imagen(id_archivo):
             administrador_id,
             estado
         )
-        return redirect('/galeria')
+        return redirect(url_for('galeria'))
     else:
         archivo = obtener_un_archivo(id_archivo)
         categorias = mostrar_categorias()
@@ -858,7 +858,7 @@ def buscar_imagen():
 
 ##############################################################################
 #MAPA
-@app.route('/mapa')
+@app.route('/huellas')
 def mapa():
     lugares = obtener_lugares()
     puntos = [
@@ -920,7 +920,7 @@ def crear_local():
             latitud,
             longitud
         )
-        return redirect('/mapa')
+        return redirect(url_for('mapa'))
  
     return render_template('crear_local.html')
  
@@ -972,7 +972,7 @@ def editar_lugar(id_lugar):
             latitud,
             longitud
         )
-        return redirect('/mapa')
+        return redirect(url_for('mapa'))
     else:
         lugar = obtener_un_lugar(id_lugar)
         return render_template("editar_lugar.html", lugar=lugar)

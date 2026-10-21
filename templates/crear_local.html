@@ -72,7 +72,7 @@ header-mapa
 <div class="container content">
   <div class="fm-columna">
 
-    <a href="/mapa" class="fm-volver">← Volver al mapa</a>
+    <a href="{{ url_for('mapa') }}" class="fm-volver">← Volver al mapa</a>
 
     <form action="/crear-local" method="POST" id="form-local" class="fm-tarjeta">
         <h2 class="fm-titulo">Registrar nuevo local</h2>
@@ -130,7 +130,7 @@ header-mapa
 
         <!-- Botones de Acción -->
         <div class="fm-acciones">
-            <a href="/mapa" class="fm-boton sec">Cancelar</a>
+            <a href="{{ url_for('mapa') }}"  class="fm-boton sec">Cancelar</a>
             <button type="submit" class="fm-boton" id="boton-enviar">Guardar local</button>
         </div>
     </form>

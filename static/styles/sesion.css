@@ -1,24 +1,31 @@
 /* =====================================================================
-   Menú de la cuenta (esquina superior derecha) y aviso de contraseña por vencer
+   Menú de la cuenta (esquina superior derecha, fuera de la navegación) y aviso de contraseña por vencer
    ===================================================================== */
 
 /* ---------- Aviso: la contraseña está por vencer ---------- */
 .aviso-cuenta {
     background: #fff4d6; color: #5c4400; border-bottom: 3px solid #e0a800;
     padding: 10px 16px; text-align: center; font-size: 0.95rem;
+    /* El contenido de la página sube 20 px por encima del encabezado; así no tapa el aviso */
+    position: relative; z-index: 10; margin-bottom: 20px;
 }
 .aviso-cuenta a { color: #5c4400; font-weight: 700; text-decoration: underline; margin-left: 6px; }
 
-/* ---------- Botón de la cuenta (dentro de la barra verde) ---------- */
-.usuario-menu { position: relative; display: inline-flex; align-items: center; margin-left: 8px; }
+/* ---------- Botón de la cuenta: esquina superior derecha de la página (como el de Gmail), fuera de la navegación ---------- */
+.usuario-esquina { position: absolute; top: 14px; right: 18px; z-index: 100; }
+.usuario-menu { position: relative; display: inline-flex; align-items: center; }
+/* El mismo botón de siempre (círculo con iniciales, nombre, rol y flecha), con el verde de la barra de navegación
+   para que se lea sobre cualquier foto del encabezado */
 .usuario-boton {
     display: inline-flex; align-items: center; gap: 10px; margin: 0;
-    padding: 4px 12px 4px 4px; background: rgba(255, 255, 255, 0.2); color: #fff;
-    border: none; border-radius: 999px; cursor: pointer;
+    padding: 4px 14px 4px 4px; background: #b1ca29; color: #2b300a;
+    border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 999px; cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
     font-family: inherit; font-size: 0.85rem; font-weight: 700; line-height: 1.15;
 }
-.usuario-boton:hover, .usuario-boton[aria-expanded="true"] { background: rgba(255, 255, 255, 0.32); }
-.usuario-boton:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.usuario-boton:hover { background: #a3bb22; }
+.usuario-boton[aria-expanded="true"] { background: #8da41b; color: #1e2005; }
+.usuario-boton:focus-visible { outline: none; box-shadow: 0 0 0 3px #fff, 0 0 0 6px #2b300a; }
 
 .usuario-avatar {
     display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
@@ -28,8 +35,9 @@
 .usuario-avatar.grande { width: 46px; height: 46px; font-size: 1.1rem; background: #e4f1cf; }
 .usuario-datos { display: flex; flex-direction: column; text-align: left; }
 .usuario-nombre { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.usuario-rol { font-size: 0.7rem; font-weight: 400; opacity: 0.92; }
-.usuario-flecha { font-size: 0.8rem; opacity: 0.9; }
+.usuario-rol { font-size: 0.7rem; font-weight: 400; color: #3b4210; }
+.usuario-flecha { font-size: 0.8rem; }
+.usuario-boton[aria-expanded="true"] .usuario-rol { color: #1e2005; }
 
 /* ---------- Panel desplegable (fixed: no se corta aunque la barra tenga bordes redondeados) ---------- */
 .usuario-panel {
@@ -63,6 +71,14 @@
 
 /* ---------- Pantallas angostas: solo el círculo con las iniciales ---------- */
 @media (max-width: 760px) {
+    .usuario-esquina { top: 10px; right: 10px; }
     .usuario-datos, .usuario-flecha { display: none; }
     .usuario-boton { padding: 4px; }
+}
+
+/* ---------- Títulos de las pantallas ---------- */
+/* Varias pantallas mandan su título como texto suelto. Aquí se les da el aspecto de los <h1> del encabezado nuevo
+   (los que traen su propio logo o su propio <h1> no se tocan) */
+.header__title_container:not(:has(img)):not(:has(h1)) {
+    font-family: 'Caprasimo'; font-size: 72px; font-weight: bold; padding-top: 75px;
 }
