@@ -66,12 +66,13 @@
 }
 
 .header-mapa {
-    background-image: url("/static/assets/img/huellasfondo.jpeg");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/huellasfondo.jpeg");
     background-size: cover;
+    color: #10C6D9;
 }
 
 .header-galeria {
-    background-image: url("/static/assets/img/fondogal.jpg");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondogal.jpg");
     color: #F22C0C;
     background-size: cover
 ;
@@ -79,25 +80,38 @@
 }
 
 .header-biblioteca {
-    background-image: url("/static/assets/img/fondodocs.jpg");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondodocs.jpg");
     color: #10C6D9;
-    background-size: cover
-;
-
+    background-size: cover;
 }
 
 
 
 .header-crear {
-    background-image: url("/static/assets/img/loginfondo.jpeg");
-    background-size: cover; 
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/loginfondo.jpeg");
+    background-size: cover;
+    color: #FFC565; 
 }
+
+.header-docentes {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondodocentes.jfif");
+    background-size: cover;
+    color: #BECC29;
+}
+
+.header-misplantillas {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondoplantilla.jfif");
+    background-size: cover;
+    color: #B84F0E;
+}
+
+
 
 /* ===== Parte blanca ===== */
 .content {
   border-radius: 16px 16px 0 0;
-  margin-top: -20px;
   padding: 18px 24px;
+  margin-top: -20px;
   position: relative;
   background-image: url("/static/assets/img/fondopergamino.png");
   z-index: 7;
@@ -105,13 +119,14 @@
 
 .container {
     border-radius: 16px 16px 0 0;
-    margin-top: -20px;
     padding: 20px 24px;
     position: relative;
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
     z-index: 9;
+    margin-top: 10px;
+    background-image: none;
 }
 
 /* ===== Navbar ===== */
@@ -886,7 +901,7 @@
 
 /* Hero Header con imagen de Mazorca de Maíz */
 .header-home {
-    background-image: url("/static/assets/img/fondoinicio.jpg");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondoinicio.jpg");
     background-size: cover;
     padding: 20px 20px 25px 20px;
     align-items: center;
@@ -1195,7 +1210,7 @@
     position: absolute;
     inset: 0;
 
-    background-image: url("/static/assets/img/pergaminorasgado.png");
+    /*background-image: url("/static/assets/img/pergaminorasgado.png");*/
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
