@@ -154,3 +154,24 @@ def actualizar_juego(
     )
 
     db.session.commit()
+
+
+#CAMBIAR EL ESTADO DE UN JUEGO (al "borrar" una plantilla no se elimina: pasa a inactivo y queda como dato histórico)
+def cambiar_estado_juego(id_juego, estado, fecha_modificacion):
+
+    db.session.execute(
+        text("""
+            UPDATE juego
+            SET
+                estado = :estado,
+                fecha_modificacion = :fecha_modificacion
+            WHERE id_juego = :id_juego
+        """),
+        {
+            'estado': estado,
+            'fecha_modificacion': fecha_modificacion,
+            'id_juego': id_juego
+        }
+    )
+
+    db.session.commit()

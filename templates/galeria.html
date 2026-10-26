@@ -6,6 +6,7 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/buscador.css') }}">
 <style>
     /* Los nombres de esta parte empiezan con "gal-" para que no choquen con clases del CSS del sitio */
     [hidden] { display: none !important; }
@@ -46,6 +47,13 @@
         font-family: inherit; font-weight: 700; font-size: 0.8rem; text-decoration: none; white-space: nowrap;
     }
     .gal-editar:hover { background: #5a7a1e; color: #fff; }
+
+    /* Estado (solo lo ve el administrador) */
+    .gal-estado {
+        position: absolute; right: 10px; top: 10px; padding: 3px 10px; border-radius: 12px;
+        font-size: 0.75rem; font-weight: 700; background: #f5f8e6; color: #4d5c0b; border: 2px solid #BECC29;
+    }
+    .gal-estado.inactivo { background: #fdeceb; color: #8E0404; border-color: #F22C0C; }
 
     /* ---------- Visor: la imagen ampliada ---------- */
     .gal-visor {
@@ -114,22 +122,75 @@ header-galeria
         <div class="barra-superior-galeria">
         
         <!-- Botón Regresar (Oculto en la pantalla principal) -->
-            <div id="btn-regresar-container" style="visibility: hidden;">
+            <div id="btn-regresar-container" hidden>
             <button class="btn-cancelar" id="btn-regresar-accion" onclick="volverAAlbumes()" style="border-radius: 50px;">
                 ←
             </button>
             </div>
 
-        <!-- Botón de admin para crear imagen -->
-        <div>
+        <!-- Botón de admin para crear imagen (solo existe para el administrador; si no, la barra no se dibuja y no deja espacio) -->
             {# Solo los administradores pueden agregar y editar imágenes #}
             {% if session.get('tipo') == 'administrador' %}
-            <a href="/crear-imagen" class="btn-crear-admin" style="margin: 0; display: inline-block;">
-                + Nueva Imagen
-            </a>
-            {% endif %}
+            <div style="margin-left: auto;">
+                <a href="/crear-imagen" class="btn-crear-admin" style="margin: 0; display: inline-block;">
+                    + Nueva Imagen
+                </a>
             </div>
+            {% endif %}
         </div>
+
+    {# Los nombres de los álbumes, para mostrarlos y para poder buscar por ellos #}
+    {% set cat_nombre = {} %}
+    {% for c in categ %}{% set _ = cat_nombre.update({c[0]: c[1]}) %}{% endfor %}
+
+    {% if imag %}
+    <!-- BUSCADOR: esta pantalla solo tiene imágenes y videos, así que solo se buscan imágenes y videos -->
+    <form class="bq" id="buscador" role="search" onsubmit="return false;">
+        <div class="bq-barra">
+            <div class="bq-campo">
+                <svg class="bq-lupa" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="#5a7a1e" stroke-width="2"/><line x1="15" y1="15" x2="21" y2="21" stroke="#5a7a1e" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="search" id="bq-texto" placeholder="Buscar imágenes y videos…" aria-label="Buscar imágenes y videos" autocomplete="off">
+            </div>
+            <button type="button" class="bq-filtro-boton" id="bq-filtro-boton" aria-expanded="false" aria-controls="bq-filtros" aria-label="Filtros" title="Filtros">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span class="bq-insignia" id="bq-insignia" hidden>0</span>
+            </button>
+        </div>
+        <div class="bq-filtros" id="bq-filtros" hidden>
+            <label>Álbum
+                <select id="bq-album">
+                    <option value="">Todos</option>
+                    {% for c in categ %}
+                    <option value="{{ c[0] }}">{{ c[1] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Tipo
+                <select id="bq-tipo">
+                    <option value="">Imágenes y videos</option>
+                    <option value="imagen">Imágenes</option>
+                    <option value="video">Videos</option>
+                </select>
+            </label>
+            <label>Agregado
+                <select id="bq-fecha">
+                    <option value="">Cualquier fecha</option>
+                    <option value="semana">Última semana</option>
+                    <option value="mes">Último mes</option>
+                    <option value="anio">Último año</option>
+                </select>
+            </label>
+            <label>Ordenar por
+                <select id="bq-orden">
+                    <option value="recientes">Más recientes</option>
+                    <option value="antiguos">Más antiguos</option>
+                    <option value="nombre">Título (A–Z)</option>
+                </select>
+            </label>
+        </div>
+    </form>
+    <p class="bq-estado" id="bq-estado" aria-live="polite" hidden><span id="bq-estado-texto"></span><button type="button" class="bq-quitar" id="bq-limpiar" hidden>Limpiar</button></p>
+    {% endif %}
 
     <!-- ==========================================
          VISTA 1: ÁLBUMES (COLLAGE) - uno por categoría
@@ -163,15 +224,24 @@ header-galeria
     <div id="vista-cuadricula" style="display: none;">
         <h2 class="titulo-seccion mb-4" id="titulo-cuadricula">Álbum</h2>
         <p id="album-vacio" style="display: none;">Este álbum todavía no tiene imágenes ni videos.</p>
+        <div class="bq-vacio" id="bq-vacio" hidden>
+            <strong>No encontramos imágenes ni videos con esa búsqueda.</strong>
+            Prueba con otras palabras o quita algún filtro.<br>
+            <button type="button" class="bq-quitar" id="bq-vacio-limpiar">Quitar la búsqueda y los filtros</button>
+        </div>
         <div class="gal-rejilla">
 
             {# Se dibujan TODOS los archivos; el JS muestra solo los de la categoría elegida #}
             {% for item in imag %}
-            <figure class="gal-tarjeta" data-categoria="{{ item[4] }}" data-titulo="{{ item[1] }}" data-descripcion="{{ item[2] }}"
+            <figure class="gal-tarjeta{% if item[9] != 'activo' %} inactiva{% endif %}" data-categoria="{{ item[4] }}" data-titulo="{{ item[1] }}" data-descripcion="{{ item[2] or '' }}"
+                    data-album="{{ cat_nombre.get(item[4], '') }}" data-tipo="{{ item[5] }}" data-fecha="{{ item[6].strftime('%Y-%m-%d') if item[6] else '' }}"
                     tabindex="0" role="button" aria-label="Ampliar: {{ item[1] }}">
                 <div class="gal-marco">
                     {{ media(item) }}
                     {% if item[5] == 'video' %}<span class="gal-insignia" aria-hidden="true">▶ Video</span>{% endif %}
+                    {% if session.get('tipo') == 'administrador' %}
+                    <span class="gal-estado{% if item[9] != 'activo' %} inactivo{% endif %}">{{ 'Activo' if item[9] == 'activo' else 'Inactivo' }}</span>
+                    {% endif %}
                     <span class="gal-lupa" aria-hidden="true">🔍</span>
                 </div>
                 <figcaption class="gal-pie">
@@ -204,6 +274,7 @@ header-galeria
     </div>
 
 
+<script src="{{ url_for('static', filename='js/buscador.js') }}"></script>
 <!-- Funciones dinámicas para cambiar vistas y botones -->
 <script>
     let itemsAlbum = [];   // tarjetas del álbum que se está viendo
@@ -229,15 +300,16 @@ header-galeria
         document.getElementById('album-vacio').style.display = itemsAlbum.length ? 'none' : 'block';
 
         // Muestra el botón de regresar
-        document.getElementById('btn-regresar-container').style.visibility = 'visible';
+        document.getElementById('btn-regresar-container').hidden = false;
     }
 
     function volverAAlbumes() {
+        limpiarBusqueda();
         document.getElementById('vista-cuadricula').style.display = 'none';
         document.getElementById('vista-albumes').style.display = 'block';
 
         // Oculta el botón porque ya estamos en el inicio
-        document.getElementById('btn-regresar-container').style.visibility = 'hidden';
+        document.getElementById('btn-regresar-container').hidden = true;
     }
 
     // ---------- Visor ----------
@@ -331,5 +403,97 @@ header-galeria
         inicioX = null;
         if (Math.abs(dx) > 60) moverVisor(dx < 0 ? 1 : -1);
     }, { passive: true });
+
+    // ---------- Buscador: busca en TODA la galería (imágenes y videos) ----------
+    const bqTexto = document.getElementById('bq-texto');
+    const bqAlbum = document.getElementById('bq-album');
+    const bqTipo = document.getElementById('bq-tipo');
+    const bqFecha = document.getElementById('bq-fecha');
+    const bqOrden = document.getElementById('bq-orden');
+    const bqLimpiar = document.getElementById('bq-limpiar');
+    const bqEstado = document.getElementById('bq-estado');
+    const bqEstadoTexto = document.getElementById('bq-estado-texto');
+    const bqVacio = document.getElementById('bq-vacio');
+    const rejillaGaleria = document.querySelector('.gal-rejilla');
+    const todasLasTarjetas = Array.from(document.querySelectorAll('.gal-tarjeta'));
+    const actualizarInsignia = bqTexto ? Buscador.panelDeFiltros(document.getElementById('bq-filtro-boton'), document.getElementById('bq-filtros'), document.getElementById('bq-insignia')) : null;
+    let enResultados = false;
+
+    // Lo que se busca en cada archivo: título, descripción, álbum y tipo (sin tildes ni mayúsculas)
+    todasLasTarjetas.forEach(function (t) {
+        t._buscar = Buscador.normalizar([t.dataset.titulo, t.dataset.descripcion, t.dataset.album, t.dataset.tipo].join(' '));
+    });
+
+    function cumpleBusqueda(t) {
+        return Buscador.coincide(t._buscar, bqTexto.value)
+            && (!bqAlbum.value || t.dataset.categoria === bqAlbum.value)
+            && (!bqTipo.value || t.dataset.tipo === bqTipo.value)
+            && Buscador.cumpleFecha(t.dataset.fecha, bqFecha.value);
+    }
+
+    function hayCriterios() {
+        return bqTexto.value.trim() !== '' || bqAlbum.value !== '' || bqTipo.value !== '' || bqFecha.value !== '';
+    }
+
+    // Reordena las tarjetas según "Ordenar por" (y mantiene el orden del visor igual al de la pantalla)
+    function ordenarTarjetas() {
+        Buscador.ordenar(todasLasTarjetas, bqOrden.value, function (t) { return t.dataset.titulo; }).forEach(function (t) { rejillaGaleria.appendChild(t); });
+        itemsAlbum = Array.from(rejillaGaleria.children).filter(function (t) { return itemsAlbum.indexOf(t) !== -1; });
+    }
+
+    function mostrarResultados() {
+        enResultados = true;
+        document.getElementById('vista-albumes').style.display = 'none';
+        document.getElementById('vista-cuadricula').style.display = 'block';
+        document.getElementById('titulo-cuadricula').innerText = 'Resultados de la búsqueda';
+        document.getElementById('album-vacio').style.display = 'none';
+        document.getElementById('btn-regresar-container').hidden = false;
+
+        itemsAlbum = [];
+        Array.from(rejillaGaleria.children).forEach(function (t) {
+            const ok = cumpleBusqueda(t);
+            t.style.display = ok ? '' : 'none';
+            if (ok) itemsAlbum.push(t);
+        });
+
+        const consulta = bqTexto.value.trim();
+        rejillaGaleria.hidden = itemsAlbum.length === 0;
+        bqVacio.hidden = itemsAlbum.length !== 0;
+        bqLimpiar.hidden = false;
+        bqEstado.hidden = false;
+        bqEstadoTexto.textContent = itemsAlbum.length + (itemsAlbum.length === 1 ? ' resultado' : ' resultados') + (consulta ? ' para «' + consulta + '»' : '');
+    }
+
+    function aplicarBusqueda() {
+        actualizarInsignia((bqAlbum.value ? 1 : 0) + (bqTipo.value ? 1 : 0) + (bqFecha.value ? 1 : 0));
+        ordenarTarjetas();
+        if (!hayCriterios()) {
+            if (enResultados) volverAAlbumes();
+            return;
+        }
+        mostrarResultados();
+    }
+
+    // Vuelve el buscador a como estaba (lo usa "Limpiar" y también el botón "←" de volver a los álbumes)
+    function limpiarBusqueda() {
+        if (!bqTexto) return;
+        bqTexto.value = ''; bqAlbum.value = ''; bqTipo.value = ''; bqFecha.value = '';
+        actualizarInsignia(0);
+        enResultados = false;
+        bqEstado.hidden = true;
+        bqEstadoTexto.textContent = '';
+        bqVacio.hidden = true;
+        bqLimpiar.hidden = true;
+        rejillaGaleria.hidden = false;
+        todasLasTarjetas.forEach(function (t) { t.style.display = ''; });
+    }
+
+    if (bqTexto) {
+        bqTexto.addEventListener('input', aplicarBusqueda);
+        [bqAlbum, bqTipo, bqFecha, bqOrden].forEach(function (campo) { campo.addEventListener('change', aplicarBusqueda); });
+        bqLimpiar.addEventListener('click', function () { volverAAlbumes(); bqTexto.focus(); });
+        document.getElementById('bq-vacio-limpiar').addEventListener('click', function () { volverAAlbumes(); bqTexto.focus(); });
+        ordenarTarjetas();      // al abrir, lo más reciente va primero
+    }
 </script>
 {% endblock %}

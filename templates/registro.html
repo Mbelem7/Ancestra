@@ -48,18 +48,22 @@
 {% endblock %}
 
 {% block titulo_header %}
-Crear cuenta
+<h1>Crear Cuenta</h1>
+<h2>Se parte de nuestras raices</h2>
 {% endblock %}
 
 {% block clase_header %}
-header-crear
+header-login
 {% endblock %}
 
 {% block body %}
 {% set d = datos or {} %}
-<div class="container content">
+<div class="auth-escena">
+  <div class="auth-layout auth-layout--registro">
+    {% include '_auth_info.html' %}
+
     <div class="tarjeta-auth">
-        <h2>Crea tu cuenta</h2>
+        <h2>Ingresa tus datos</h2>
         <p class="sub">Solo te tomará un minuto.</p>
 
         {% if erroresR %}
@@ -133,7 +137,9 @@ header-crear
         </form>
 
         <a href="{{ url_for('login') }}" class="enlace">¿Ya tienes cuenta? Inicia sesión</a>
+        {% include '_auth_piezas.html' %}
     </div>
+</div>
 </div>
 
 <script>

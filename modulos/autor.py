@@ -1,6 +1,5 @@
 from app import db
-from sqlalchemy import text
-
+from sqlalchemy import text, bindparam
 
 # ======================================================================
 # autor
@@ -279,3 +278,70 @@ def eliminar_archivo_autor(id_archivoautor):
     )
 
     db.session.commit()
+
+def obtener_autor_por_nombre(nombre):
+    # Busca un autor ya registrado con ese nombre (sin importar mayúsculas), para no registrarlo dos veces
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                id_autor,
+                nombre,
+                tipo,
+                origen,
+                descripcion,
+                fecha_creacion,
+                fecha_modificacion
+            FROM autor
+            WHERE LOWER(nombre) = LOWER(:nombre)
+            LIMIT 1
+        """),
+        {
+            'nombre': nombre
+        }
+    )
+
+    autor = resultado.fetchone()
+
+    return autor
+
+
+def eliminar_autores_de_archivo(archivo_id):
+    # Al editar un archivo se quitan sus relaciones con autores y se vuelven a guardar las del formulario
+    # (solo se borran las relaciones de archivo_autor; los autores siguen registrados)
+
+    db.session.execute(
+        text("""
+            DELETE FROM archivo_autor
+            WHERE archivo_id = :archivo_id
+        """),
+        {
+            'archivo_id': archivo_id
+        }
+    )
+
+    db.session.commit()
+
+
+def obtener_autores_de_archivos(ids_archivos):
+    # Los autores de VARIOS archivos en una sola consulta (para la biblioteca y la galería).
+    # Devuelve filas (archivo_id, nombre_del_autor)
+    if not ids_archivos:
+        return []
+
+    resultado = db.session.execute(
+        text("""
+            SELECT
+                aa.archivo_id,
+                a.nombre
+            FROM archivo_autor aa
+            INNER JOIN autor a ON a.id_autor = aa.autor_id
+            WHERE aa.archivo_id IN :ids
+            ORDER BY aa.id_archivoautor
+        """).bindparams(bindparam('ids', expanding=True)),
+        {
+            'ids': list(ids_archivos)
+        }
+    )
+
+    return resultado.fetchall()

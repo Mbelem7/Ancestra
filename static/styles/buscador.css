@@ -1,0 +1,62 @@
+/* =====================================================================
+   Buscador de Memorias y de Vestigio: una barra delgada con un botón de filtros que despliega las opciones
+   (los nombres empiezan con "bq-" para no chocar con otras clases)
+   ===================================================================== */
+[hidden] { display: none !important; }
+
+/* Todo el buscador va pegado a la DERECHA: la barra y el botón arriba, y debajo los filtros, todos en una línea */
+.bq { display: flex; flex-direction: column; align-items: flex-end; margin: 0 0 10px; }
+
+/* La barra: la lupa, el campo de texto y el botón de filtros */
+.bq-barra { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 640px; }
+.bq-campo { position: relative; flex: 1; }
+.bq-lupa { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; pointer-events: none; }
+.bq-campo input {
+    display: block; width: 100%; box-sizing: border-box; height: 42px; margin: 0; padding: 0 14px 0 40px;
+    background: #fff; color: #222; border: 2px solid #c9d6b0; border-radius: 22px; font-family: inherit; font-size: 0.95rem;
+}
+.bq-campo input:focus { outline: none; border-color: #5a7a1e; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.2); }
+
+.bq-filtro-boton {
+    position: relative; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; margin: 0; padding: 0; background: #fff; color: #46611a;
+    border: 2px solid #c9d6b0; border-radius: 50%; cursor: pointer;
+}
+.bq-filtro-boton:hover { border-color: #5a7a1e; }
+.bq-filtro-boton[aria-expanded="true"] { background: #5a7a1e; border-color: #5a7a1e; color: #fff; }
+.bq-filtro-boton:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.35); }
+.bq-filtro-boton svg { width: 20px; height: 20px; }
+/* El numerito rojo: cuántos filtros hay activos (se ve aunque el panel esté cerrado) */
+.bq-insignia {
+    position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    background: #c0392b; color: #fff; border-radius: 9px; font-size: 0.7rem; font-weight: 700; line-height: 1;
+}
+
+/* El panel que se despliega con el botón */
+/* El ancho se ajusta a lo que contiene: los filtros caben en una sola línea y solo bajan si la pantalla es angosta */
+.bq-filtros { display: flex; flex-wrap: wrap; gap: 10px 12px; width: fit-content; max-width: 100%; box-sizing: border-box; margin-top: 8px; padding: 12px 14px; background: #fafcf6; border: 2px solid #c9d6b0; border-radius: 14px; }
+.bq-filtros label { display: flex; flex-direction: column; gap: 3px; font-size: 0.75rem; font-weight: 700; color: #2f4a0c; }
+.bq-filtros select {
+    min-width: 140px; margin: 0; padding: 7px 10px; background: #fff; color: #222;
+    border: 2px solid #c9d6b0; border-radius: 10px; font-family: inherit; font-size: 0.88rem;
+}
+.bq-filtros select:focus { outline: none; border-color: #5a7a1e; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.2); }
+
+/* La línea de abajo: cuántos resultados hay, y el botón para quitar la búsqueda */
+.bq-estado { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin: 0 0 10px; font-size: 0.92rem; font-weight: 700; color: #222; }
+.bq-quitar {
+    margin: 0; padding: 3px 12px; background: #fff; color: #46611a; border: 2px solid #5a7a1e; border-radius: 14px;
+    font-family: inherit; font-weight: 700; font-size: 0.78rem; cursor: pointer;
+}
+.bq-quitar:hover { background: #5a7a1e; color: #fff; }
+
+.bq-vacio { display: block; margin: 10px 0 30px; padding: 30px 24px; text-align: center; background: #fafcf6; color: #333; border: 2px dashed #c9d6b0; border-radius: 16px; line-height: 1.55; }
+.bq-vacio strong { display: block; margin-bottom: 4px; font-size: 1.1rem; }
+.bq-vacio .bq-quitar { margin-top: 14px; padding: 8px 18px; font-size: 0.9rem; border-radius: 22px; }
+
+@media (max-width: 560px) {
+    .bq-filtros { width: 100%; }
+    .bq-filtros label { flex: 1 1 calc(50% - 6px); }
+    .bq-filtros select { min-width: 0; width: 100%; }
+}

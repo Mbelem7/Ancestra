@@ -32,13 +32,16 @@
 {% endblock %}
 
 {% block clase_header %}
-header-crear
+header-login
 {% endblock %}
 
 {% block body %}
-<div class="container content">
+<div class="auth-escena">
+  <div class="auth-layout">
+    {% include '_auth_info.html' %}
+
     <div class="tarjeta-auth">
-        <h2>Bienvenido a Ancestra</h2>
+        <h2>¡Hola de nuevo!</h2>
         <p class="sub">Ingresa con tu correo y contraseña.</p>
 
         {% if aviso %}<div class="mensaje-aviso">{{ aviso }}</div>{% endif %}
@@ -59,6 +62,8 @@ header-crear
         </form>
 
         <a href="{{ url_for('registro') }}" class="enlace">¿No tienes cuenta? Regístrate</a>
+        {% include '_auth_piezas.html' %}
     </div>
+  </div>
 </div>
 {% endblock %}

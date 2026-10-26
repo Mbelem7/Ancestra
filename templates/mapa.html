@@ -30,6 +30,11 @@
         border: 2px solid #5a7a1e; border-radius: 20px; text-align: center; font-weight: 700; font-size: 0.85rem; text-decoration: none;
     }
     .leaflet-container a.mp-editar:hover { background: #5a7a1e; color: #fff; }
+    
+    /* El título y la ayuda de arriba del mapa */
+    .mapa-intro { margin-bottom: 16px; }
+    .mapa-intro .titulo-seccion { margin-bottom: 6px; }
+    .mapa-ayuda { margin: 0; color: #333; font-size: 1rem; line-height: 1.4; }
 </style>
 {% endblock %}
 
@@ -48,14 +53,20 @@ header-mapa
 {% block body %}
 <div class="container content">
     
-    <!-- Barra superior para el botón de admin (alineado a la derecha) -->
-    <div class="barra-superior-galeria">
-        {# Solo los administradores pueden agregar y editar locales #}
-        {% if session.get('tipo') == 'administrador' %}
+    <!-- Barra superior para el botón de admin (alineado a la derecha). Solo existe para el administrador -->
+    {# Solo los administradores pueden agregar y editar locales #}
+    {% if session.get('tipo') == 'administrador' %}
+    <div class="barra-superior-galeria" style="justify-content: flex-end;">
         <a href="/crear-local" class="btn-crear-admin" style="margin: 0; display: inline-block;">
             + Nuevo Local
         </a>
-        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Qué es esto y qué hacer: sin este texto el mapa parece solo una imagen -->
+    <div class="mapa-intro">
+        <h2 class="titulo-seccion">Mapa de lugares</h2>
+        <p class="mapa-ayuda">Toca un <strong>marcador azul</strong> del mapa para ver el nombre, la dirección y el teléfono del lugar.</p>
     </div>
 
     <!-- Contenedor principal del mapa.

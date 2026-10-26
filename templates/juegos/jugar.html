@@ -9,8 +9,8 @@
 <style>
     .tarjeta-entrada {
         max-width: 520px;
-        margin: 48px auto 60px;
-        padding: 40px 36px 32px;
+        margin: 8px auto 40px;
+        padding: 26px 36px 26px;
         text-align: center;
         background: #fafcf6;
         color: #222;
@@ -19,12 +19,12 @@
         box-shadow: 0 6px 22px rgba(90, 122, 30, 0.12);
     }
     .tarjeta-entrada .icono {
-        width: 76px; height: 76px; margin: 0 auto 16px;
+        width: 60px; height: 60px; margin: 0 auto 12px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 2.4rem; background: #e4f1cf; border-radius: 50%;
+        font-size: 2rem; background: #e4f1cf; border-radius: 50%;
     }
-    .tarjeta-entrada h2 { margin: 0 0 8px; font-size: 1.5rem; }
-    .tarjeta-entrada .subtitulo { margin: 0 0 26px; color: #555; line-height: 1.5; }
+    .tarjeta-entrada h2 { margin: 0 0 6px; font-size: 1.5rem; }
+    .tarjeta-entrada .subtitulo { margin: 0 0 18px; color: #555; line-height: 1.5; }
 
     .campo-codigo {
         display: block; width: 100%; box-sizing: border-box; margin: 0 0 8px;
@@ -36,7 +36,7 @@
     .campo-codigo::placeholder { color: #9bb37a; letter-spacing: 10px; }
     .campo-codigo:focus { outline: none; border-style: solid; box-shadow: 0 0 0 4px rgba(90, 122, 30, 0.2); }
 
-    .contador { font-size: 0.82rem; color: #777; margin-bottom: 22px; min-height: 1.2em; }
+    .contador { font-size: 0.82rem; color: #777; margin-bottom: 14px; min-height: 1.2em; }
 
     .boton-entrar {
         display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 15px;
@@ -46,7 +46,7 @@
     .boton-entrar:hover:not(:disabled) { background: #46611a; }
     .boton-entrar:disabled { background: #b9c7a1; cursor: not-allowed; }
 
-    .ayuda { margin: 22px 0 0; font-size: 0.9rem; color: #666; line-height: 1.5; }
+    .ayuda { margin: 16px 0 0; font-size: 0.9rem; color: #666; line-height: 1.5; }
 
     .mensaje-error {
         display: flex; align-items: center; gap: 10px; text-align: left;
@@ -57,11 +57,12 @@
 {% endblock %}
 
 {% block titulo_header %}
-Jugar
+<h1>Juega</h1>
+<h2>Aprende jugando</h2>
 {% endblock %}
 
 {% block clase_header %}
-header-crear
+header-jugar
 {% endblock %}
 
 {% block body %}

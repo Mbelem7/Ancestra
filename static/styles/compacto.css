@@ -1,0 +1,112 @@
+/* =====================================================================
+   Encabezado compacto: el banner y la barra de navegación al 75 % de su tamaño (como al verlos con el zoom
+   del navegador en 75 %), y menos espacio antes del contenido, para que lo importante de cada página quede más arriba.
+   Solo cambia medidas; los colores, fondos y fuentes siguen siendo los de styles.css.
+   ===================================================================== */
+
+.fondo-principal .banda-roja p + p { margin-top: 1em; }
+
+/* El banner */
+.header { height: 225px; }
+.header__title_container img { height: 108px; width: 360px; }
+.header__title_container h1 { font-size: 54px; padding-top: 56px; }
+.header__title_container h2 { font-size: 14px; padding-bottom: 12px; }
+.header-home { padding: 15px 15px 19px 15px; }
+.header-home h2 { padding-bottom: 8px; }
+
+/* Títulos que llegan como texto suelto (sin <h1>): mismo tamaño que los <h1> */
+.header__title_container:not(:has(img)):not(:has(h1)) { font-size: 54px; padding-top: 56px; }
+
+/* La barra de navegación */
+.contenedor-header { padding-top: 38px; }
+.nav-principal-home { padding: 6px 11px; gap: 8px; border-radius: 30px; max-width: 740px; }
+.nav-link-home { padding: 8px 19px; font-size: 0.8rem; border-radius: 24px; }
+
+/* Menos espacio entre la barra y el contenido */
+.content { margin-top: -15px; padding-top: 8px; }
+.container { margin-top: 0; padding-top: 12px; }
+
+body > .content { min-height: calc(100vh - 210px); }
+body:has(.aviso-cuenta) > .content { min-height: calc(100vh - 271px); }
+
+
+/* =====================================================================
+   Espacio estándar bajo la barra: lo primero de cada página empieza 24 px debajo de ella
+   (el pergamino sube 20 px por detrás de la barra, de ahí los 44 px)
+   ===================================================================== */
+body > .content { padding-top: 44px; }
+body > .content > .container:first-child { padding-top: 0; margin-top: 0; }   /* pantallas que traen su propio contenedor */
+.fondo-principal { padding-top: 0; }                                          /* el inicio */
+.fondo-principal > .seccion.container:first-child { padding-top: 0; }
+.barra-superior-galeria, .contenedor-btn-admin { margin-top: 0; margin-bottom: 16px; }
+/* Si la barra de arriba no tiene nada visible (por ejemplo, Vestigio sin el botón de regresar), no ocupa espacio */
+.barra-superior-galeria:not(:has(> :not([hidden]))) { display: none; }
+
+/* Inicio: menos espacio entre el título y el mapa con el texto. El mapa y el texto del pergamino suben juntos para
+   seguir alineados (el mapa y el texto suben 40 px; el pergamino, 16 px) */
+.titulo { margin-bottom: 16px; }
+
+/* La barra de navegación queda siempre a la misma altura, tenga o no subtítulo la página
+   (147 px = el alto de un título con subtítulo; el título se queda arriba y el espacio sobrante queda debajo) */
+.header:not(.header-home) .header__title_container { min-height: 147px; justify-content: flex-start; }
+
+
+/* =====================================================================
+   INICIO: un solo margen para todo, columnas parejas y el papel calculado desde el texto
+   ===================================================================== */
+.fondo-principal {
+    --margen: clamp(20px, 7vw, 110px);   /* margen de los lados: el mismo para título, párrafos, imágenes y bandas */
+    --espacio: 36px;                      /* espacio entre un texto y una imagen (y aire del texto dentro del papel) */
+    padding: 0;
+    overflow-x: clip;                     /* lo que sobresale del papel roto no crea barra horizontal */
+}
+/* Las bandas y el pie llenan todo el ancho sin usar 100vw (el 100vw es lo que creaba la barra horizontal) */
+body > .content:has(> .fondo-principal) { padding-left: 0; padding-right: 0; }
+body > .content:has(> .fondo-principal) > .footer { width: auto; margin-left: 0; }
+
+/* Todo el contenido del inicio usa el mismo ancho */
+.fondo-principal .container { width: min(100% - 2 * var(--margen), 1200px); max-width: none; margin: 0 auto; padding: 0; }
+
+/* ---- Bandas roja y verde: el color llena todo el ancho; el texto respeta el mismo margen ---- */
+.fondo-principal .banda-roja, .fondo-principal .bloque-verde { width: auto; margin: 0; }
+.fondo-principal .banda-roja { padding: 64px 0 35px; }     /* 64 arriba: deja pasar el borde del papel y aún queda aire */
+.fondo-principal .bloque-verde { padding: 36px 0 66px; }   /* 66 abajo: igual, para el papel de la sección de abajo */
+.inicio-linea { display: block; width: 100%; height: auto; }
+.inicio-linea--1 { margin-top: -50px; margin-bottom: 10px; }
+.inicio-linea--2 { margin-top: -40px; margin-bottom: -40px; }   /* la cerámica se monta sobre la línea, como en el diseño */
+
+/* ---- Filas: mismo espacio entre texto e imagen en todas ---- */
+.inicio-fila { display: grid; gap: var(--espacio); }
+.inicio-fila--mapa { grid-template-columns: minmax(0, 43fr) minmax(0, 57fr); gap: 0; align-items: center; margin-top: 40px; }
+.inicio-fila--dos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.inicio-fila--consejo { grid-template-columns: minmax(0, 57fr) minmax(0, 43fr); gap: 0; align-items: center; }
+.inicio-columna { display: flex; flex-direction: column; gap: 24px; }
+.inicio-columna--baja { padding-top: 12px; }
+.inicio-columna--sube { margin-top: -60px; }              /* el grabado se monta sobre la línea decorativa, como en el diseño */
+.fondo-principal .seccion .inicio-img { display: block; position: relative; z-index: 2; width: 100%; height: auto; margin: 0; }
+.fondo-principal .inicio-fila--consejo { padding-bottom: 30px; }
+
+/* ---- El papel roto: se calcula desde el texto, así siempre lo cubre con aire alrededor ----
+   (las cuatro medidas salen del PNG: cuánto sobresale la imagen del rectángulo 100 % sólido del papel) */
+.inicio-papel { position: relative; isolation: isolate; padding: 40px var(--espacio) 44px; }
+.inicio-papel::before {
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    background: url("/static/assets/img/pergamino-horizontal.png") no-repeat center / 100% 100%;
+    left: calc(-100% * 0.0627); right: calc(-100% * 0.1575); top: calc(-100% * 0.3361); bottom: calc(-100% * 0.5308);
+}
+.inicio-papel--izq::before {      /* el de la izquierda va girado 180° (así sobresale hacia afuera) */
+    transform: rotate(180deg);
+    left: calc(-100% * 0.1575); right: calc(-100% * 0.0627); top: calc(-100% * 0.5308); bottom: calc(-100% * 0.3361);
+}
+.inicio-papel--der { margin-right: calc(var(--margen) * 0.3); }
+.inicio-papel p + p { margin-top: 1em; }
+
+@media (max-width: 768px) {
+    .inicio-fila--mapa, .inicio-fila--dos, .inicio-fila--consejo { grid-template-columns: minmax(0, 1fr); }
+    .inicio-fila--mapa, .inicio-fila--consejo { gap: 24px; }
+    .inicio-columna--sube { margin-top: 0; }
+    .inicio-papel--der { margin-right: 0; margin-top: 40px; }
+    .inicio-papel { margin-left: 8px; margin-right: 8px; padding-left: 26px; padding-right: 26px; }
+    .inicio-papel .texto { text-align: left; }
+    .inicio-papel--izq { margin-bottom: 20px; }
+}

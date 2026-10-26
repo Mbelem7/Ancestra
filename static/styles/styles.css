@@ -3,6 +3,7 @@
   padding: 0;
   box-sizing: border-box;
   font-family: 'Albert Sans';
+  font-synthesis: none;
 }
 
 
@@ -48,12 +49,15 @@
     font-family: 'Caprasimo';
     font-size: 72px;
     padding-top: 75px;
+    font-weight: 400;
+    font-synthesis: none;
 }
 
 .header__title_container h2 {
     font-family: 'Albert Sans';
     font-size: 18px;
     padding-bottom: 16px;
+    font-weight: 400;
 }
 
 .contenedor-header {
@@ -68,15 +72,13 @@
 .header-mapa {
     background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/huellasfondo.jpeg");
     background-size: cover;
-    color: #10C6D9;
+    color: #9BA722;
 }
 
 .header-galeria {
     background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondogal.jpg");
     color: #F22C0C;
-    background-size: cover
-;
-
+    background-size: cover;
 }
 
 .header-biblioteca {
@@ -85,26 +87,36 @@
     background-size: cover;
 }
 
+.header-jugar{
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondojugar.jpg");
+    color: #FFA105;
+    background-size: cover;
+}
 
 
 .header-crear {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/loginfondo.jpeg");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondocrear.jpg");
     background-size: cover;
-    color: #FFC565; 
+    color: #10C6D9; 
 }
 
 .header-docentes {
     background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondodocentes.jfif");
     background-size: cover;
-    color: #BECC29;
+    color: #F22C0C;
 }
 
 .header-misplantillas {
     background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/fondoplantilla.jfif");
     background-size: cover;
-    color: #B84F0E;
+    color: #F22C0C;
 }
 
+.header-login {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/static/assets/img/image.png");
+    color: #9BA722;
+    background-size: cover;
+}
 
 
 /* ===== Parte blanca ===== */
@@ -1330,4 +1342,75 @@
     .footer-logo {
         justify-content: center;
     }
+}
+
+/* =========================================
+   --- LOGIN Y REGISTRO ---
+   ========================================= */
+/* Mismo margen de los lados que el inicio (compacto.css); lo que sobresale (las piezas) no crea barra horizontal */
+body > .content:has(.auth-escena) { padding-left: 0; padding-right: 0; overflow: clip; }
+.auth-escena { --margen: clamp(20px, 7vw, 110px); }
+
+/* La tarjeta roja y el formulario, pegados y centrados */
+.auth-layout {
+    --ancho-form: 460px;
+    width: min(100% - 2 * var(--margen), 1040px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--ancho-form));
+    align-items: center;
+    padding-bottom: 110px;      /* espacio para las piezas que cuelgan bajo el formulario */
+}
+.auth-layout--registro { --ancho-form: 540px; align-items: start; }
+
+/* El formulario: por encima de la tarjeta roja, con sombra */
+.auth-layout .tarjeta-auth {
+    margin: 0; width: 100%; max-width: none; position: relative; z-index: 1;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+/* La tarjeta roja (más baja que el formulario y centrada en su altura, como en el diseño) */
+.auth-info {
+    display: flex; justify-content: center; align-items: center;
+    padding: 72px 40px;
+    background: linear-gradient(to top right, #F22C0C 0%, #C40000 40%, #8E0404 100%);
+    border-radius: 16px 0 0 16px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+/* En el registro el formulario es muy largo: la tarjeta roja va arriba y te acompaña al bajar */
+.auth-layout--registro .auth-info { position: sticky; top: 24px; margin-top: 48px; }
+
+/* Saludo, logo y eslogan: los tres con el mismo ancho */
+.auth-marca { width: min(100%, 380px); }
+.auth-saludo {          /* en una sola línea, centrado sobre la palabra Ancestra (el 28 % es el ancho del ícono) */
+    margin: 0 0 2px; padding-left: 28%;
+    font-family: 'Caprasimo'; font-size: 1.2rem; text-transform: uppercase; text-align: center; white-space: nowrap;
+    color: #FFA105; letter-spacing: 1px;
+}
+.auth-logo { display: block; width: 100%; height: auto; filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.25)); }
+.auth-eslogan { margin: 6px 0 0; font-size: 0.85rem; text-align: center; color: #FFAF2A; }
+
+/* Piezas de puzzle alrededor de la esquina inferior derecha del formulario.
+   --x: cuánto entra el centro de la pieza desde el borde derecho (negativo = queda afuera)
+   --y: cuánto sube el centro desde el borde de abajo (negativo = queda debajo) */
+.auth-piezas { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.auth-pieza {
+    position: absolute; right: var(--x); bottom: var(--y);
+    transform: translate(50%, 50%) rotate(var(--giro));
+    filter: drop-shadow(2px 4px 4px rgba(0, 0, 0, 0.25));
+}
+.auth-pieza svg { display: block; }
+.auth-pieza path { fill: var(--relleno); stroke: var(--borde); stroke-width: 4; stroke-linejoin: round; }
+.auth-pieza--verde   { --x: -64px; --y: 230px; --giro: -6deg;  --relleno: #BECC29; --borde: #6E7710; }
+.auth-pieza--roja    { --x: -20px; --y: 100px; --giro: 8deg;   --relleno: #F22C0C; --borde: #8E0404; }
+.auth-pieza--celeste { --x: 100px; --y: -8px;  --giro: -10deg; --relleno: #10C6D9; --borde: #025C66; }
+.auth-pieza--naranja { --x: 270px; --y: -70px; --giro: 4deg;   --relleno: #FFA105; --borde: #A65F00; }
+
+/* Pantallas angostas: la tarjeta roja arriba, pegada al formulario, y sin piezas */
+@media (max-width: 900px) {
+    .auth-layout, .auth-layout--registro { grid-template-columns: minmax(0, 1fr); padding-bottom: 60px; }
+    .auth-info, .auth-layout--registro .auth-info { position: static; margin: 0; padding: 40px 24px; border-radius: 16px 16px 0 0; }
+    .auth-layout .tarjeta-auth { border-radius: 0 0 16px 16px; }
+    .auth-saludo { padding-left: 0; white-space: normal; }
+    .auth-piezas { display: none; }
 }

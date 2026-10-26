@@ -76,6 +76,7 @@ import random
 import unicodedata
 import string
 import re
+import pymupdf
 import uuid
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -514,6 +515,74 @@ def index():
 
 ########################################################################
 # RUTAS DE APOYO Y FUNCIONES AUXILIARES
+
+# Los tipos de documento: el valor que se guarda (igual al value= del formulario) y cómo se muestra.
+# El filtro de Memorias usa esta lista.
+TIPOS_DOCUMENTO = [
+    ('libro', 'Libro'), ('documento', 'Documento'), ('cuento', 'Cuento'), ('tesis', 'Tesis'), ('ensayo', 'Ensayo'), ('diccionario', 'Diccionario'),
+    # Si vas a agregar tipos nuevos al formulario, ponlos aquí también (sin tildes en el valor, con tildes en el nombre):
+    # ('anecdota', 'Anécdota'), ('mito', 'Mito'), ('monografia', 'Monografía'), ('relato', 'Relato'),
+]
+app.jinja_env.globals['TIPOS_DOCUMENTO'] = TIPOS_DOCUMENTO
+
+# Los tipos y orígenes de autor: el valor que se guarda y cómo se muestra
+TIPOS_AUTOR = [('persona', 'Persona'), ('institucion', 'Institución')]
+ORIGENES_AUTOR = [('nacional', 'Nacional'), ('internacional', 'Internacional')]
+app.jinja_env.globals['TIPOS_AUTOR'] = TIPOS_AUTOR
+app.jinja_env.globals['ORIGENES_AUTOR'] = ORIGENES_AUTOR
+
+
+def leer_autores_del_formulario(obligatorio):
+    # Lee las filas de autores del formulario. Devuelve (autores, errores).
+    # Cada fila trae tres campos con el mismo nombre repetido: autor_nombre, autor_tipo y autor_origen
+    nombres = request.form.getlist('autor_nombre')
+    tipos = request.form.getlist('autor_tipo')
+    origenes = request.form.getlist('autor_origen')
+    tipos_validos = [valor for valor, _ in TIPOS_AUTOR]
+    origenes_validos = [valor for valor, _ in ORIGENES_AUTOR]
+
+    autores, errores, vistos = [], [], set()
+    for i, nombre in enumerate(nombres):
+        nombre = ' '.join(nombre.split())          # sin espacios de más
+        if not nombre or nombre.lower() in vistos:   # filas vacías o autor repetido: se ignoran
+            continue
+        vistos.add(nombre.lower())
+        tipo = tipos[i] if i < len(tipos) else ''
+        origen = origenes[i] if i < len(origenes) else ''
+
+        if len(nombre) > 100:
+            errores.append("El nombre de un autor no debe exceder los 100 caracteres.")
+        if tipo not in tipos_validos:
+            errores.append(f"Elige si «{nombre}» es una persona o una institución.")
+        if origen not in origenes_validos:
+            errores.append(f"Elige si «{nombre}» es de origen nacional o internacional.")
+        autores.append({'nombre': nombre, 'tipo': tipo, 'origen': origen})
+
+    if obligatorio and not autores:
+        errores.append("Indica al menos un autor o la fuente (una persona o una institución).")
+    return autores, errores
+
+
+def guardar_autores(id_archivo, autores):
+    # Relaciona el archivo con sus autores. Si un autor ya estaba registrado se reutiliza; si no, se registra
+    ahora = datetime.now()
+    for autor in autores:
+        existente = obtener_autor_por_nombre(autor['nombre'])
+        if existente:
+            id_autor = existente[0]
+        else:
+            id_autor = insertar_autor(autor['nombre'], autor['tipo'], autor['origen'], None, ahora, ahora)
+        insertar_archivo_autor(id_archivo, id_autor)
+
+
+def datos_autores(id_archivo=None):
+    # Lo que necesita el campo de autores del formulario: todos los autores (para sugerirlos)
+    # y, al editar, los que ya tiene el archivo
+    return {
+        'autores_existentes': obtener_autores(),
+        'autores_actuales': obtener_autores_por_archivo(id_archivo) if id_archivo else []
+    }
+
 #ARCHIVOS Y URLS
 #IMAGENES
 UPLOAD_FOLDER = 'static/assets/img'
@@ -537,6 +606,28 @@ def nombre_archivo_unico(nombre_original):
     extension = nombre_original.rsplit('.', 1)[1].lower() if '.' in nombre_original else ''
     base = secure_filename(nombre_original.rsplit('.', 1)[0]) or 'archivo'
     return f"{uuid.uuid4().hex[:8]}_{base}.{extension}"
+
+# PORTADA DE UN PDF: imagen de su primera página, guardada en la subcarpeta "portadas" con el mismo nombre
+def ruta_portada(url_pdf):
+    carpeta, nombre = os.path.split(url_pdf)
+    return os.path.join(carpeta, 'portadas', os.path.splitext(nombre)[0] + '.jpg').replace('\\', '/')
+
+
+def generar_portada(url_pdf):
+    """Crea la portada si todavía no existe. Devuelve su ruta, o None si no se pudo (PDF dañado, etc.)."""
+    destino = ruta_portada(url_pdf)
+    if os.path.exists(destino):
+        return destino
+    try:
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+        with pymupdf.open(url_pdf) as pdf:
+            pagina = pdf[0]
+            zoom = 400 / pagina.rect.width          # la imagen sale de 400 px de ancho, sin importar el tamaño del PDF
+            pagina.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom)).save(destino, jpg_quality=80)
+        return destino
+    except Exception as error:
+        print('No se pudo generar la portada de', url_pdf, '-', error)
+        return None
 
 #CODIGO DE ACCESO PARA LOS JUEGOS
 def generar_codigo_acceso():
@@ -569,8 +660,24 @@ def indices_de_preguntas():
 #BIBLIOTECA
 @app.route('/memorias')
 def biblioteca():
-    archivos = obtener_archivos_biblioteca()
-    return render_template('biblioteca.html', libritos=archivos)
+    es_admin = session.get('tipo') == 'administrador'
+    archivos = obtener_archivos_biblioteca(solo_activos=not es_admin)    # el administrador también ve los inactivos
+    categorias = mostrar_categorias()      # para el filtro de categorías del buscador
+
+    # Portada de cada PDF (se crea aquí si falta, por ejemplo en los documentos subidos antes de este cambio)
+    portadas = {}
+    for archivo in archivos:
+        if archivo[3] and archivo[3].lower().endswith('.pdf'):
+            portada = generar_portada(archivo[3])
+            if portada:
+                portadas[archivo[0]] = portada.split('static/')[1]
+
+    # Los autores de cada documento, para mostrarlos y para poder buscar por ellos: {id_archivo: [nombres]}
+    autores_de = {}
+    for archivo_id, nombre in obtener_autores_de_archivos([a[0] for a in archivos]):
+        autores_de.setdefault(archivo_id, []).append(nombre)
+        
+    return render_template('biblioteca.html', libritos=archivos, categ=categorias, portadas=portadas)
  
 #AGREGAR UN NUEVO DOCUMENTO
 @app.route('/crear-documento', methods=['GET', 'POST'])
@@ -578,7 +685,7 @@ def biblioteca():
 def crear_documento():
     if request.method == 'GET':
         categorias = mostrar_categorias()
-        return render_template('crear_documento.html', categ=categorias)
+        return render_template('crear_documento.html', categ=categorias, **datos_autores())
     elif request.method == 'POST':
         nombre = request.form.get('nombre')
         descripcion = request.form.get('descripcion')
@@ -602,18 +709,22 @@ def crear_documento():
             erroresD.append("Debe seleccionar una categoría.")
         if not file or not allowed_file_documento(file.filename):
             erroresD.append("El archivo es obligatorio y debe ser un tipo permitido PDF.")
+        
+        autores, errores_autores = leer_autores_del_formulario(obligatorio=True)
+        erroresD += errores_autores
  
         if erroresD:
             categorias = mostrar_categorias()
-            return render_template('crear_documento.html', erroresD=erroresD, categ=categorias)
+            return render_template('crear_documento.html', erroresD=erroresD, categ=categorias, **datos_autores())
  
         filename = nombre_archivo_unico(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER_DOCS'], filename)
         file.save(filepath)
         URLfile = f"{app.config['UPLOAD_FOLDER_DOCS']}/{filename}"
+        generar_portada(URLfile)
  
         print(nombre, descripcion, URLfile, categoria, tipo, fecha_creacion, fecha_modificacion, propietario_id, estado)
-        insertar_archivo(
+        id_archivo = insertar_archivo(
             nombre,
             descripcion,
             URLfile,
@@ -624,7 +735,9 @@ def crear_documento():
             propietario_id,
             estado
         )
+        guardar_autores(id_archivo, autores)
         return redirect(url_for('biblioteca'))
+    
  
     return render_template('crear_documento.html')
  
@@ -655,10 +768,12 @@ def editar_documento(id_archivo):
             erroresD.append("Debe seleccionar una categoría.")
         if file and file.filename and not allowed_file_documento(file.filename):
             erroresD.append("El archivo debe ser un tipo permitido PDF.")
+        autores, errores_autores = leer_autores_del_formulario(obligatorio=True)
+        erroresD += errores_autores
  
         if erroresD:
             categorias = mostrar_categorias()
-            return render_template("editar_documento.html", archivo=archivo, categ=categorias, erroresD=erroresD)
+            return render_template("editar_documento.html", archivo=archivo, categ=categorias, erroresD=erroresD, **datos_autores(id_archivo))
  
         # Si no suben un archivo nuevo, se mantiene la URL que ya tenía
         if file and file.filename and allowed_file_documento(file.filename):
@@ -666,6 +781,7 @@ def editar_documento(id_archivo):
             filepath = os.path.join(app.config['UPLOAD_FOLDER_DOCS'], filename)
             file.save(filepath)
             URLfile = f"{app.config['UPLOAD_FOLDER_DOCS']}/{filename}"
+            generar_portada(URLfile)
         else:
             URLfile = archivo[3]
  
@@ -683,11 +799,13 @@ def editar_documento(id_archivo):
             administrador_id,
             estado
         )
+        eliminar_autores_de_archivo(id_archivo)
+        guardar_autores(id_archivo, autores)
         return redirect(url_for('biblioteca'))
     else:
         archivo = obtener_un_archivo(id_archivo)
         categorias = mostrar_categorias()
-        return render_template("editar_documento.html", archivo=archivo, categ=categorias)
+        return render_template("editar_documento.html", archivo=archivo, categ=categorias, **datos_autores(id_archivo))
  
 #BUSCAR DOCUMENTO
 @app.route('/buscar_documento')
@@ -714,7 +832,8 @@ def buscar_documento():
 #GALERIA
 @app.route('/vestigios')
 def galeria():
-    imagenes = obtener_archivos_galeria()
+    es_admin = session.get('tipo') == 'administrador'
+    imagenes = obtener_archivos_galeria(solo_activos=not es_admin)    # el administrador también ve los inactivos
     categorias = mostrar_categorias()
     return render_template('galeria.html', imag=imagenes, categ=categorias)
  
@@ -860,7 +979,8 @@ def buscar_imagen():
 #MAPA
 @app.route('/huellas')
 def mapa():
-    lugares = obtener_lugares()
+    es_admin = session.get('tipo') == 'administrador'
+    lugares = obtener_lugares(solo_activos=not es_admin)    # el administrador también ve los inactivos
     puntos = [
         {
             'nombre': l[1],
@@ -869,11 +989,12 @@ def mapa():
             'contacto': l[8],
             'lat': float(l[9]),
             'lng': float(l[10]),
-            'editar': url_for('editar_lugar', id_lugar=l[0]) if session.get('tipo') == 'administrador' else None
+            'activo': l[7] == 'activo',
+            'editar': url_for('editar_lugar', id_lugar=l[0]) if es_admin else None
         }
         for l in lugares if l[9] is not None and l[10] is not None
     ]
-    return render_template('mapa.html', puntos=puntos)
+    return render_template('mapa.html', puntos=puntos, es_admin=es_admin)
 
 #CREAR LUGAR
 @app.route('/crear-local', methods=['GET', 'POST'])
@@ -1300,7 +1421,31 @@ def crear_union():
 def mis_plantillas():
     docente_id, administrador_id = ids_de_creador()   # cada quien ve solo las plantillas que creó él mismo
     plantillas = obtener_plantillas_resumen(docente_id, administrador_id)
+    # p: (id_plantilla, codigo_acceso, fecha_creacion, nombre, descripcion, tipo, estado, total_preguntas)
+    # Las plantillas borradas (inactivas) ya no le aparecen al docente; el administrador sí las ve, para poder reactivarlas
+    if session.get('tipo') != 'administrador':
+        plantillas = [p for p in plantillas if p[6] == 'activo']
     return render_template('juegos/mis_plantillas.html', plantillas=plantillas)
+
+#BORRAR (O REACTIVAR) UNA PLANTILLA: no se elimina, cambia de estado y queda como dato histórico
+@app.route('/mis-plantillas/<int:id_plantilla>/estado', methods=['POST'])
+@puede_crear_plantillas
+def cambiar_estado_plantilla(id_plantilla):
+    plantilla = obtener_una_plantilla(id_plantilla)
+    if not plantilla:
+        return redirect(url_for('mis_plantillas'))
+
+    # Un docente solo puede borrar SUS plantillas; el administrador, cualquiera
+    es_admin = session.get('tipo') == 'administrador'
+    docente_id, _ = ids_de_creador()
+    if not es_admin and plantilla[5] != docente_id:
+        return render_template('acceso_denegado.html'), 403
+
+    # El docente solo puede borrar; reactivar es cosa del administrador
+    nuevo_estado = request.form.get('estado')
+    if nuevo_estado == 'inactivo' or (nuevo_estado == 'activo' and es_admin):
+        cambiar_estado_juego(plantilla[4], nuevo_estado, datetime.now())
+    return redirect(url_for('mis_plantillas'))
 
 #VER UNA PLANTILLA CON SUS PREGUNTAS Y RESPUESTAS
 @app.route('/mis-plantillas/<int:id_plantilla>')
@@ -1319,6 +1464,9 @@ def ver_plantilla(id_plantilla):
         return render_template('acceso_denegado.html'), 403
 
     juego = obtener_un_juego(plantilla[4])
+    # Una plantilla borrada (inactiva) ya no la ve el docente; el administrador sí
+    if juego[7] != 'activo' and session.get('tipo') != 'administrador':
+        return redirect(url_for('mis_plantillas'))
     # juego: (id_juego, nombre, descripcion, tipo, fecha_creacion,
     #         fecha_modificacion, administrador_id, estado)
 
@@ -1377,6 +1525,9 @@ def resultados_plantilla(id_plantilla):
         return render_template('acceso_denegado.html'), 403
 
     juego = obtener_un_juego(plantilla[4])
+    # Una plantilla borrada (inactiva) ya no la ve el docente; el administrador sí
+    if juego[7] != 'activo' and session.get('tipo') != 'administrador':
+        return redirect(url_for('mis_plantillas'))
     intentos = obtener_intentos_por_juego(plantilla[4])
     # intentos: (estudiante_id, nombre_1, nombre_2, apellido_1, apellido_2, correo,
     #            fecha, puntaje_total, cantidad_de_preguntas)

@@ -132,19 +132,27 @@
 .opcion-card[class*="tema-"] {
     position: relative; overflow: hidden; cursor: pointer;
     background: var(--t-fondo); border: 3px solid var(--t-borde); border-radius: 14px;
+    height: 128px; padding-left: 28px;
     transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
 }
-.opcion-card[class*="tema-"] span { position: relative; z-index: 1; color: var(--t-texto); max-width: calc(100% - 140px); }
+.opcion-card[class*="tema-"] span { position: relative; z-index: 1; color: var(--t-texto); max-width: calc(100% - 100px); font-size: 1.5rem; letter-spacing: 1px; line-height: 1.15; }
 .opcion-card[class*="tema-"] .pieza {
-    position: absolute; right: 26px; top: 50%; transform: translateY(-50%);
-    width: 110px; height: 110px; transition: transform 0.2s;
+    position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+    width: 72px; height: 72px; transition: transform 0.2s;
 }
 .opcion-card[class*="tema-"]:hover { background: var(--t-claro); transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14); }
 .opcion-card[class*="tema-"]:hover .pieza { transform: translateY(-50%) rotate(-8deg) scale(1.06); }
+
 @media (max-width: 640px) {
-    .opcion-card[class*="tema-"] span { max-width: calc(100% - 88px); }
-    .opcion-card[class*="tema-"] .pieza { right: 14px; width: 68px; height: 68px; }
+    .opcion-card[class*="tema-"] span { max-width: calc(100% - 80px); }
+    .opcion-card[class*="tema-"] .pieza { right: 14px; width: 56px; height: 56px; }
 }
+
+/* La pantalla Crear: más compacta y centrada, para verla completa al abrir la pantalla.
+   El botón "Mis plantillas" y las tarjetas comparten el mismo ancho (880 px + 24 px de relleno a cada lado) y quedan alineados */
+.container:has(> #vista-opciones) { max-width: 928px; }
+#vista-opciones .opciones-grid { margin: 0; gap: 16px; }
+
 
 /* ---------- Cuando se acaba el tiempo, la barra y los segundos titilan ---------- */
 @keyframes pulso { from { opacity: 1; } to { opacity: 0.5; } }

@@ -1,0 +1,93 @@
+{# Campo "Autor o fuente" de los formularios de archivos.
+   Necesita: autores_existentes (todos los autores, para sugerirlos), autores_actuales (al editar, los del archivo)
+   y autores_obligatorio (true o false). Una fila por autor: nombre, tipo y origen. #}
+<div class="fm-grupo">
+    <span class="fm-etiqueta">Autor o fuente {% if not autores_obligatorio %}<span class="opcional">(opcional)</span>{% endif %}</span>
+    <p class="fm-ayuda">Quién lo hizo o de dónde proviene: una persona o una institución (por ejemplo, un museo, un archivo o la comunidad). Si ya está registrado, elígelo de la lista que aparece al escribir.</p>
+
+    <div id="autores-filas">
+        {% for a in (autores_actuales or [None]) %}
+        {# a: (id_autor, nombre, tipo, origen, descripcion) #}
+        <div class="fm-autor">
+            <input type="text" name="autor_nombre" class="fm-campo" list="lista-autores" maxlength="100" placeholder="Nombre"
+                   value="{{ a[1] if a else '' }}" aria-label="Nombre del autor" autocomplete="off"
+                   {% if autores_obligatorio and loop.first %}required{% endif %}>
+            <select name="autor_tipo" class="fm-campo" aria-label="Tipo de autor">
+                {% for valor, texto in TIPOS_AUTOR %}
+                <option value="{{ valor }}" {% if a and a[2] == valor %}selected{% endif %}>{{ texto }}</option>
+                {% endfor %}
+            </select>
+            <select name="autor_origen" class="fm-campo" aria-label="Origen del autor">
+                {% for valor, texto in ORIGENES_AUTOR %}
+                <option value="{{ valor }}" {% if a and a[3] == valor %}selected{% endif %}>{{ texto }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="fm-quitar-autor" aria-label="Quitar este autor" title="Quitar">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    <button type="button" class="fm-agregar-autor" id="agregar-autor">+ Agregar otro autor</button>
+
+    <datalist id="lista-autores">
+        {% for a in autores_existentes %}
+        {# a: (id_autor, nombre, tipo, origen, ...) #}
+        <option value="{{ a[1] }}" data-tipo="{{ a[2] }}" data-origen="{{ a[3] or '' }}">
+        {% endfor %}
+    </datalist>
+</div>
+
+<style>
+    .fm-ayuda { margin: 0 0 10px; font-size: 0.85rem; color: #666; line-height: 1.4; }
+    .fm-autor { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.3fr) auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .fm-quitar-autor { width: 38px; height: 38px; padding: 0; border: 2px solid #ddd; border-radius: 50%; background: #fff; color: #a93226; font-weight: 700; cursor: pointer; }
+    .fm-quitar-autor:hover { border-color: #c0392b; background: #fdf0ee; }
+    .fm-agregar-autor { margin-top: 2px; padding: 6px 14px; background: #fff; color: #46611a; border: 2px dashed #9bb37a; border-radius: 16px; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+    .fm-agregar-autor:hover { border-color: #5a7a1e; background: #f3f8e6; }
+    @media (max-width: 560px) {
+        /* En el celular: el nombre y la ✕ arriba; el tipo y el origen debajo */
+        .fm-autor { grid-template-columns: minmax(0, 1fr) auto; }
+        .fm-autor [name="autor_tipo"], .fm-autor [name="autor_origen"] { grid-column: 1; }
+    }
+</style>
+
+<script>
+    (function () {
+        const filas = document.getElementById('autores-filas');
+
+        // Los autores ya registrados, para completar su tipo y origen cuando se elige uno de la lista
+        const conocidos = {};
+        document.querySelectorAll('#lista-autores option').forEach(function (opcion) {
+            conocidos[opcion.value.trim().toLowerCase()] = opcion;
+        });
+
+        function vaciar(fila) {
+            fila.querySelector('[name="autor_nombre"]').value = '';
+            fila.querySelectorAll('select').forEach(function (lista) { lista.selectedIndex = 0; });
+        }
+
+        function preparar(fila) {
+            const nombre = fila.querySelector('[name="autor_nombre"]');
+            nombre.addEventListener('change', function () {
+                const conocido = conocidos[nombre.value.trim().toLowerCase()];
+                if (!conocido) return;
+                if (conocido.dataset.tipo) fila.querySelector('[name="autor_tipo"]').value = conocido.dataset.tipo;
+                if (conocido.dataset.origen) fila.querySelector('[name="autor_origen"]').value = conocido.dataset.origen;
+            });
+            fila.querySelector('.fm-quitar-autor').addEventListener('click', function () {
+                if (filas.children.length > 1) fila.remove();
+                else vaciar(fila);                         // si es la única fila, solo se vacía
+            });
+        }
+
+        Array.from(filas.children).forEach(preparar);
+
+        document.getElementById('agregar-autor').addEventListener('click', function () {
+            const nueva = filas.children[0].cloneNode(true);
+            vaciar(nueva);
+            nueva.querySelector('[name="autor_nombre"]').removeAttribute('required');   // solo el primero es obligatorio
+            filas.appendChild(nueva);
+            preparar(nueva);
+            nueva.querySelector('[name="autor_nombre"]').focus();
+        });
+    })();
+</script>

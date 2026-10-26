@@ -6,6 +6,170 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/buscador.css') }}">
+<style>
+    /* Asegura que las tarjetas que no coinciden con la búsqueda se oculten (display:flex le ganaba a hidden) */
+    [hidden] {
+        display: none !important;
+    }
+
+    /* Título y buscador en la misma fila */
+    .bib-cabecera {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+
+    .bib-titulo {
+        font-family: 'Caprasimo';
+        font-weight: 400;
+        font-size: 1.9rem;
+        color: #000;
+        margin: 0;
+    }
+
+    .bib-cabecera .bq {
+        position: relative;
+        flex: 0 1 380px;
+        margin: 0;
+    }
+
+    /* El panel de filtros se abre flotando debajo del buscador, para no apretarlo en la columna */
+    .bib-cabecera .bq-filtros {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        z-index: 20;
+        width: min(560px, 90vw);
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .bib .bq-estado {
+        margin: 0 0 24px;
+    }
+
+    /* Dos columnas de documentos */
+    .bib .grid-biblioteca {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 48px 64px;
+    }
+
+    .bib .tarjeta-biblioteca {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+        align-items: stretch;
+        height: auto;
+        margin: 0;
+    }
+
+    /* Portada con forma de libro */
+    .bib-portada {
+        flex: 0 0 160px;
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #d9d9d9;
+        box-shadow: 3px 5px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .bib-portada img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Título, descripción y botones */
+    .bib-contenido {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .bib-contenido .titulo-documento {
+        font-family: 'Caprasimo';
+        font-weight: 400;
+        font-size: 1.05rem;
+        line-height: 1.25;
+        margin: 0 0 8px;
+    }
+
+    .bib-descripcion {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.45;
+        color: #222;
+        text-align: justify;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        /* máximo 4 líneas */
+    }
+
+    .bib-descripcion.abierta {
+        display: block;
+        overflow: visible;
+    }
+
+    /* al darle "Ver más" */
+    .bib-ver-mas {
+        align-self: flex-start;
+        margin: 4px 0 0;
+        padding: 0;
+        background: none;
+        border: none;
+        color: #5a7a1e;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .bib-acciones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin-top: auto;
+        padding-top: 14px;
+    }
+
+    .bib-acciones .btn-ver,
+    .bib-acciones .btn-editar {
+        width: 110px;
+        border-radius: 10px;
+    }
+
+    @media (max-width: 900px) {
+        .bib .grid-biblioteca {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .bib-portada {
+            flex-basis: 110px;
+        }
+    }
+
+    .tarjeta-inactiva .bib-portada { opacity: 0.45; }
+    .bib-estado { align-self: flex-start; margin-bottom: 6px; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 700;
+                  background: #f5f8e6; color: #4d5c0b; border: 2px solid #BECC29; }
+    .bib-estado.inactivo { background: #fdeceb; color: #8E0404; border-color: #F22C0C; }
+
+    .bib-autor { margin: -4px 0 8px; font-size: 0.85rem; font-style: italic; color: #5a4a2a; }
+</style>
 {% endblock %}
 
 {% block titulo_header %}
@@ -18,18 +182,91 @@ header-biblioteca
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-    <!-- Contenedor que empuja el botón a la derecha, debajo de la lupa -->
+<div class="container mt-5 bib">
     {# Solo los administradores pueden agregar y editar documentos #}
     {% if session.get('tipo') == 'administrador' %}
     <div class="contenedor-btn-admin">
-        <a href="/crear-documento" class="btn-crear-admin">
-            + Nuevo Documento
-        </a>
+        <a href="/crear-documento" class="btn-crear-admin">+ Nuevo Documento</a>
     </div>
     {% endif %}
 
-    <h2 class="titulo-seccion">Recomendaciones</h2>
+    {# Los nombres de las categorías, para mostrarlos y para poder buscar por ellos #}
+    {% set cat_nombre = {} %}
+    {% for c in categ %}{% set _ = cat_nombre.update({c[0]: c[1]}) %}{% endfor %}
+    {# Los tipos de documento vienen de la lista TIPOS_DOCUMENTO de app.py (la misma del formulario). Si hay documentos
+    de un tipo
+    que no está en la lista, también se ofrece #}
+    {% set tipos_conocidos = TIPOS_DOCUMENTO | map(attribute=0) | list %}
+
+    <!-- Título y buscador en la misma fila -->
+    <div class="bib-cabecera">
+        <h2 class="bib-titulo" id="titulo-lista">¡Escoge uno y empieza a aprender!</h2>
+
+        {% if libritos %}
+        <form class="bq" id="buscador" role="search" onsubmit="return false;">
+            <div class="bq-barra">
+                <div class="bq-campo">
+                    <svg class="bq-lupa" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="10" cy="10" r="7" fill="none" stroke="#5a7a1e" stroke-width="2" />
+                        <line x1="15" y1="15" x2="21" y2="21" stroke="#5a7a1e" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                    <input type="search" id="bq-texto" placeholder="¿Qué deseas aprender hoy?"
+                        aria-label="Buscar documentos" autocomplete="off">
+                </div>
+                <button type="button" class="bq-filtro-boton" id="bq-filtro-boton" aria-expanded="false"
+                    aria-controls="bq-filtros" aria-label="Filtros" title="Filtros">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                    </svg>
+                    <span class="bq-insignia" id="bq-insignia" hidden>0</span>
+                </button>
+            </div>
+            <div class="bq-filtros" id="bq-filtros" hidden>
+                <label>Categoría
+                    <select id="bq-categoria">
+                        <option value="">Todas</option>
+                        {% for c in categ %}
+                        <option value="{{ c[0] }}">{{ c[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Tipo
+                    <select id="bq-tipo">
+                        <option value="">Todos</option>
+                        {% for valor, etiqueta in TIPOS_DOCUMENTO %}
+                        <option value="{{ valor }}">{{ etiqueta }}</option>
+                        {% endfor %}
+                        {% for t in libritos | map(attribute=5) | unique | sort if t not in tipos_conocidos %}
+                        <option value="{{ t }}">{{ t | capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Agregado
+                    <select id="bq-fecha">
+                        <option value="">Cualquier fecha</option>
+                        <option value="semana">Última semana</option>
+                        <option value="mes">Último mes</option>
+                        <option value="anio">Último año</option>
+                    </select>
+                </label>
+                <label>Ordenar por
+                    <select id="bq-orden">
+                        <option value="recientes">Más recientes</option>
+                        <option value="antiguos">Más antiguos</option>
+                        <option value="nombre">Título (A–Z)</option>
+                    </select>
+                </label>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if libritos %}
+    <p class="bq-estado" id="bq-estado" aria-live="polite"><span id="bq-estado-texto"></span><button type="button"
+            class="bq-quitar" id="bq-limpiar" hidden>Limpiar</button></p>
+    {% endif %}
 
     <!-- Cuadrícula de documentos -->
     <div class="grid-biblioteca">
@@ -37,29 +274,44 @@ header-biblioteca
         {% for archivo in libritos %}
         <!-- archivo: (id_archivo, nombre, descripcion, URL, categoria_id, tipo,
                        fecha_creacion, fecha_modificacion, administrador_id, estado) -->
-        <div class="tarjeta-biblioteca">
-            <div class="biblioteca-img-placeholder">
-                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        {% set ruta = archivo[3].split('static/')[1] %}
+        {% set es_imagen = ruta.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')) %}
+        <div class="tarjeta-biblioteca{% if archivo[9] != 'activo' %} tarjeta-inactiva{% endif %}" data-nombre="{{ archivo[1] }}" data-descripcion="{{ archivo[2] or '' }}"
+            data-autores="{{ (autores_de.get(archivo[0], []) if autores_de else []) | join(' ') }}"
+            data-categoria="{{ archivo[4] }}" data-categoria-nombre="{{ cat_nombre.get(archivo[4], '') }}"
+            data-tipo="{{ archivo[5] }}" data-fecha="{{ archivo[6].strftime('%Y-%m-%d') if archivo[6] else '' }}">
+
+            <div class="bib-portada">
+                {% if es_imagen %}
+                <img src="{{ url_for('static', filename=ruta) }}" alt="" loading="lazy">
+                {% elif portadas and archivo[0] in portadas %}
+                <img src="{{ url_for('static', filename=portadas[archivo[0]]) }}" alt="" loading="lazy">
+                {% else %}
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
                     <polyline points="21 15 16 10 5 21"></polyline>
                 </svg>
-            </div>
-            <div class="biblioteca-contenido">
-                <div>
-                    <h3 class="titulo-documento">{{ archivo[1] }}</h3>
-                    <div class="texto-datos">
-                        {{ archivo[2] }}<br>
-                        Tipo: {{ archivo[5] }}
-                    </div>
-                </div>
-                <a href="{{ url_for('static', filename=archivo[3].split('static/')[1]) }}"
-                   class="btn-ver" target="_blank">Ver</a>
-                {% if session.get('tipo') == 'administrador' %}
-                <a href="{{ url_for('editar_documento', id_archivo=archivo[0]) }}" class="btn-editar">
-                    ✏️ Editar
-                </a>
                 {% endif %}
+            </div>
+
+            <div class="bib-contenido">
+                {% if session.get('tipo') == 'administrador' %}
+                <span class="bib-estado{% if archivo[9] != 'activo' %} inactivo{% endif %}">{{ 'Activo' if archivo[9] == 'activo' else 'Inactivo' }}</span>
+                {% endif %}
+                <h3 class="titulo-documento">{{ archivo[1] }}</h3>
+                {% if autores_de and autores_de.get(archivo[0]) %}
+                <p class="bib-autor">Por: {{ autores_de[archivo[0]] | join(', ') }}</p>
+                {% endif %}
+                <p class="bib-descripcion">{{ archivo[2] or '' }}</p>
+                <button type="button" class="bib-ver-mas" aria-expanded="false" hidden>Ver más</button>
+                <div class="bib-acciones">
+                    <a href="{{ url_for('static', filename=ruta) }}" class="btn-ver" target="_blank">Ver</a>
+                    {% if session.get('tipo') == 'administrador' %}
+                    <a href="{{ url_for('editar_documento', id_archivo=archivo[0]) }}" class="btn-editar">✏️ Editar</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% else %}
@@ -67,8 +319,99 @@ header-biblioteca
         {% endfor %}
 
     </div>
+
+    <!-- Cuando la búsqueda no encuentra nada -->
+    <div class="bq-vacio" id="bq-vacio" hidden>
+        <strong>No encontramos documentos con esa búsqueda.</strong>
+        Prueba con otras palabras o quita algún filtro.<br>
+        <button type="button" class="bq-quitar" id="bq-vacio-limpiar">Quitar la búsqueda y los filtros</button>
+    </div>
 </div>
 {% endblock %}
 
 {% block js %}
+<script src="{{ url_for('static', filename='js/buscador.js') }}"></script>
+<script>
+    (function () {
+        const rejilla = document.querySelector('.grid-biblioteca');
+        const formulario = document.getElementById('buscador');
+        if (!rejilla || !formulario) return;       // sin documentos no hay buscador
+
+        const tarjetas = Array.from(rejilla.querySelectorAll('.tarjeta-biblioteca'));
+        const texto = document.getElementById('bq-texto');
+        const categoria = document.getElementById('bq-categoria');
+        const tipo = document.getElementById('bq-tipo');
+        const fecha = document.getElementById('bq-fecha');
+        const orden = document.getElementById('bq-orden');
+        const limpiar = document.getElementById('bq-limpiar');
+        const estadoTexto = document.getElementById('bq-estado-texto');
+        const vacio = document.getElementById('bq-vacio');
+        const titulo = document.getElementById('titulo-lista');
+        const tituloOriginal = titulo.textContent;
+        const actualizarInsignia = Buscador.panelDeFiltros(document.getElementById('bq-filtro-boton'), document.getElementById('bq-filtros'), document.getElementById('bq-insignia'));
+
+        // Lo que se busca en cada documento: título, descripción, categoría y tipo (sin tildes ni mayúsculas)
+        tarjetas.forEach(function (t) {
+            t._buscar = Buscador.normalizar([t.dataset.nombre, t.dataset.autores, t.dataset.descripcion, t.dataset.categoriaNombre, t.dataset.tipo].join(' '));
+        });
+
+        function cumple(t) {
+            return Buscador.coincide(t._buscar, texto.value)
+                && (!categoria.value || t.dataset.categoria === categoria.value)
+                && (!tipo.value || t.dataset.tipo === tipo.value)
+                && Buscador.cumpleFecha(t.dataset.fecha, fecha.value);
+        }
+
+        function hayCriterios() {
+            return texto.value.trim() !== '' || categoria.value !== '' || tipo.value !== '' || fecha.value !== '';
+        }
+
+        function aplicar() {
+            Buscador.ordenar(tarjetas, orden.value, function (t) { return t.dataset.nombre; }).forEach(function (t) { rejilla.appendChild(t); });
+
+            let visibles = 0;
+            tarjetas.forEach(function (t) {
+                const ok = cumple(t);
+                t.hidden = !ok;
+                if (ok) visibles++;
+            });
+
+            const hay = hayCriterios();
+            const consulta = texto.value.trim();
+            actualizarInsignia((categoria.value ? 1 : 0) + (tipo.value ? 1 : 0) + (fecha.value ? 1 : 0));
+            titulo.textContent = hay ? 'Resultados' : tituloOriginal;
+            limpiar.hidden = !hay;
+            rejilla.hidden = visibles === 0;
+            vacio.hidden = visibles !== 0;
+            if (!hay) estadoTexto.textContent = tarjetas.length + (tarjetas.length === 1 ? ' documento' : ' documentos');
+            else estadoTexto.textContent = visibles + (visibles === 1 ? ' resultado' : ' resultados') + (consulta ? ' para «' + consulta + '»' : '');
+        }
+
+        function reiniciar() {
+            texto.value = ''; categoria.value = ''; tipo.value = ''; fecha.value = '';
+            aplicar();
+            texto.focus();
+        }
+
+        texto.addEventListener('input', aplicar);
+        [categoria, tipo, fecha, orden].forEach(function (campo) { campo.addEventListener('change', aplicar); });
+        limpiar.addEventListener('click', reiniciar);
+        document.getElementById('bq-vacio-limpiar').addEventListener('click', reiniciar);
+        aplicar();
+    })();
+
+    // "Ver más": solo aparece si la descripción no cabe en las 4 líneas
+    window.addEventListener('load', function () {
+        document.querySelectorAll('.bib-descripcion').forEach(function (desc) {
+            const boton = desc.nextElementSibling;
+            if (desc.scrollHeight <= desc.clientHeight + 1) return;     // cabe completa: no hace falta el botón
+            boton.hidden = false;
+            boton.addEventListener('click', function () {
+                const abierta = desc.classList.toggle('abierta');
+                boton.textContent = abierta ? 'Ver menos' : 'Ver más';
+                boton.setAttribute('aria-expanded', abierta);
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -21,7 +21,8 @@
     .resumen h2 { margin: 0 0 10px; }
     .etiquetas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .etiqueta { font-size: 0.8rem; font-weight: 700; padding: 3px 12px; border-radius: 12px; background: var(--t-claro, #e4f1cf); color: var(--t-texto, #3d5a10); }
-    .etiqueta.inactiva { background: #eee; color: #5f5f5f; }
+    .etiqueta.activa { background: #f5f8e6; color: #4d5c0b; box-shadow: inset 0 0 0 2px #BECC29; }
+    .etiqueta.inactiva { background: #fdeceb; color: #8E0404; box-shadow: inset 0 0 0 2px #F22C0C; }
     .resumen .descripcion { margin: 0 0 16px; color: #555; line-height: 1.5; }
     .caja-codigo {
         display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
@@ -61,15 +62,19 @@
 
     .cabecera-resumen { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; }
     .cabecera-resumen h2 { margin: 0; }
+
+    button.boton-regresar { cursor: pointer; font-family: inherit; }
+    .boton-borrar { margin-left: auto; color: #a52a1a; border-color: #d9a39a; }
+    .boton-borrar:hover { background: #c0392b; color: #fff; border-color: #c0392b; }
 </style>
 {% endblock %}
 
 {% block titulo_header %}
-{{ juego[1] }}
+<h1>Plantillas</h1>
 {% endblock %}
 
 {% block clase_header %}
-header-crear
+header-misplantillas
 {% endblock %}
 
 {% block body %}
@@ -85,6 +90,9 @@ header-crear
     <div class="barra-regresar">
         <a href="{{ url_for('mis_plantillas') }}" class="boton-regresar">← Regresar a Mis plantillas</a>
         <a href="{{ url_for('resultados_plantilla', id_plantilla=plantilla[0]) }}" class="boton-regresar">📊 Ver resultados</a>
+        {% if juego[7] == 'activo' %}
+        <button type="button" class="boton-regresar boton-borrar" data-accion="{{ url_for('cambiar_estado_plantilla', id_plantilla=plantilla[0]) }}" data-nombre="{{ juego[1] }}">🗑 Borrar plantilla</button>
+        {% endif %}
     </div>
 
     <div class="resumen">
@@ -95,7 +103,7 @@ header-crear
         <div class="etiquetas">
             <span class="etiqueta">{{ nombre_tipo }}</span>
             <span class="etiqueta">{{ preguntas|length }} {{ 'pregunta' if preguntas|length == 1 else 'preguntas' }}</span>
-            <span class="etiqueta {% if juego[7] != 'activo' %}inactiva{% endif %}">{{ juego[7] }}</span>
+           <span class="etiqueta {{ 'activa' if juego[7] == 'activo' else 'inactiva' }}">{{ juego[7] | capitalize }}</span>
         </div>
         <p class="descripcion">{{ juego[2] }}</p>
 
@@ -152,6 +160,8 @@ header-crear
 
   </div>
 </div>
+
+{% include 'juegos/_dialogo_borrar.html' %}
 
 <script>
     document.getElementById('btn-copiar').addEventListener('click', async function () {

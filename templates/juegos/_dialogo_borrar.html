@@ -1,0 +1,48 @@
+{# Aviso de confirmación antes de borrar una plantilla. Lo abre cualquier botón class="boton-borrar" de la página,
+   que debe tener data-accion (a dónde se envía) y data-nombre (el nombre de la plantilla). #}
+<dialog class="dialogo-borrar" id="dialogo-borrar" aria-labelledby="dialogo-borrar-titulo">
+    <form method="POST" id="form-borrar">
+        <input type="hidden" name="estado" value="inactivo">
+        <div class="dialogo-icono" aria-hidden="true">🗑</div>
+        <h3 id="dialogo-borrar-titulo">¿Seguro que quieres borrar esta plantilla?</h3>
+        <p>Vas a borrar «<strong id="dialogo-borrar-nombre"></strong>». Ya no aparecerá en Mis plantillas y su código de acceso dejará de funcionar para los estudiantes.</p>
+        <div class="dialogo-acciones">
+            <button type="button" class="dialogo-cancelar" id="dialogo-cancelar">Cancelar</button>
+            <button type="submit" class="dialogo-confirmar">Sí, borrar</button>
+        </div>
+    </form>
+</dialog>
+
+<style>
+    .dialogo-borrar { width: calc(100% - 32px); max-width: 430px; padding: 0; border: none; border-radius: 18px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); }
+    .dialogo-borrar::backdrop { background: rgba(0, 0, 0, 0.45); }
+    .dialogo-borrar form { padding: 28px 26px 22px; text-align: center; color: #222; }
+    .dialogo-icono { width: 56px; height: 56px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; background: #fdf0ee; border-radius: 50%; }
+    .dialogo-borrar h3 { margin: 0 0 8px; font-size: 1.2rem; }
+    .dialogo-borrar p { margin: 0 0 20px; color: #555; line-height: 1.5; }
+    .dialogo-acciones { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .dialogo-acciones button { padding: 10px 22px; border-radius: 20px; font-family: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+    .dialogo-cancelar { background: #fff; color: #444; border: 2px solid #ccc; }
+    .dialogo-cancelar:hover { border-color: #999; }
+    .dialogo-confirmar { background: #c0392b; color: #fff; border: 2px solid #c0392b; }
+    .dialogo-confirmar:hover { background: #a93226; border-color: #a93226; }
+</style>
+
+<script>
+    (function () {
+        const dialogo = document.getElementById('dialogo-borrar');
+        const formulario = document.getElementById('form-borrar');
+
+        document.querySelectorAll('.boton-borrar').forEach(function (boton) {
+            boton.addEventListener('click', function () {
+                formulario.action = boton.dataset.accion;
+                document.getElementById('dialogo-borrar-nombre').textContent = boton.dataset.nombre;
+                dialogo.showModal();
+            });
+        });
+
+        document.getElementById('dialogo-cancelar').addEventListener('click', function () { dialogo.close(); });
+        // Un clic en el fondo oscuro también cancela
+        dialogo.addEventListener('click', function (e) { if (e.target === dialogo) dialogo.close(); });
+    })();
+</script>

@@ -57,10 +57,12 @@ def insertar_lugar(nombre, descripcion, direccion, fecha_creacion,
     return id_lugar
 
 
-def obtener_lugares():
+def obtener_lugares(solo_activos=True):
+    # solo_activos: si es True, no trae los lugares inactivos (quedan como dato histórico)
+    filtro_estado = "WHERE estado = 'activo'" if solo_activos else ""
 
     resultado = db.session.execute(
-        text("""
+        text(f"""
             SELECT
                 id_lugar,
                 nombre,
@@ -74,6 +76,7 @@ def obtener_lugares():
                 latitud,
                 longitud
             FROM lugar
+            {filtro_estado}
         """)
     )
 
@@ -111,11 +114,12 @@ def obtener_un_lugar(id_lugar):
     return lugar
 
 
-def obtener_lugares_por_nombre(nombre):
+def obtener_lugares_por_nombre(nombre, solo_activos=True):
     # Para la búsqueda (barra de búsqueda del mapa)
+    filtro_estado = "AND estado = 'activo'" if solo_activos else ""
 
     resultado = db.session.execute(
-        text("""
+        text(f"""
             SELECT
                 id_lugar,
                 nombre,
@@ -130,6 +134,7 @@ def obtener_lugares_por_nombre(nombre):
                 longitud
             FROM lugar
             WHERE nombre ILIKE :nombre
+            {filtro_estado}
         """),
         {
             'nombre': f"%{nombre}%"
