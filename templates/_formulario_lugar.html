@@ -1,0 +1,289 @@
+{# Formulario de un lugar, el mismo para crear y para editar.
+   Necesita: lugar (None al crear), accion, titulo, subtitulo, texto_boton, erroresL,
+   departamentos, municipios, ubicacion_actual, fotos_galeria, fotos_elegidas, autores_existentes, autores_actuales.
+   lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id, estado,
+           contacto, latitud, longitud, resena, horario, municipio_id, municipio, departamento, id_departamento) #}
+{% macro valor(i) %}{{ lugar[i] if lugar and lugar[i] is not none else '' }}{% endmacro %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    /* Los nombres de este formulario empiezan con "fm-" para que no choquen con clases del CSS del sitio */
+    [hidden] { display: none !important; }
+    .fm-columna { display: block; max-width: 720px; margin: 28px auto 60px; }
+    a.fm-volver { display: inline-block; margin: 0 0 16px; padding: 8px 18px; background: #fff; color: #46611a; border: 2px solid #5a7a1e; border-radius: 22px; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+    a.fm-volver:hover { background: #5a7a1e; color: #fff; }
+    .fm-tarjeta { display: block; background: #fff; color: #222; border: 1px solid #e0e0e0; border-radius: 18px; padding: 32px 34px 28px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08); }
+    .fm-titulo { margin: 0 0 4px; font-size: 1.5rem; }
+    .fm-sub { margin: 0 0 24px; color: #555; font-size: 0.95rem; line-height: 1.5; }
+    @media (max-width: 560px) { .fm-tarjeta { padding: 24px 18px; } }
+    .fm-errores { margin: 0 0 20px; padding: 12px 16px; background: #fdf0ee; border-left: 5px solid #c0392b; border-radius: 8px; color: #7b241c; }
+    .fm-errores ul { margin: 6px 0 0; padding-left: 20px; }
+    .fm-bloque { margin: 28px 0 0; padding-top: 20px; border-top: 1px solid #ececec; }
+    .fm-bloque > h3 { margin: 0 0 4px; font-size: 1.1rem; color: #2f4a0c; }
+    .fm-bloque > p { margin: 0 0 16px; color: #555; font-size: 0.9rem; line-height: 1.45; }
+    .fm-grupo { display: block; margin: 0 0 20px; }
+    .fm-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 560px) { .fm-fila { grid-template-columns: 1fr; } }
+    .fm-etiqueta { display: block; margin: 0 0 6px; font-weight: 700; font-size: 0.92rem; }
+    .fm-etiqueta .opcional { font-weight: 400; color: #666; }
+    .fm-ayuda { display: block; margin-top: 5px; font-size: 0.82rem; color: #666; }
+    .fm-campo { display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 12px 14px; background: #fff; color: #222; border: 2px solid #d0d0d0; border-radius: 10px; font-family: inherit; font-size: 1rem; line-height: 1.4; }
+    .fm-campo:disabled { background: #f1f1ee; color: #888; }
+    textarea.fm-campo { resize: vertical; min-height: 84px; }
+    .fm-campo:focus { outline: none; border-color: #5a7a1e; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.2); }
+    .fm-contador { display: block; margin-top: 4px; text-align: right; font-size: 0.8rem; color: #666; }
+
+    /* El mapa donde se marca la ubicación */
+    .fm-mapa { height: 320px; border: 2px solid #d0d0d0; border-radius: 14px; overflow: hidden; }
+    .fm-mapa.falta { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
+    .fm-ubicacion { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 14px; background: #f4f4f4; border-radius: 10px; color: #555; font-size: 0.9rem; }
+    .fm-ubicacion.lista { background: #eef4e2; color: #2f4a0c; font-weight: 700; }
+    .fm-ubicacion .coordenadas { margin-left: auto; font-weight: 400; font-size: 0.8rem; color: #555; }
+
+    /* Fotos de la galería: se marcan con un clic */
+    .fm-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 340px; overflow-y: auto; padding: 4px; }
+    .fm-foto { position: relative; display: block; margin: 0; cursor: pointer; }
+    .fm-foto input { position: absolute; opacity: 0; pointer-events: none; }
+    .fm-foto img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; border: 3px solid transparent; }
+    .fm-foto span { display: block; margin-top: 4px; font-size: 0.78rem; line-height: 1.25; color: #444; overflow-wrap: anywhere; }
+    .fm-foto input:checked + img { border-color: #5a7a1e; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.25); }
+    .fm-foto .marca { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; background: #5a7a1e; color: #fff; font-size: 0.85rem; line-height: 24px; text-align: center; display: none; }
+    .fm-foto input:checked ~ .marca { display: block; }
+    .fm-foto input:focus-visible + img { outline: 3px solid #5a7a1e; outline-offset: 2px; }
+    .fm-contador-fotos { display: block; margin-top: 8px; font-size: 0.85rem; color: #2f4a0c; font-weight: 700; }
+    .fm-sin-fotos { margin: 0; padding: 12px 14px; background: #f4f4f4; border-radius: 10px; color: #555; font-size: 0.9rem; }
+
+    /* Botones */
+    .fm-acciones { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 14px; margin-top: 28px; padding-top: 22px; border-top: 1px solid #ececec; }
+    .fm-boton { display: inline-block; position: static; margin: 0; padding: 12px 30px; background: #5a7a1e; color: #fff; border: 2px solid #5a7a1e; border-radius: 26px; font-family: inherit; font-weight: 700; font-size: 1rem; line-height: 1.3; text-decoration: none; cursor: pointer; }
+    .fm-boton:hover:not(:disabled) { background: #46611a; border-color: #46611a; }
+    .fm-boton:disabled { opacity: 0.65; cursor: progress; }
+    a.fm-boton.sec { background: #fff; color: #46611a; }
+    a.fm-boton.sec:hover { background: #eef4e2; color: #46611a; }
+</style>
+
+<div class="container content">
+  <div class="fm-columna">
+
+    <a href="{{ url_for('ficha_lugar', id_lugar=lugar[0]) if lugar else url_for('mapa') }}" class="fm-volver">← {{ 'Volver a la ficha' if lugar else 'Volver al mapa' }}</a>
+
+    <form action="{{ accion }}" method="POST" id="form-local" class="fm-tarjeta">
+        <h2 class="fm-titulo">{{ titulo }}</h2>
+        <p class="fm-sub">{{ subtitulo }}</p>
+
+        {% if erroresL %}
+        <div class="fm-errores" role="alert">
+            <strong>Revisa esto antes de guardar:</strong>
+            <ul>{% for error in erroresL %}<li>{{ error }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        <!-- ===== Lo que se ve en el mapa ===== -->
+        <div class="fm-grupo">
+            <label class="fm-etiqueta" for="nombre">Nombre del lugar</label>
+            <input type="text" id="nombre" name="nombre" class="fm-campo" maxlength="100" value="{{ valor(1) }}" placeholder="Ej: Mercado de Artesanías" required>
+        </div>
+        <div class="fm-grupo">
+            <label class="fm-etiqueta" for="descripcion">Descripción breve</label>
+            <textarea id="descripcion" name="descripcion" class="fm-campo" rows="3" maxlength="500" placeholder="Ej: Venta de cerámica y textiles" required>{{ valor(2) }}</textarea>
+            <span class="fm-ayuda">Es lo que aparece en la ventanita del mapa.</span>
+            <span class="fm-contador" data-contador-de="descripcion"></span>
+        </div>
+        <div class="fm-fila">
+            <div class="fm-grupo">
+                <label class="fm-etiqueta" for="direccion">Dirección</label>
+                <input type="text" id="direccion" name="direccion" class="fm-campo" maxlength="200" value="{{ valor(3) }}" placeholder="Ej: De la iglesia 2c al sur" required>
+            </div>
+            <div class="fm-grupo">
+                <label class="fm-etiqueta" for="contacto">Teléfono de contacto</label>
+                <input type="text" id="contacto" name="contacto" class="fm-campo" maxlength="8" inputmode="numeric" pattern="[0-9]+" value="{{ valor(8) }}" placeholder="Ej: 88888888" title="Solo números, hasta 8 dígitos" required>
+                <span class="fm-ayuda">Solo números, sin espacios ni guiones.</span>
+            </div>
+        </div>
+
+        {% if lugar %}
+        <div class="fm-grupo">
+            <label class="fm-etiqueta" for="estado">Estado</label>
+            <select id="estado" name="estado" class="fm-campo">
+                <option value="activo" {% if lugar[7] == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if lugar[7] == 'inactivo' %}selected{% endif %}>Inactivo</option>
+            </select>
+            <span class="fm-ayuda">Si lo pones inactivo, deja de verse en la plataforma, pero queda guardado como dato histórico.</span>
+        </div>
+        {% endif %}
+
+        <div class="fm-grupo">
+            <span class="fm-etiqueta">Ubicación en el mapa</span>
+            <div class="fm-errores" id="aviso-mapa" role="alert" hidden>Haz clic en el mapa para marcar dónde está el lugar.</div>
+            <div id="mapa-selector" class="fm-mapa"></div>
+            <span class="fm-ayuda">Haz clic en el mapa para marcar dónde está. Puedes volver a hacer clic para moverlo.</span>
+            <div class="fm-ubicacion" id="estado-ubicacion"><span aria-hidden="true">📍</span><span id="texto-ubicacion">Todavía no has marcado la ubicación.</span><span class="coordenadas" id="coordenadas"></span></div>
+            <input type="hidden" id="latitud" name="latitud" value="{{ valor(9) }}">
+            <input type="hidden" id="longitud" name="longitud" value="{{ valor(10) }}">
+        </div>
+
+        <!-- ===== Ficha del lugar ===== -->
+        <div class="fm-bloque">
+            <h3>Ficha del lugar</h3>
+            <p>Esta información aparece en la página del lugar, al tocar "Ver más" en el mapa.</p>
+
+            <div class="fm-grupo">
+                <label class="fm-etiqueta" for="resena">Reseña <span class="opcional">(opcional)</span></label>
+                <textarea id="resena" name="resena" class="fm-campo" rows="6" maxlength="3000" placeholder="Su historia, qué se puede encontrar, por qué es importante para la cultura mangue...">{{ valor(11) }}</textarea>
+                <span class="fm-ayuda">Deja una línea en blanco para separar párrafos.</span>
+                <span class="fm-contador" data-contador-de="resena"></span>
+            </div>
+
+            <div class="fm-grupo">
+                <label class="fm-etiqueta" for="horario">Horario <span class="opcional">(opcional)</span></label>
+                <input type="text" id="horario" name="horario" class="fm-campo" maxlength="150" value="{{ valor(12) }}" placeholder="Ej: Lunes a sábado, de 8:00 a. m. a 5:00 p. m.">
+            </div>
+
+            <div class="fm-fila">
+                <div class="fm-grupo">
+                    <label class="fm-etiqueta" for="departamento">Departamento <span class="opcional">(opcional)</span></label>
+                    <select id="departamento" class="fm-campo">
+                        <option value="">Elige uno...</option>
+                        {% for dep in departamentos %}
+                        <option value="{{ dep[0] }}" {% if ubicacion_actual.get('departamento') == dep[0] %}selected{% endif %}>{{ dep[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="fm-grupo">
+                    <label class="fm-etiqueta" for="municipio_id">Municipio</label>
+                    <select id="municipio_id" name="municipio_id" class="fm-campo">
+                        <option value="" data-vacio>Primero elige el departamento</option>
+                        {% for mu in municipios %}
+                        <option value="{{ mu[0] }}" data-departamento="{{ mu[2] }}" {% if ubicacion_actual.get('municipio') == mu[0] %}selected{% endif %}>{{ mu[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Fotos ===== -->
+        <div class="fm-bloque">
+            <h3>Fotos del lugar</h3>
+            <p>Elige las fotos de la galería que muestran este lugar. Así cada foto conserva su autor. Si falta alguna, súbela primero en Vestigio.</p>
+            {% if fotos_galeria %}
+            <div class="fm-fotos">
+                {% for f in fotos_galeria %}
+                {# f: (id_archivo, nombre, descripcion, url, ...) #}
+                <label class="fm-foto">
+                    <input type="checkbox" name="fotos" value="{{ f[0] }}" {% if f[0] in fotos_elegidas %}checked{% endif %}>
+                    <img src="{{ url_for('static', filename=f[3].split('static/')[1]) }}" alt="" loading="lazy">
+                    <span class="marca" aria-hidden="true">✔</span>
+                    <span>{{ f[1] }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <span class="fm-contador-fotos" id="contador-fotos"></span>
+            {% else %}
+            <p class="fm-sin-fotos">Todavía no hay imágenes en la galería.</p>
+            {% endif %}
+        </div>
+
+        <!-- ===== Fuentes ===== -->
+        <div class="fm-bloque">
+            <h3>Fuentes de la información</h3>
+            <p>Quién aportó la información de este lugar o de dónde salió: la persona que lo atiende, una institución o la propia Fundación.</p>
+            {% with autores_obligatorio=false %}{% include '_campo_autores.html' %}{% endwith %}
+        </div>
+
+        <div class="fm-acciones">
+            <a href="{{ url_for('ficha_lugar', id_lugar=lugar[0]) if lugar else url_for('mapa') }}" class="fm-boton sec">Cancelar</a>
+            <button type="submit" class="fm-boton" id="boton-enviar">{{ texto_boton }}</button>
+        </div>
+    </form>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // ===== Mapa: si el lugar ya tiene ubicación arranca ahí; si no, en Masaya =====
+    (function () {
+        const latitud = document.getElementById('latitud');
+        const longitud = document.getElementById('longitud');
+        const latGuardada = parseFloat(latitud.value);
+        const lngGuardada = parseFloat(longitud.value);
+        const hayUbicacion = !isNaN(latGuardada) && !isNaN(lngGuardada);
+        const contenedor = document.getElementById('mapa-selector');
+        const aviso = document.getElementById('aviso-mapa');
+
+        const mapa = L.map('mapa-selector').setView(hayUbicacion ? [latGuardada, lngGuardada] : [11.9744, -86.0942], hayUbicacion ? 16 : 14);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; Colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(mapa);
+
+        let marcador = null;
+        function marcar(lat, lng) {
+            if (marcador) marcador.setLatLng([lat, lng]); else marcador = L.marker([lat, lng]).addTo(mapa);
+            latitud.value = lat.toFixed(6);
+            longitud.value = lng.toFixed(6);
+            const estado = document.getElementById('estado-ubicacion');
+            estado.classList.add('lista');
+            estado.firstElementChild.textContent = '✔';
+            document.getElementById('texto-ubicacion').textContent = 'Ubicación marcada';
+            document.getElementById('coordenadas').textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
+            contenedor.classList.remove('falta');
+            aviso.hidden = true;
+        }
+        if (hayUbicacion) marcar(latGuardada, lngGuardada);
+        mapa.on('click', function (e) { marcar(e.latlng.lat, e.latlng.lng); });
+
+        document.getElementById('form-local').addEventListener('submit', function (e) {
+            if (!latitud.value) {
+                e.preventDefault();
+                aviso.hidden = false;
+                contenedor.classList.add('falta');
+                aviso.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            const boton = document.getElementById('boton-enviar');
+            boton.disabled = true;
+            boton.textContent = 'Guardando...';
+        });
+    })();
+
+    // ===== Contadores de caracteres =====
+    document.querySelectorAll('[data-contador-de]').forEach(function (contador) {
+        const campo = document.getElementById(contador.dataset.contadorDe);
+        function contar() { contador.textContent = campo.value.length + ' / ' + campo.maxLength; }
+        campo.addEventListener('input', contar);
+        contar();
+    });
+
+    // ===== Municipio: solo los del departamento elegido =====
+    (function () {
+        const departamento = document.getElementById('departamento');
+        const municipio = document.getElementById('municipio_id');
+        const vacio = municipio.querySelector('option[data-vacio]');
+        const todos = Array.from(municipio.querySelectorAll('option[data-departamento]'));
+        function filtrar() {
+            const elegido = municipio.value;
+            todos.forEach(function (o) { o.remove(); });
+            const delDepartamento = todos.filter(function (o) { return o.dataset.departamento === departamento.value; });
+            delDepartamento.forEach(function (o) { municipio.appendChild(o); });
+            municipio.disabled = !departamento.value;
+            vacio.textContent = departamento.value ? 'Elige el municipio' : 'Primero elige el departamento';
+            municipio.value = delDepartamento.some(function (o) { return o.value === elegido; }) ? elegido : '';
+        }
+        departamento.addEventListener('change', filtrar);
+        filtrar();
+    })();
+
+    // ===== Cuántas fotos van elegidas =====
+    (function () {
+        const contador = document.getElementById('contador-fotos');
+        if (!contador) return;
+        const casillas = document.querySelectorAll('input[name="fotos"]');
+        function contar() {
+            const n = Array.from(casillas).filter(function (c) { return c.checked; }).length;
+            contador.textContent = n === 0 ? 'Ninguna foto elegida' : (n === 1 ? '1 foto elegida' : n + ' fotos elegidas') + (n > 12 ? ' (máximo 12)' : '');
+        }
+        casillas.forEach(function (c) { c.addEventListener('change', contar); });
+        contar();
+    })();
+</script>

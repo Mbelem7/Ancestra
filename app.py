@@ -785,7 +785,7 @@ def buscar():
 
     # Huellas: por nombre, descripción y dirección
     lugares = [l for l in obtener_lugares() if coincide(l[1], l[2], l[3])]
-    lista_lugares = [{'nombre': l[1], 'direccion': l[3], 'enlace': url_for('mapa')} for l in lugares[:4]]
+    lista_lugares = [{'nombre': l[1], 'direccion': l[3], 'enlace': url_for('ficha_lugar', id_lugar=l[0])} for l in lugares[:4]]
 
     return jsonify({
         'documentos': lista_documentos, 'total_documentos': len(documentos),
@@ -1257,6 +1257,9 @@ def buscar_imagen():
 
 ##############################################################################
 #MAPA
+# lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id,
+#         estado, contacto, latitud, longitud, resena, horario, municipio_id, municipio, departamento, id_departamento)
+
 @app.route('/huellas')
 def mapa():
     es_admin = session.get('tipo') == 'administrador'
@@ -1270,114 +1273,178 @@ def mapa():
             'lat': float(l[9]),
             'lng': float(l[10]),
             'activo': l[7] == 'activo',
+            'ficha': url_for('ficha_lugar', id_lugar=l[0]),
             'editar': url_for('editar_lugar', id_lugar=l[0]) if es_admin else None
         }
         for l in lugares if l[9] is not None and l[10] is not None
     ]
     return render_template('mapa.html', puntos=puntos, es_admin=es_admin)
 
+
+#FICHA DE UN LUGAR: toda su información, sus fotos, sus fuentes y cómo llegar
+@app.route('/huellas/<int:id_lugar>')
+def ficha_lugar(id_lugar):
+    lugar = obtener_un_lugar(id_lugar)
+    es_admin = session.get('tipo') == 'administrador'
+    # Un lugar inactivo es un dato histórico: solo el administrador lo puede abrir
+    if not lugar or (lugar[7] != 'activo' and not es_admin):
+        return redirect(url_for('mapa'))
+
+    fotos = obtener_fotos_de_lugar(id_lugar)
+    # foto: (id_archivo, nombre, url, tipo)
+    autores_foto = {}
+    for archivo_id, nombre in obtener_autores_de_archivos([f[0] for f in fotos]):
+        autores_foto.setdefault(archivo_id, []).append(nombre)
+
+    return render_template('ficha_lugar.html', lugar=lugar, fotos=fotos, autores_foto=autores_foto,
+                           fuentes=obtener_autores_de_lugar(id_lugar), es_admin=es_admin,
+                           nombres_tipo_autor=dict(TIPOS_AUTOR), nombres_origen_autor=dict(ORIGENES_AUTOR))
+
+
+#DATOS DE APOYO PARA LOS FORMULARIOS DE LUGARES
+def imagenes_para_lugares():
+    # Las imágenes activas de la galería (sin videos), para elegir las fotos de un lugar
+    return [f for f in obtener_archivos_galeria() if f[5] == 'imagen']
+
+
+def datos_formulario_lugar(lugar=None):
+    # Todo lo que necesita el formulario de crear o editar un lugar
+    return {
+        'departamentos': obtener_departamentos(),
+        'municipios': obtener_municipios(),
+        'ubicacion_actual': {'departamento': lugar[16], 'municipio': lugar[13]} if lugar else {},
+        'fotos_galeria': imagenes_para_lugares(),
+        'fotos_elegidas': [f[0] for f in obtener_fotos_de_lugar(lugar[0], solo_activos=False)] if lugar else [],
+        'autores_existentes': obtener_autores(),
+        'autores_actuales': obtener_autores_de_lugar(lugar[0]) if lugar else []
+    }
+
+
+def leer_lugar_del_formulario(erroresL):
+    # Lee y valida los campos de la ficha ampliada. Agrega a erroresL lo que esté mal.
+    resena = request.form.get('resena', '').strip()
+    horario = ' '.join(request.form.get('horario', '').split())
+    municipio_texto = request.form.get('municipio_id', '')
+
+    if len(resena) > 3000:
+        erroresL.append("La reseña no debe exceder los 3000 caracteres.")
+    if len(horario) > 150:
+        erroresL.append("El horario no debe exceder los 150 caracteres.")
+
+    municipio_id = None
+    if municipio_texto:
+        municipio_id = int(municipio_texto) if municipio_texto.isdigit() else None
+        if not municipio_id or not obtener_un_municipio(municipio_id):
+            erroresL.append("Elige un municipio válido.")
+
+    # Solo se aceptan imágenes activas de la galería
+    validas = {f[0] for f in imagenes_para_lugares()}
+    fotos = []
+    for valor in request.form.getlist('fotos'):
+        if valor.isdigit() and int(valor) in validas and int(valor) not in fotos:
+            fotos.append(int(valor))
+    if len(fotos) > 12:
+        erroresL.append("Elige como máximo 12 fotos.")
+
+    return {'resena': resena or None, 'horario': horario or None, 'municipio_id': municipio_id, 'fotos': fotos}
+
+
+def guardar_autores_lugar(id_lugar, autores):
+    # Igual que guardar_autores() de los documentos, pero para las fuentes de un lugar
+    ahora = datetime.now()
+    for autor in autores:
+        existente = obtener_autor_por_nombre(autor['nombre'])
+        id_autor = existente[0] if existente else insertar_autor(autor['nombre'], autor['tipo'], autor['origen'], None, ahora, ahora)
+        insertar_lugar_autor(id_lugar, id_autor)
+
+
+def validar_datos_basicos_lugar(nombre, descripcion, direccion, contacto, latitud, longitud):
+    erroresL = []
+    if not nombre or len(nombre) > 100:
+        erroresL.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
+    if not descripcion or len(descripcion) > 500:
+        erroresL.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
+    if not direccion or len(direccion) > 200:
+        erroresL.append("La dirección es obligatoria y no debe exceder los 200 caracteres.")
+    if not contacto or not contacto.isdigit():
+        erroresL.append("El contacto es obligatorio y debe ser un número de teléfono válido.")
+    if not coordenadas_validas(latitud, longitud):
+        erroresL.append("Debes marcar la ubicación del local en el mapa.")
+    return erroresL
+
+
 #CREAR LUGAR
 @app.route('/crear-local', methods=['GET', 'POST'])
 @rol_requerido('administrador')
 def crear_local():
-    if request.method == 'POST':
-        nombre = request.form.get('nombre')
-        descripcion = request.form.get('descripcion')
-        direccion = request.form.get('direccion')
-        fecha_creacion = datetime.now()
-        fecha_modificacion = datetime.now()
-        administrador_id = session.get('rol_id')
-        estado = 'activo'
-        contacto = request.form.get('contacto')
-        latitud = request.form.get('latitud')
-        longitud = request.form.get('longitud')
- 
-        #VALIDACIONES
-        erroresL = []
-        if not nombre or len(nombre) > 100:
-            erroresL.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
-        if not descripcion or len(descripcion) > 500:
-            erroresL.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
-        if not direccion or len(direccion) > 200:
-            erroresL.append("La dirección es obligatoria y no debe exceder los 200 caracteres.")
-        if not contacto or not contacto.isdigit():
-            erroresL.append("El contacto es obligatorio y debe ser un número de teléfono válido.")
-        if not coordenadas_validas(latitud, longitud):
-            erroresL.append("Debes marcar la ubicación del local en el mapa.")
- 
-        if erroresL:
-            return render_template('crear_local.html', erroresL=erroresL)
- 
-        print(nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id, estado, contacto)
-        insertar_lugar(
-            nombre,
-            descripcion,
-            direccion,
-            fecha_creacion,
-            fecha_modificacion,
-            administrador_id,
-            estado,
-            contacto,
-            latitud,
-            longitud
-        )
-        return redirect(url_for('mapa'))
- 
-    return render_template('crear_local.html')
- 
+    if request.method == 'GET':
+        return render_template('crear_local.html', **datos_formulario_lugar())
+
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    direccion = request.form.get('direccion')
+    contacto = request.form.get('contacto')
+    latitud = request.form.get('latitud')
+    longitud = request.form.get('longitud')
+
+    #VALIDACIONES
+    erroresL = validar_datos_basicos_lugar(nombre, descripcion, direccion, contacto, latitud, longitud)
+    extra = leer_lugar_del_formulario(erroresL)
+    autores, errores_autores = leer_autores_del_formulario(obligatorio=False)
+    erroresL += errores_autores
+
+    if erroresL:
+        return render_template('crear_local.html', erroresL=erroresL, **datos_formulario_lugar())
+
+    ahora = datetime.now()
+    id_lugar = insertar_lugar(
+        nombre, descripcion, direccion, ahora, ahora, session.get('rol_id'), 'activo', contacto,
+        latitud, longitud, extra['resena'], extra['horario'], extra['municipio_id']
+    )
+    guardar_fotos_de_lugar(id_lugar, extra['fotos'])
+    guardar_autores_lugar(id_lugar, autores)
+    return redirect(url_for('ficha_lugar', id_lugar=id_lugar))
+
+
 #EDITAR LUGAR
 @app.route('/editar-lugar/<int:id_lugar>', methods=["GET", "POST"])
 @rol_requerido('administrador')
 def editar_lugar(id_lugar):
-    if request.method == "POST":
-        lugar = obtener_un_lugar(id_lugar)
-        # lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion,
-        #         fecha_modificacion, administrador_id, estado, contacto, latitud, longitud)
- 
-        nombre = request.form.get('nombre')
-        descripcion = request.form.get('descripcion')
-        direccion = request.form.get('direccion')
-        contacto = request.form.get('contacto')
-        estado = request.form.get('estado', 'activo')
-        latitud = request.form.get('latitud')
-        longitud = request.form.get('longitud')
- 
-        #VALIDACIONES
-        erroresL = []
-        if not nombre or len(nombre) > 100:
-            erroresL.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
-        if not descripcion or len(descripcion) > 500:
-            erroresL.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
-        if not direccion or len(direccion) > 200:
-            erroresL.append("La dirección es obligatoria y no debe exceder los 200 caracteres.")
-        if not contacto or not contacto.isdigit():
-            erroresL.append("El contacto es obligatorio y debe ser un número de teléfono válido.")
-        if not coordenadas_validas(latitud, longitud):
-            erroresL.append("Debes marcar la ubicación del local en el mapa.")
- 
-        if erroresL:
-            return render_template("editar_lugar.html", lugar=lugar, erroresL=erroresL)
- 
-        fecha_modificacion = datetime.now()
-        administrador_id = lugar[6] or session.get('rol_id')
- 
-        actualizar_lugar(
-            id_lugar,
-            nombre,
-            descripcion,
-            direccion,
-            fecha_modificacion,
-            administrador_id,
-            estado,
-            contacto,
-            latitud,
-            longitud
-        )
+    lugar = obtener_un_lugar(id_lugar)
+    if not lugar:
         return redirect(url_for('mapa'))
-    else:
-        lugar = obtener_un_lugar(id_lugar)
-        return render_template("editar_lugar.html", lugar=lugar)
- 
+
+    if request.method == 'GET':
+        return render_template("editar_lugar.html", lugar=lugar, **datos_formulario_lugar(lugar))
+
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    direccion = request.form.get('direccion')
+    contacto = request.form.get('contacto')
+    estado = request.form.get('estado', 'activo')
+    latitud = request.form.get('latitud')
+    longitud = request.form.get('longitud')
+
+    #VALIDACIONES
+    erroresL = validar_datos_basicos_lugar(nombre, descripcion, direccion, contacto, latitud, longitud)
+    if estado not in ('activo', 'inactivo'):
+        erroresL.append("Elige un estado válido.")
+    extra = leer_lugar_del_formulario(erroresL)
+    autores, errores_autores = leer_autores_del_formulario(obligatorio=False)
+    erroresL += errores_autores
+
+    if erroresL:
+        return render_template("editar_lugar.html", lugar=lugar, erroresL=erroresL, **datos_formulario_lugar(lugar))
+
+    actualizar_lugar(
+        id_lugar, nombre, descripcion, direccion, datetime.now(), lugar[6] or session.get('rol_id'),
+        estado, contacto, latitud, longitud, extra['resena'], extra['horario'], extra['municipio_id']
+    )
+    guardar_fotos_de_lugar(id_lugar, extra['fotos'])
+    eliminar_autores_de_lugar(id_lugar)
+    guardar_autores_lugar(id_lugar, autores)
+    return redirect(url_for('ficha_lugar', id_lugar=id_lugar))
+
 #BUSCAR LUGAR
 @app.route('/buscar_lugar')
 def buscar_lugar():

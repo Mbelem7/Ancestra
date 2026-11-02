@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>{{ lugar[1] }} - Huellas</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    /* Los nombres de esta página empiezan con "fl-" para que no choquen con clases del CSS del sitio */
+    .fl-columna { display: block; max-width: 980px; margin: 0 auto 60px; }
+    .fl-barra { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin: 0 0 16px; }
+    .fl-boton { display: inline-block; padding: 8px 18px; background: #fff; color: #46611a; border: 2px solid #5a7a1e; border-radius: 22px; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+    .fl-boton:hover { background: #5a7a1e; color: #fff; }
+
+    .fl-tarjeta { background: #fffdf7; color: #222; border: 2px solid #e2d3b2; border-radius: 18px; padding: 30px 32px; box-shadow: 0 6px 20px rgba(60, 35, 10, 0.1); }
+    @media (max-width: 560px) { .fl-tarjeta { padding: 22px 18px; } }
+
+    .fl-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 8px; }
+    .fl-nombre { margin: 0; font-family: 'Caprasimo'; font-weight: 400; font-size: 2rem; line-height: 1.15; color: #8E0404; }
+    .fl-estado { padding: 3px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; background: #fdeceb; color: #8E0404; box-shadow: inset 0 0 0 2px #F22C0C; }
+    .fl-descripcion { margin: 0 0 22px; font-size: 1.08rem; line-height: 1.55; color: #333; }
+
+    .fl-dos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; align-items: start; }
+    @media (max-width: 760px) { .fl-dos { grid-template-columns: minmax(0, 1fr); } }
+
+    .fl-datos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+    .fl-datos li { display: flex; gap: 12px; align-items: flex-start; margin: 0; line-height: 1.45; }
+    .fl-datos .icono { flex: 0 0 auto; width: 24px; text-align: center; font-size: 1.15rem; }
+    .fl-datos .rotulo { display: block; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #7a6a4a; }
+    .fl-datos a { color: #2f4a0c; font-weight: 700; }
+    .fl-llegar { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 12px 24px; border-radius: 26px; background: #FFA105; color: #3a2400; font-weight: 700; text-decoration: none; }
+    .fl-llegar:hover { background: #e89000; }
+    .fl-mapa { height: 260px; border: 2px solid #e2d3b2; border-radius: 14px; overflow: hidden; }
+
+    .fl-seccion { margin-top: 30px; padding-top: 24px; border-top: 2px solid #ece2cb; }
+    .fl-seccion h2 { margin: 0 0 12px; font-family: 'Caprasimo'; font-weight: 400; font-size: 1.4rem; color: #8E0404; }
+    .fl-resena p { margin: 0; line-height: 1.7; text-align: justify; }
+    .fl-resena p + p { margin-top: 1em; }
+
+    .fl-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .fl-foto { margin: 0; }
+    .fl-foto a { display: block; overflow: hidden; border-radius: 12px; }
+    .fl-foto img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 0.3s; }
+    .fl-foto a:hover img { transform: scale(1.04); }
+    .fl-foto figcaption { margin-top: 6px; font-size: 0.85rem; line-height: 1.35; color: #444; }
+    .fl-foto figcaption small { display: block; color: #777; }
+
+    .fl-fuentes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .fl-fuentes li { margin: 0; padding: 10px 14px; background: #fff; border: 1px solid #ece2cb; border-radius: 10px; }
+    .fl-fuentes small { color: #666; }
+    .fl-vacio { margin: 0; color: #666; font-style: italic; }
+
+    .fl-traza { margin-top: 30px; padding: 12px 16px; background: #f4eddc; border-radius: 10px; font-size: 0.88rem; color: #5a4a2a; line-height: 1.5; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+<h1>Huellas</h1>
+<h2>Revive el pasado</h2>
+{% endblock %}
+
+{% block clase_header %}
+header-mapa
+{% endblock %}
+
+{% block body %}
+{# lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id, estado,
+           contacto, latitud, longitud, resena, horario, municipio_id, municipio, departamento, id_departamento)
+   foto: (id_archivo, nombre, url, tipo)   fuente: (id_autor, nombre, tipo, origen, descripcion) #}
+{% set telefono = (lugar[8] | string) if lugar[8] else '' %}
+<div class="container content">
+  <div class="fl-columna">
+
+    <div class="fl-barra">
+        <a href="{{ url_for('mapa') }}" class="fl-boton">← Volver al mapa</a>
+        {% if es_admin %}<a href="{{ url_for('editar_lugar', id_lugar=lugar[0]) }}" class="fl-boton">✏️ Editar lugar</a>{% endif %}
+    </div>
+
+    <article class="fl-tarjeta">
+        <div class="fl-cabecera">
+            <h1 class="fl-nombre">{{ lugar[1] }}</h1>
+            {% if lugar[7] != 'activo' %}<span class="fl-estado">Inactivo · solo lo ve el administrador</span>{% endif %}
+        </div>
+        <p class="fl-descripcion">{{ lugar[2] }}</p>
+
+        <div class="fl-dos">
+            <div>
+                <ul class="fl-datos">
+                    {% if lugar[3] %}
+                    <li><span class="icono" aria-hidden="true">📍</span><span><span class="rotulo">Dirección</span>{{ lugar[3] }}</span></li>
+                    {% endif %}
+                    {% if lugar[14] %}
+                    <li><span class="icono" aria-hidden="true">🗺️</span><span><span class="rotulo">Municipio</span>{{ lugar[14] }}, {{ lugar[15] }}</span></li>
+                    {% endif %}
+                    {% if lugar[12] %}
+                    <li><span class="icono" aria-hidden="true">🕒</span><span><span class="rotulo">Horario</span>{{ lugar[12] }}</span></li>
+                    {% endif %}
+                    {% if telefono %}
+                    <li><span class="icono" aria-hidden="true">📞</span><span><span class="rotulo">Teléfono</span><a href="tel:{{ telefono }}">{{ telefono }}</a></span></li>
+                    {% endif %}
+                </ul>
+                {% if lugar[9] is not none and lugar[10] is not none %}
+                <a class="fl-llegar" href="https://www.google.com/maps/dir/?api=1&destination={{ lugar[9] }},{{ lugar[10] }}" target="_blank" rel="noopener">🧭 Cómo llegar</a>
+                {% endif %}
+            </div>
+            {% if lugar[9] is not none and lugar[10] is not none %}
+            <div id="fl-mapa" class="fl-mapa" data-lat="{{ lugar[9] }}" data-lng="{{ lugar[10] }}" data-nombre="{{ lugar[1] }}" role="img" aria-label="Ubicación de {{ lugar[1] }} en el mapa"></div>
+            {% endif %}
+        </div>
+
+        {% if lugar[11] %}
+        <section class="fl-seccion fl-resena">
+            <h2>Reseña</h2>
+            {% for parrafo in lugar[11].replace('\r\n', '\n').split('\n\n') if parrafo.strip() %}
+            <p>{{ parrafo.strip() }}</p>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <section class="fl-seccion">
+            <h2>Fotos</h2>
+            {% if fotos %}
+            <div class="fl-fotos">
+                {% for f in fotos %}
+                {% set ruta = url_for('static', filename=f[2].split('static/')[1]) %}
+                <figure class="fl-foto">
+                    <a href="{{ ruta }}" target="_blank" rel="noopener"><img src="{{ ruta }}" alt="{{ f[1] }}" loading="lazy"></a>
+                    <figcaption>{{ f[1] }}{% if autores_foto.get(f[0]) %}<small>Foto: {{ autores_foto[f[0]] | join(', ') }}</small>{% endif %}</figcaption>
+                </figure>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="fl-vacio">Este lugar todavía no tiene fotos.</p>
+            {% endif %}
+        </section>
+
+        <section class="fl-seccion">
+            <h2>Fuentes</h2>
+            {% if fuentes %}
+            <ul class="fl-fuentes">
+                {% for a in fuentes %}
+                <li><strong>{{ a[1] }}</strong> <small>· {{ nombres_tipo_autor.get(a[2], a[2]) }}{% if a[3] %}, {{ nombres_origen_autor.get(a[3], a[3]) | lower }}{% endif %}</small></li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="fl-vacio">Todavía no se han registrado las fuentes de esta información.</p>
+            {% endif %}
+        </section>
+
+        <!-- Trazabilidad: cuándo se registró y cuándo cambió por última vez -->
+        <p class="fl-traza">
+            🗂 Registrado en Ancestra el {{ lugar[4].strftime('%d/%m/%Y') if lugar[4] else '—' }}{% if lugar[5] and lugar[4] and lugar[5].date() != lugar[4].date() %} · Última actualización: {{ lugar[5].strftime('%d/%m/%Y') }}{% endif %}.
+        </p>
+    </article>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Mapa pequeño con la ubicación del lugar
+    (function () {
+        const caja = document.getElementById('fl-mapa');
+        if (!caja) return;
+        const punto = [parseFloat(caja.dataset.lat), parseFloat(caja.dataset.lng)];
+        const mapa = L.map(caja, { scrollWheelZoom: false }).setView(punto, 16);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; Colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(mapa);
+        L.marker(punto).addTo(mapa).bindTooltip(caja.dataset.nombre);
+    })();
+</script>
+{% endblock %}

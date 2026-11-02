@@ -255,7 +255,7 @@ header-home
                 <h3 class="inicio-subtitulo">En Huellas</h3>
                 {% for l in nuevos_lugares %}
                 {# l: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id, estado, contacto, latitud, longitud) #}
-                <a class="in-lugar" href="{{ url_for('mapa') }}">
+                <a class="in-lugar" href="{{ url_for('ficha_lugar', id_lugar=l[0]) }}">
                     <span class="in-pin" aria-hidden="true">📍</span>
                     <span class="in-texto">
                         <strong>{{ l[1] }}</strong>
