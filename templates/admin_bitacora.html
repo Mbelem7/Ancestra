@@ -1,0 +1,127 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Bitácora de accesos</title>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+<style>
+    /* Los nombres de esta página empiezan con "bi-" para que no choquen con clases del CSS del sitio */
+    .bi-columna { display: block; max-width: 1040px; margin: 0 auto 40px; }
+    .bi-volver { display: inline-block; margin: 0 0 16px; padding: 8px 18px; background: #fff; color: #46611a; border: 2px solid #5a7a1e; border-radius: 22px; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+    .bi-volver:hover { background: #5a7a1e; color: #fff; }
+
+    .bi-intro { margin: 0 0 18px; color: #333; line-height: 1.5; }
+    .bi-intro small { display: block; margin-top: 4px; color: #555; }
+
+    /* Resumen de los últimos 7 días */
+    .bi-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 0 20px; }
+    .bi-dato { text-align: center; background: #fafcf6; color: #222; border: 2px solid #c9d6b0; border-radius: 14px; padding: 14px 8px; }
+    .bi-dato .numero { display: block; font-size: 1.8rem; font-weight: 700; color: #2f4a0c; line-height: 1.1; }
+    .bi-dato .rotulo { display: block; margin-top: 4px; font-size: 0.85rem; font-weight: 700; }
+    .bi-dato.alerta { background: #fdf0ee; border-color: #e6a59c; }
+    .bi-dato.alerta .numero { color: #8E0404; }
+    @media (max-width: 700px) { .bi-resumen { grid-template-columns: 1fr 1fr; } }
+
+    /* Filtros */
+    .bi-filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 0 0 16px; padding: 14px 16px; background: #fafcf6; border: 2px solid #c9d6b0; border-radius: 14px; }
+    .bi-filtros label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; font-weight: 700; }
+    .bi-filtros select, .bi-filtros input { padding: 8px 10px; border: 2px solid #c9d6b0; border-radius: 10px; font-family: inherit; font-size: 0.95rem; background: #fff; }
+    .bi-filtros input { min-width: 220px; }
+    .bi-boton { padding: 9px 18px; border: 2px solid #5a7a1e; border-radius: 18px; background: #5a7a1e; color: #fff; font-family: inherit; font-weight: 700; cursor: pointer; }
+    .bi-limpiar { padding: 9px 4px; color: #46611a; font-weight: 700; }
+
+    /* Tabla */
+    .bi-tabla-caja { background: #fafcf6; border: 2px solid #c9d6b0; border-radius: 16px; padding: 16px; overflow-x: auto; }
+    .bi-tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .bi-tabla th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #c9d6b0; white-space: nowrap; }
+    .bi-tabla td { padding: 8px 10px; border-bottom: 1px solid #e3e8d6; vertical-align: top; }
+    .bi-tabla .secundario { display: block; font-size: 0.8rem; color: #555; }
+    .bi-evento { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+    .bi-evento.inicio_sesion { background: #f5f8e6; color: #4d5c0b; box-shadow: inset 0 0 0 2px #BECC29; }
+    .bi-evento.cierre_sesion { background: #f1f1f1; color: #444; }
+    .bi-evento.intento_fallido { background: #fff4d6; color: #7a5b00; }
+    .bi-evento.bloqueo, .bi-evento.cuenta_inactiva { background: #fdeceb; color: #8E0404; box-shadow: inset 0 0 0 2px #F22C0C; }
+    .bi-vacio { text-align: center; margin: 24px 0; color: #555; }
+    .bi-nota { margin: 10px 0 0; font-size: 0.82rem; color: #555; }
+</style>
+{% endblock %}
+
+{% block titulo_header %}
+<h1>Bitácora</h1>
+{% endblock %}
+
+{% block clase_header %}
+header-docentes
+{% endblock %}
+
+{% block body %}
+<div class="container content">
+  <div class="bi-columna">
+
+    <a href="{{ url_for('admin_docentes') }}" class="bi-volver">← Volver al tablero</a>
+
+    <p class="bi-intro">
+        Cada inicio de sesión, intento fallido, bloqueo y cierre de sesión queda registrado aquí.
+        Después de {{ intentos_maximos }} intentos fallidos seguidos con el mismo correo, la plataforma lo bloquea durante {{ minutos_bloqueo }} minutos.
+        <small>Controles 3.1.1 (registro de actividad diaria) y 2.3.1 (gestión de intentos de conexión) del manual de políticas.</small>
+    </p>
+
+    <!-- Resumen de los últimos 7 días -->
+    <div class="bi-resumen">
+        <div class="bi-dato"><span class="numero">{{ resumen.get('inicio_sesion', 0) }}</span><span class="rotulo">Inicios de sesión</span></div>
+        <div class="bi-dato"><span class="numero">{{ resumen.get('intento_fallido', 0) }}</span><span class="rotulo">Intentos fallidos</span></div>
+        <div class="bi-dato{% if resumen.get('bloqueo', 0) %} alerta{% endif %}"><span class="numero">{{ resumen.get('bloqueo', 0) }}</span><span class="rotulo">Bloqueos</span></div>
+        <div class="bi-dato"><span class="numero">{{ resumen.get('cierre_sesion', 0) }}</span><span class="rotulo">Cierres de sesión</span></div>
+    </div>
+    <p class="bi-nota" style="margin-top: -12px; margin-bottom: 18px;">Los números de arriba son de los últimos 7 días.</p>
+
+    <!-- Filtros -->
+    <form class="bi-filtros" method="GET" action="{{ url_for('admin_bitacora') }}">
+        <label>Evento
+            <select name="evento">
+                <option value="">Todos</option>
+                {% for clave, nombre in eventos.items() %}
+                <option value="{{ clave }}" {% if evento == clave %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Correo
+            <input type="search" name="correo" value="{{ correo }}" placeholder="Todo o parte del correo">
+        </label>
+        <button type="submit" class="bi-boton">Filtrar</button>
+        {% if evento or correo %}<a href="{{ url_for('admin_bitacora') }}" class="bi-limpiar">Quitar filtros</a>{% endif %}
+    </form>
+
+    <!-- Registros -->
+    <div class="bi-tabla-caja">
+        {% if registros %}
+        <table class="bi-tabla">
+            <thead>
+                <tr><th>Fecha y hora</th><th>Evento</th><th>Correo</th><th>Persona</th><th>Desde</th></tr>
+            </thead>
+            <tbody>
+                {% for r in registros %}
+                <tr>
+                    <td>{{ r.fecha.strftime('%d/%m/%Y') }}<span class="secundario">{{ r.fecha.strftime('%H:%M:%S') }}</span></td>
+                    <td><span class="bi-evento {{ r.evento }}">{{ r.nombre_evento }}</span></td>
+                    <td>{{ r.correo or '—' }}</td>
+                    <td>
+                        {% if r.persona %}{{ r.persona }}<span class="secundario">{{ r.tipo }}</span>
+                        {% else %}<span class="secundario">No corresponde a ninguna cuenta</span>{% endif %}
+                    </td>
+                    <td>{{ r.navegador }}<span class="secundario">IP {{ r.ip or '—' }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="bi-nota">Se muestran los {{ registros | length }} registros más recientes{% if evento or correo %} que coinciden con el filtro{% endif %} (máximo 300).</p>
+        {% else %}
+        <div class="bi-vacio">{% if evento or correo %}No hay registros con ese filtro.{% else %}Todavía no hay registros en la bitácora.{% endif %}</div>
+        {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

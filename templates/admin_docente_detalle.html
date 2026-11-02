@@ -16,6 +16,7 @@
     .estado.verificado { background: #e4f1cf; color: #3d5a10; }
     .estado.rechazado { background: #fdf0ee; color: #7b241c; }
 
+    .subtitulo-datos { margin: 22px 0 4px; font-size: 1rem; color: #3d5a10; }
     .datos { margin: 0; }
     .datos .fila { display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e3e8d6; }
     .datos .fila:last-child { border-bottom: none; }
@@ -59,13 +60,16 @@ header-docentes
 
 {% block body %}
 {# d: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1, apellido_2,
-       fecha_nacimiento, correo, estado, fecha_creacion) #}
+       fecha_nacimiento, correo, estado, fecha_creacion,
+       nivel_educativo, centro_trabajo, area, municipio, departamento) #}
 {% set nombres_tipo = {
     'verdadero_falso': 'Verdadero y Falso',
     'seleccion_multiple': 'Selección múltiple',
     'completar': 'Completar',
     'union': 'Unir con línea'
 } %}
+{% set nombre_nivel = dict(NIVELES_EDUCATIVOS) %}
+{% set sin_datos_nuevos = not d[11] and not d[12] and not d[14] %}
 <div class="container content">
     <div class="tarjeta-detalle">
 
@@ -74,6 +78,7 @@ header-docentes
             <span class="estado {{ d[1] }}">{{ d[1] }}</span>
         </div>
 
+        <h3 class="subtitulo-datos">Datos personales</h3>
         <dl class="datos">
             <div class="fila"><dt>Nombre completo</dt><dd>{{ d[3] }}{% if d[4] %} {{ d[4] }}{% endif %} {{ d[5] }}{% if d[6] %} {{ d[6] }}{% endif %}</dd></div>
             <div class="fila"><dt>Correo</dt><dd>{{ d[8] }}</dd></div>
@@ -92,8 +97,20 @@ header-docentes
             <div class="fila"><dt>Verificación como docente</dt><dd>{{ d[1] }}</dd></div>
         </dl>
 
+        <h3 class="subtitulo-datos">Dónde enseña</h3>
+        <dl class="datos">
+            <div class="fila"><dt>Nivel en el que enseña</dt><dd>{% if d[11] %}{{ nombre_nivel.get(d[11], d[11]) }}{% else %}<span class="vacio">No indicado</span>{% endif %}</dd></div>
+            <div class="fila"><dt>Centro de trabajo</dt><dd>{% if d[12] %}{{ d[12] }}{% else %}<span class="vacio">No indicado</span>{% endif %}</dd></div>
+            <div class="fila"><dt>Área o asignatura</dt><dd>{% if d[13] %}{{ d[13] }}{% else %}<span class="vacio">No indicada</span>{% endif %}</dd></div>
+            <div class="fila"><dt>Ubicación</dt><dd>{% if d[14] %}{{ d[14] }}, {{ d[15] }}{% else %}<span class="vacio">No indicada</span>{% endif %}</dd></div>
+        </dl>
+
         <div class="nota-revision">
-            Estos son los únicos datos que el docente indicó al registrarse. Antes de aprobar, confirma su identidad por otro medio, por ejemplo escribiéndole al correo.
+            {% if sin_datos_nuevos %}
+            Este docente se registró antes de que el formulario pidiera su centro de trabajo y su ubicación. Antes de aprobarlo, confirma su identidad por otro medio, por ejemplo escribiéndole al correo.
+            {% else %}
+            Revisa que el centro de trabajo y la ubicación sean coherentes. Si tienes dudas, confirma su identidad escribiéndole al correo antes de aprobarlo.
+            {% endif %}
         </div>
 
         <div class="acciones-detalle">

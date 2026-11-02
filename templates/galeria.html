@@ -494,6 +494,8 @@ header-galeria
         bqLimpiar.addEventListener('click', function () { volverAAlbumes(); bqTexto.focus(); });
         document.getElementById('bq-vacio-limpiar').addEventListener('click', function () { volverAAlbumes(); bqTexto.focus(); });
         ordenarTarjetas();      // al abrir, lo más reciente va primero
+        const buscadoDesdeInicio = new URLSearchParams(location.search).get('q');
+        if (buscadoDesdeInicio) { bqTexto.value = buscadoDesdeInicio; aplicarBusqueda(); }
     }
 </script>
 {% endblock %}

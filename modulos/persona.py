@@ -4,8 +4,9 @@ from sqlalchemy import text
 
 def insertar_persona(nombre_1, nombre_2, apellido_1, apellido_2,
                      fecha_nacimiento, correo, tipo, estado, contrasena,
-                     fecha_creacion, fecha_modificacion):
+                     fecha_creacion, fecha_modificacion, fecha_consentimiento=None):
     # contrasena debe llegar ya encriptada (hash), nunca en texto plano
+    # fecha_consentimiento: cuándo aceptó la política de privacidad al registrarse
 
     resultado = db.session.execute(
         text("""
@@ -21,7 +22,8 @@ def insertar_persona(nombre_1, nombre_2, apellido_1, apellido_2,
                 estado,
                 contraseña,
                 fecha_creacion,
-                fecha_modificacion
+                fecha_modificacion,
+                fecha_consentimiento
             )
             VALUES
             (
@@ -35,7 +37,8 @@ def insertar_persona(nombre_1, nombre_2, apellido_1, apellido_2,
                 :estado,
                 :contrasena,
                 :fecha_creacion,
-                :fecha_modificacion
+                :fecha_modificacion,
+                :fecha_consentimiento
             )
             RETURNING id_persona
         """),
@@ -50,7 +53,8 @@ def insertar_persona(nombre_1, nombre_2, apellido_1, apellido_2,
             'estado': estado,
             'contrasena': contrasena,
             'fecha_creacion': fecha_creacion,
-            'fecha_modificacion': fecha_modificacion
+            'fecha_modificacion': fecha_modificacion,
+            'fecha_consentimiento': fecha_consentimiento
         }
     )
 
@@ -226,6 +230,7 @@ def eliminar_persona(id_persona):
     )
 
     db.session.commit()
+
 
 def obtener_contrasena_por_id(id_persona):
     # El hash de la contraseña de una persona, para comprobar la contraseña actual cuando quiere cambiarla

@@ -26,6 +26,10 @@
 .content { margin-top: -15px; padding-top: 8px; }
 .container { margin-top: 0; padding-top: 12px; }
 
+/* El pergamino se dibuja como una sola imagen fija que cubre la pantalla, sin repetirse: así no se ven cortes ni cuadros.
+   Como todos los pergaminos quedan alineados a la pantalla, tampoco se notan los cortes entre una sección y otra */
+.content { background-size: cover; background-attachment: fixed; }
+
 body > .content { min-height: calc(100vh - 210px); }
 body:has(.aviso-cuenta) > .content { min-height: calc(100vh - 271px); }
 
@@ -67,24 +71,32 @@ body > .content:has(> .fondo-principal) > .footer { width: auto; margin-left: 0;
 /* Todo el contenido del inicio usa el mismo ancho */
 .fondo-principal .container { width: min(100% - 2 * var(--margen), 1200px); max-width: none; margin: 0 auto; padding: 0; }
 
+/* ---- Subtítulo de cada tema (Origen y migraciones, La cerámica...) ---- */
+.inicio-subtitulo { margin: 0 0 12px; font-family: 'Caprasimo'; font-weight: 400; font-size: 1.45rem; line-height: 1.25; color: #8E0404; }
+.inicio-subtitulo--claro { color: #f7e6d0; }       /* sobre las bandas roja y verde */
+
 /* ---- Bandas roja y verde: el color llena todo el ancho; el texto respeta el mismo margen ---- */
 .fondo-principal .banda-roja, .fondo-principal .bloque-verde { width: auto; margin: 0; }
 .fondo-principal .banda-roja { padding: 64px 0 35px; }     /* 64 arriba: deja pasar el borde del papel y aún queda aire */
 .fondo-principal .bloque-verde { padding: 36px 0 66px; }   /* 66 abajo: igual, para el papel de la sección de abajo */
+.fondo-principal .bloque-verde p + p { margin-top: 1em; }
 .inicio-linea { display: block; width: 100%; height: auto; }
 .inicio-linea--1 { margin-top: -50px; margin-bottom: 10px; }
-.inicio-linea--2 { margin-top: -40px; margin-bottom: -40px; }   /* la cerámica se monta sobre la línea, como en el diseño */
+.inicio-linea--2 { margin-top: 24px; margin-bottom: -40px; }   /* separada de la cerámica; abajo se monta sobre la banda verde */
 
 /* ---- Filas: mismo espacio entre texto e imagen en todas ---- */
 .inicio-fila { display: grid; gap: var(--espacio); }
-.inicio-fila--mapa { grid-template-columns: minmax(0, 43fr) minmax(0, 57fr); gap: 0; align-items: center; margin-top: 40px; }
+.inicio-fila--mapa { grid-template-columns: minmax(0, 43fr) minmax(0, 57fr); gap: 0; align-items: center; margin-top: 40px; padding-bottom: 36px; }   /* 36 abajo: las imágenes no tocan la banda roja */
 .inicio-fila--dos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
 .inicio-fila--consejo { grid-template-columns: minmax(0, 57fr) minmax(0, 43fr); gap: 0; align-items: center; }
 .inicio-columna { display: flex; flex-direction: column; gap: 24px; }
+.inicio-columna .inicio-subtitulo { margin-bottom: -12px; }   /* el subtítulo queda pegado a su párrafo, no a 24 px */
 .inicio-columna--baja { padding-top: 12px; }
-.inicio-columna--sube { margin-top: -60px; }              /* el grabado se monta sobre la línea decorativa, como en el diseño */
+.inicio-columna--sube { margin-top: 24px; }              /* el grabado queda debajo de la línea decorativa, sin tocarla */
+.inicio-columna--imagenes { gap: 20px; margin-right: var(--espacio); }   /* el mapa y el volcán; separados del papel del texto */
 .fondo-principal .seccion .inicio-img { display: block; position: relative; z-index: 2; width: 100%; height: auto; margin: 0; }
 .fondo-principal .inicio-fila--consejo { padding-bottom: 30px; }
+.inicio-fila--consejo .inicio-fusion { margin-left: var(--espacio); }   /* el petroglifo no se monta sobre el borde del papel roto */
 
 /* ---- El papel roto: se calcula desde el texto, así siempre lo cubre con aire alrededor ----
    (las cuatro medidas salen del PNG: cuánto sobresale la imagen del rectángulo 100 % sólido del papel) */
@@ -101,12 +113,46 @@ body > .content:has(> .fondo-principal) > .footer { width: auto; margin-left: 0;
 .inicio-papel--der { margin-right: calc(var(--margen) * 0.3); }
 .inicio-papel p + p { margin-top: 1em; }
 
+/* ---- Imágenes como parte del pergamino, igual que en un documento impreso ---- */
+
+/* Contenedor de las imágenes que se funden con el pergamino: lleva detrás el mismo pergamino de la página,
+   fijo a la pantalla como el de .content, así queda perfectamente alineado y la imagen se funde con él */
+.inicio-fusion { isolation: isolate; background: url("/static/assets/img/fondopergamino.png") 0 0 / cover fixed; }
+.inicio-fusion .inicio-img { display: block; }
+
+/* La sombra que styles.css le pone a todo el inicio lo separaba del pergamino e impedía la fusión de los grabados */
+.fondo-principal { filter: none; }
+
+/* Grabados (dibujo sobre fondo blanco, como el de los chorotegas): lo blanco toma el color del pergamino
+   y el dibujo queda como tinta sobre el papel */
+.fondo-principal .inicio-img--grabado { mix-blend-mode: multiply; filter: grayscale(1) contrast(1.15) brightness(1.08); }
+
+/* Fotografías (el volcán, las artesanías): con poco color y aclaradas, para que se vean impresas sobre el pergamino
+   como las fotos del documento de política cultural, sin perder del todo sus colores */
+.fondo-principal .inicio-img--foto { mix-blend-mode: multiply; filter: saturate(0.45) contrast(1.05) brightness(1.12); }
+
+/* Recortes: las fotos verticales se recortan para que no queden demasiado altas (se ve la parte central) */
+.fondo-principal .inicio-img--horizontal { aspect-ratio: 16 / 10; object-fit: cover; }
+.fondo-principal .inicio-img--vertical { aspect-ratio: 4 / 5; object-fit: cover; }
+.fondo-principal .inicio-img--volcan { object-position: center 75%; }    /* en el volcán, que se vea el cráter con la lava */
+
+/* Objetos con fondo transparente (la cerámica, el petroglifo): con poco color y fundidos con el pergamino, como las fotos,
+   y con una sombra suave que sigue la forma de la pieza, no un rectángulo */
+.fondo-principal .inicio-img--objeto { mix-blend-mode: multiply; filter: saturate(0.45) contrast(1.05) drop-shadow(0 10px 12px rgba(60, 35, 10, 0.3)); }
+
+/* El mapa: casi sin color (conserva un poco del naranja del territorio y el rojo de los yacimientos)
+   y con el fondo aclarado, para que el mar se funda con el pergamino como en el grabado */
+.fondo-principal .inicio-img--mapa { mix-blend-mode: multiply; clip-path: inset(3px); filter: saturate(0.35) contrast(1.1) brightness(1.12); }
+
 @media (max-width: 768px) {
     .inicio-fila--mapa, .inicio-fila--dos, .inicio-fila--consejo { grid-template-columns: minmax(0, 1fr); }
     .inicio-fila--mapa, .inicio-fila--consejo { gap: 24px; }
     .inicio-columna--sube { margin-top: 0; }
+    .inicio-columna--imagenes { margin-right: 0; }
+    .inicio-fila--consejo .inicio-fusion { margin-left: 0; }
     .inicio-papel--der { margin-right: 0; margin-top: 40px; }
     .inicio-papel { margin-left: 8px; margin-right: 8px; padding-left: 26px; padding-right: 26px; }
     .inicio-papel .texto { text-align: left; }
     .inicio-papel--izq { margin-bottom: 20px; }
+    .inicio-subtitulo { font-size: 1.25rem; }
 }

@@ -7,6 +7,92 @@
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    [hidden] { display: none !important; }
+
+    /* ---------- Buscador ---------- */
+    /* Los márgenes llevan .seccion para ganarle a la regla general de margen de compacto.css */
+    .fondo-principal .seccion.inicio-buscador { margin-bottom: 48px; }
+
+    /* styles.css le pone margin-top: 70px a toda imagen dentro de .seccion.container: aquí no debe aplicarse */
+    .fondo-principal .seccion .ib-resultados img, .fondo-principal .seccion .ib-resultados video,
+    .fondo-principal .seccion.inicio-nuevo img, .fondo-principal .seccion.inicio-nuevo video { margin: 0; }
+    .ib-form { max-width: 720px; margin: 0 auto; }
+    .ib-etiqueta { display: block; margin: 0 0 8px; text-align: center; font-family: 'Caprasimo'; font-weight: 400; font-size: 1.35rem; color: #8E0404; }
+    .ib-barra { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 16px; background: #fffdf7; border: 2px solid #c9b48a; border-radius: 30px; box-shadow: 0 4px 14px rgba(60, 35, 10, 0.12); }
+    .ib-barra:focus-within { border-color: #FFA105; box-shadow: 0 0 0 4px rgba(255, 161, 5, 0.25); }
+    .ib-lupa { flex: 0 0 auto; width: 20px; height: 20px; color: #c97a00; }
+    .ib-barra input { flex: 1; min-width: 0; border: none; background: transparent; outline: none; font-family: inherit; font-size: 1.05rem; color: #222; padding: 8px 0; }
+    .ib-boton { flex: 0 0 auto; padding: 10px 22px; border: none; border-radius: 24px; background: #FFA105; color: #3a2400; font-family: inherit; font-weight: 700; cursor: pointer; }
+    .ib-boton:hover { background: #e89000; }
+
+    .ib-resultados { max-width: 1000px; margin: 18px auto 0; padding: 20px 22px; background: #fffdf7; border: 2px solid #e2d3b2; border-radius: 16px; box-shadow: 0 8px 24px rgba(60, 35, 10, 0.12); }
+    .ib-grupo + .ib-grupo { margin-top: 18px; padding-top: 16px; border-top: 1px solid #ece2cb; }
+    .ib-grupo h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; font-size: 1rem; color: #3d5a10; }
+    .ib-grupo h3 a { font-size: 0.85rem; color: #8E0404; font-weight: 700; }
+    .ib-temas { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ib-tema { padding: 8px 14px; border: 2px solid #8E0404; border-radius: 18px; background: #fff; color: #8E0404; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+    .ib-tema:hover { background: #8E0404; color: #fff; }
+    .ib-docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .ib-doc, .ib-lugar { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid #ece2cb; border-radius: 12px; background: #fff; color: #222; text-decoration: none; }
+    .ib-doc:hover, .ib-lugar:hover { border-color: #FFA105; background: #fffaf0; }
+    .ib-lugar + .ib-lugar { margin-top: 8px; }
+    .ib-doc img, .ib-doc .sin-portada { display: block; flex: 0 0 auto; width: 52px; height: 70px; object-fit: cover; background: #e2d3b2; box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.25); }
+    .ib-doc strong, .ib-lugar strong { display: block; font-size: 0.92rem; line-height: 1.3; }
+    .ib-doc small, .ib-lugar small { display: block; color: #666; font-size: 0.8rem; }
+    .ib-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+    .ib-foto { display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 10px; background: #e2d3b2; }
+    .ib-foto:hover img, .ib-foto:hover video { transform: scale(1.04); }
+    .ib-foto img, .ib-foto video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+    .ib-nada { margin: 0; color: #555; line-height: 1.5; }
+
+    /* El tema al que se llega desde el buscador se resalta un momento */
+    .inicio-resaltado { animation: resaltar 2.4s ease-out; }
+    @keyframes resaltar { 0%, 30% { box-shadow: 0 0 0 4px #FFA105, 0 0 0 12px rgba(255, 161, 5, 0.25); } 100% { box-shadow: 0 0 0 4px transparent, 0 0 0 12px transparent; } }
+    @media (prefers-reduced-motion: reduce) { .inicio-resaltado { animation: none; outline: 4px solid #FFA105; } }
+
+    /* ---------- Lo nuevo en Ancestra ---------- */
+    .fondo-principal .seccion.inicio-nuevo { margin-top: 70px; }      /* deja pasar el borde del papel roto de arriba */
+    .in-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+    .in-columna { display: flex; flex-direction: column; gap: 12px; }
+    .in-columna .inicio-subtitulo { margin: 0; }
+    .in-doc, .in-lugar { display: flex; gap: 12px; align-items: center; padding: 8px; border-radius: 10px; color: #222; text-decoration: none; }
+    .in-doc:hover, .in-lugar:hover { background: rgba(255, 253, 247, 0.7); }
+    .in-portada { flex: 0 0 auto; width: 54px; aspect-ratio: 3 / 4; background: #e2d3b2; box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.25); overflow: hidden; }
+    .in-portada img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .in-texto strong { display: block; font-size: 0.95rem; line-height: 1.3; }
+    .in-texto span { display: block; font-size: 0.82rem; color: #555; margin-top: 2px; }
+    .in-texto .in-fecha { color: #7a6a4a; }
+    .in-fotos { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; height: 230px; }
+    .in-foto { position: relative; display: block; overflow: hidden; border-radius: 10px; background: #e2d3b2; }
+    .in-foto:first-child { grid-row: span 2; }
+    .in-foto:only-child { grid-column: span 2; }
+    .in-foto img, .in-foto video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+    .in-foto:hover img, .in-foto:hover video { transform: scale(1.04); }
+    .in-video { position: absolute; left: 8px; bottom: 8px; padding: 2px 9px; border-radius: 10px; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 0.75rem; }
+    .in-pie { margin: 0; font-size: 0.85rem; color: #555; }
+    .in-pin { flex: 0 0 auto; font-size: 1.6rem; }
+    .in-vacio { margin: 0; color: #666; font-style: italic; }
+    .in-mas { align-self: flex-start; margin-top: auto; padding-top: 4px; color: #8E0404; font-weight: 700; }
+
+    /* ---------- Invitación a registrarse ---------- */
+    .fondo-principal .seccion.inicio-invitacion { margin-top: 60px; padding-bottom: 60px; }
+    .iv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .iv-tarjeta { display: flex; flex-direction: column; gap: 10px; padding: 26px 28px; border-radius: 16px; color: #fff;
+                  background: linear-gradient(to top right, #F22C0C 0%, #C40000 40%, #8E0404 100%); box-shadow: 0 10px 24px rgba(60, 10, 0, 0.25); }
+    .iv-tarjeta:nth-child(2) { background: linear-gradient(to top right, #8a9a1e 0%, #6E7710 50%, #4f5609 100%); }
+    .iv-tarjeta h3 { margin: 0; font-family: 'Caprasimo'; font-weight: 400; font-size: 1.5rem; color: #FFC565; }
+    .iv-tarjeta p { margin: 0; line-height: 1.55; }
+    .iv-boton { align-self: flex-start; margin-top: auto; padding: 11px 22px; border-radius: 24px; background: #fffdf7; color: #222; font-weight: 700; text-decoration: none; }
+    .iv-boton:hover { background: #FFC565; }
+    .iv-ingresar { margin: 18px 0 0; text-align: center; }
+    .iv-ingresar a { color: #8E0404; font-weight: 700; }
+
+    @media (max-width: 900px) {
+        .in-grid { grid-template-columns: minmax(0, 1fr); }
+        .iv-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+</style>
 {% endblock %}
 
 {% block clase_header %}
@@ -14,72 +100,196 @@ header-home
 {% endblock %}
 
 {% block body %}
-<!-- CONTENEDOR PRINCIPAL -->
+<!-- CONTENEDOR PRINCIPAL
+     Cada tema tiene su id (origen, migraciones, economia, ceramica, sociedad, gobierno): el buscador del inicio
+     los usará para llevar a la persona directo al tema que busca -->
 <main class="fondo-principal">
 
-    <!-- SECCIÓN 1: Historia -->
-    <section class="seccion container">
-        <h1 class="titulo">Mangue, la Raiz de Nuestra Historia</h1>
+    <!-- BUSCADOR: busca en los temas de esta página y en Memorias, Vestigio y Huellas -->
+    <section class="seccion container inicio-buscador" aria-label="Buscar en Ancestra">
+        <form class="ib-form" id="ib-form" role="search" action="{{ url_for('buscar') }}" method="GET">
+            <label class="ib-etiqueta" for="ib-texto">¿Qué quieres conocer?</label>
+            <div class="ib-barra">
+                <svg class="ib-lupa" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/><line x1="15" y1="15" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="search" id="ib-texto" name="q" placeholder="Por ejemplo: cerámica, maíz, Masaya, lengua…" autocomplete="off">
+                <button type="submit" class="ib-boton">Buscar</button>
+            </div>
+        </form>
+        <div class="ib-resultados" id="ib-resultados" aria-live="polite" hidden></div>
+    </section>
+
+    <!-- SECCIÓN 1: Quiénes eran los mangues -->
+    <section class="seccion container" id="origen" data-tema="¿Quiénes eran los mangues?" data-palabras="mangue mangues chorotega chorotegas quienes origen pueblo territorio ubicacion geografia mapa masaya granada managua carazo nicoya cacicazgos cacique espanoles conquista honduras costa rica pacifico lengua">
+        <h1 class="titulo">Mangue, la raíz de nuestra historia</h1>
 
         <div class="inicio-fila inicio-fila--mapa">
-            <!-- Mapa -->
-            <img src="{{ url_for('static', filename='assets/img/mapaindex.png') }}" alt="Mapa de Mangue" class="inicio-img img-borde shadow">
+            <!-- Columna de imágenes: el mapa arriba y el territorio hoy (el volcán Masaya) debajo -->
+            <div class="inicio-columna inicio-columna--imagenes">
+                <div class="inicio-fusion">
+                    <img src="{{ url_for('static', filename='assets/img/mapaindex.png') }}" alt="Mapa del territorio de los pueblos chorotega y mangue en la costa del Pacífico de Nicaragua y Costa Rica" class="inicio-img inicio-img--mapa">
+                </div>
+                <div class="inicio-fusion">
+                    <img src="{{ url_for('static', filename='assets/img/volcan.jpg') }}" alt="Cráter del volcán Masaya con lava incandescente al atardecer" class="inicio-img inicio-img--foto inicio-img--horizontal inicio-img--volcan">
+                </div>
+            </div>
 
-            <!-- Texto en Pergamino PNG -->
+            <!-- Texto en pergamino -->
             <div class="inicio-papel inicio-papel--der">
-                <p class="texto">Tras su llegada en la década de 1520 a la región de la costa del Pacífico de las actuales Honduras y Costa Rica, los españoles hallaron un territorio organizado en múltiples cacicazgos de diferentes tamaños e importancia, pero habitado por un pueblo, los chorotegas, que hablaba una lengua semejante a la de los nativos de Tenochtitlán. El cacique de Nicoya era el más poderoso de todos, de ahí la denominación de Reino de Nicoya, a pesar de que no se trataba de un estado centralizado.</p>
+                <h2 class="inicio-subtitulo">¿Quiénes eran los mangues?</h2>
+                <p class="texto">Cuando los españoles llegaron, en la década de 1520, a la costa del Pacífico de las actuales Honduras, Nicaragua y Costa Rica, encontraron un territorio organizado en múltiples cacicazgos de distintos tamaños e importancia, habitado en gran parte por el pueblo chorotega. El cacique de Nicoya era el más poderoso, de ahí el nombre de Reino de Nicoya, aunque no se trataba de un estado centralizado.</p>
+                <p class="texto">En Nicaragua, los chorotegas que vivían entre los lagos y la costa del Pacífico, en tierras que hoy forman parte de Masaya, Granada, Managua y Carazo, hablaban una variante de su lengua conocida como mangue. De ella toma su nombre el pueblo al que está dedicada Ancestra.</p>
             </div>
         </div>
     </section>
 
-    <!-- BANDA ROJA -->
-    <div class="banda-roja">
+    <!-- BANDA ROJA: Origen y migraciones -->
+    <div class="banda-roja" id="migraciones" data-tema="Origen y migraciones" data-palabras="origen migracion migraciones historia mexico cholula olmecas xicalancas nicaraos rivas nicoya lago guerra guerrera cacique tributos religion dioses creencias mesoamerica">
         <div class="container">
-            <p>Era una sociedad guerrera de claras raíces mesoamericanas, encabezada por un cacique que declaraba la guerra, exigía tributos y dirigía la comunidad, cuya religión creía que el mundo fue creado y destruido varias veces por disputas de los dioses.</p>
-            <p>Gracias a los relatos legendarios de los propios chorotegas, los españoles pudieron reconstruir la historia de las migraciones que, en dos etapas, los había llevado hasta allí desde el Valle de México. La primera tuvo lugar alrededor del siglo VII, cuando los olmecas xicalanca asaltaron la región de Cholula y expulsaron a los chorotegas hacia el sur. Estos se asentaron en el istmo de Rivas, junto al lago de Nicaragua. Más adelante, en los siglos XI-XII, de nuevo la presión olmeca empujó hacia el sur a los pipiles nicaraos, los cuales a su vez desplazaron a los chorotegas, que se instalaron en la península de Nicoya.</p>
+            <h2 class="inicio-subtitulo inicio-subtitulo--claro">Origen y migraciones</h2>
+            <p>Era una sociedad guerrera de claras raíces mesoamericanas, encabezada por un cacique que declaraba la guerra, exigía tributos y dirigía la comunidad. Su religión sostenía que el mundo había sido creado y destruido varias veces por disputas entre los dioses.</p>
+            <p>Gracias a los relatos de los propios chorotegas, los españoles pudieron reconstruir las dos grandes migraciones que los habían llevado hasta allí desde el centro de México. La primera ocurrió alrededor del siglo VII, cuando los olmecas xicalancas tomaron la región de Cholula y empujaron a los chorotegas hacia el sur, hasta el istmo de Rivas, junto al lago de Nicaragua. Más adelante, entre los siglos XI y XII, la presión olmeca empujó también hacia el sur a los nicaraos, que a su vez desplazaron a parte de los chorotegas hacia la península de Nicoya.</p>
         </div>
     </div>
-    <img src="/static/assets/img/lineasindigenas.svg" alt="Lineas divisorias" class="inicio-linea inicio-linea--1">
+    <img src="{{ url_for('static', filename='assets/img/lineasindigenas.svg') }}" alt="" class="inicio-linea inicio-linea--1">
 
-    <!-- SECCIÓN 2: Economía y Arte -->
+    <!-- SECCIÓN 2: Economía y artesanía / La cerámica -->
     <section class="seccion container">
         <div class="inicio-fila inicio-fila--dos">
-            <!-- Izquierda -->
-            <div class="inicio-columna inicio-columna--baja">
-                <p class="texto">Su economía se basaba en la agricultura, la caza y la pesca. También existía una artesanía especializada que elaboraba productos para la exportación, desde cerámica policromada y metates o morteros ceremoniales hasta textiles de algodón, de la que han quedado espléndidos testimonios.</p>
-                <p class="texto">Los metates, utilizados para moler maíz, son un elemento cotidiano en las culturas prehispánicas. En el mundo nicoya se convirtieron en un objeto ceremonial y se depositaban en los enterramientos. Su decoración incluye bandas y figuras zoomorfas, sobre todo aves que se creía que acompañaban al difunto a la otra vida.</p>
-                <img src="{{ url_for('static', filename='assets/img/ceramicachorotega.jpg') }}" alt="Cerámica Policromada" class="inicio-img img-borde shadow">
+            <!-- Izquierda: la economía, con la pieza de cerámica chorotega -->
+            <div class="inicio-columna inicio-columna--baja" id="economia" data-tema="Economía y artesanía" data-palabras="economia agricultura cultivos cultivo siembra maiz caza pesca comercio intercambio artesania artesanias metate metates moler textiles algodon enterramientos aves trabajo">
+                <h2 class="inicio-subtitulo">Economía y artesanía</h2>
+                <p class="texto">Su economía se basaba en la agricultura, la caza y la pesca. También existía una artesanía especializada que elaboraba productos para el intercambio con otros pueblos, desde cerámica policromada y metates ceremoniales hasta textiles de algodón, de la que se conservan espléndidos testimonios.</p>
+                <p class="texto">Los metates, piedras utilizadas para moler maíz, eran un objeto cotidiano en las culturas prehispánicas. En el mundo nicoya se convirtieron además en objetos ceremoniales que se depositaban en los enterramientos. Su decoración incluye bandas y figuras de animales, sobre todo aves, que se creía acompañaban al difunto a la otra vida.</p>
+                <div class="inicio-fusion">
+                    <img src="{{ url_for('static', filename='assets/img/ceramica.png') }}" alt="Pieza de cerámica policromada chorotega con forma de jaguar de dos cabezas" class="inicio-img inicio-img--objeto">
+                </div>
             </div>
 
-            <!-- Derecha -->
-            <div class="inicio-columna inicio-columna--sube">
-                <img src="{{ url_for('static', filename='assets/img/chorotegas.jpg') }}" alt="Indígenas Chorotegas" class="inicio-img img-borde shadow">
-                <p class="texto">La cerámica es la forma artística más característica del área cultural de Nicoya. Desde el siglo VI, las piezas se distinguen por una decoración polícroma que alcanzó su apogeo en el período Polícromo Medio (siglos IX-XIII), en el que abundan las representaciones de animales como chompipes, jaguares, serpientes, monos o lagartos.</p>
-                <p class="texto">[BUSCAR MAS TEXTO PARA PONER AQUI]</p>
+            <!-- Derecha: la cerámica, con el grabado arriba -->
+            <div class="inicio-columna inicio-columna--sube" id="ceramica" data-tema="La cerámica" data-palabras="ceramica alfareria barro vasija vasijas piezas policroma policromo arte jaguar jaguares animales serpientes monos chompipes san juan de oriente monimbo artesanos oficios tradicion">
+                <div class="inicio-fusion">
+                    <img src="{{ url_for('static', filename='assets/img/chorotegas.jpg') }}" alt="Grabado antiguo de una mujer y un hombre chorotegas en la selva" class="inicio-img inicio-img--grabado">
+                </div>
+                <h2 class="inicio-subtitulo">La cerámica</h2>
+                <p class="texto">La cerámica es la forma artística más característica del área cultural de Nicoya. Desde el siglo VI, las piezas se distinguen por una decoración policroma que alcanzó su apogeo en el período Policromo Medio (siglos IX al XIII), en el que abundan las representaciones de animales como chompipes, jaguares, serpientes, monos y lagartos.</p>
+                <p class="texto">Esa tradición sigue viva en el departamento de Masaya. En San Juan de Oriente, familias de alfareros elaboran todavía piezas que retoman las formas, los colores y los motivos de la cerámica chorotega, y en el barrio indígena de Monimbó se conservan oficios artesanales heredados de generación en generación.</p>
             </div>
         </div>
     </section>
-    <img src="/static/assets/img/lineasindigenas.svg" alt="Lineas divisorias" class="inicio-linea inicio-linea--2">
+    <img src="{{ url_for('static', filename='assets/img/lineasindigenas.svg') }}" alt="" class="inicio-linea inicio-linea--2">
 
-    <!-- SECCIÓN 3: Sociedad (Verde) -->
-    <section class="bloque-verde">
+    <!-- SECCIÓN 3 (verde): Organización social y vida cotidiana -->
+    <section class="bloque-verde" id="sociedad" data-tema="Organización social y vida cotidiana" data-palabras="sociedad social organizacion vida cotidiana tierra tierras propiedad comunal familia herencia pueblos ciudades casas vivienda templos plaza mercado mercados mujeres cacao moneda comida alimentacion maiz frijoles frutas pescado cosechas">
         <div class="container">
-            <p class="texto texto-blanco">Según los estudiosos en la sociedad chorotega la propiedad era comunal y se otorgaba en parcelas individuales a los cabeza de familia en usufructo que se podía heredar a sus hijos. El pueblo Chorotega vivía en pueblos y pequeñas ciudades que llegaron a tener aproximadamente 20000 habitantes. Las casas eran en su mayoría de madera con techo de paja. Los templos tuvieron un lugar importante dentro de los asentamientos. Las mujeres estaban a cargo de la casa y el comercio. También forma parte del trabajo en el campo hecho por mujeres. En la parte central construían una gran plaza donde se celebraban los mercados. Se utilizaron semillas de cacao como moneda. El maíz fue la base de la comida, junto con los frijoles, cacao, frutas, carne y pescado. Las tierras de cultivo fueron de propiedad colectiva y las cosechas se distribuyeron entre la población.</p>
+            <h2 class="inicio-subtitulo inicio-subtitulo--claro">Organización social y vida cotidiana</h2>
+            <p class="texto texto-blanco">Según los estudiosos, en la sociedad chorotega la tierra era de propiedad comunal: se entregaba en parcelas a los cabezas de familia, que podían trabajarla y heredarla a sus hijos, y las cosechas se repartían entre la población. Vivían en pueblos y pequeñas ciudades que llegaron a tener alrededor de 20 000 habitantes, con casas en su mayoría de madera y techo de paja.</p>
+            <p class="texto texto-blanco">En el centro de cada asentamiento había una gran plaza donde se celebraban los mercados, y los templos ocupaban un lugar importante. Las mujeres estaban a cargo de la casa y del comercio, y también trabajaban en el campo. Las semillas de cacao se usaban como moneda, y el maíz era la base de la alimentación, junto con los frijoles, el cacao, las frutas, la carne y el pescado.</p>
         </div>
     </section>
 
-    <!-- SECCIÓN 4: Consejo -->
-    <section class="seccion container">
+    <!-- SECCIÓN 4: Gobierno y lengua -->
+    <section class="seccion container" id="gobierno" data-tema="Gobierno y lengua" data-palabras="gobierno consejo ancianos jefe electo guerra lider militar armas arco flechas espada pedernal vestimenta ropa algodon lengua idioma otomangue chiapaneco mixtecos zapotecos mangue nombres lugares diria diriomo nindiri">
         <div class="inicio-fila inicio-fila--consejo">
             <div class="inicio-papel inicio-papel--izq">
-                <p class="texto">El pueblo Chorotega se regía por un consejo de ancianos y un jefe electo. En tiempos de guerra, un hombre era designado para actuar como un líder militar. Lucharon con frecuencia con las tribu vecinas. Llevaban un vestido de algodón y estaban armados con arco y flecha y una espada de madera adornada con pequeñas puntas de pedernal.</p>
-                <p class="texto">Según estos registros españoles, los chorotegas llegaron alrededor del año 800 d. C. y hablaban un dialecto del otomangue. Esta familia lingüística incluye las que hablaban los mixtecos en las tierras altas del centro-sur de México, así como los zapotecas, que establecieron algunos de los primeros centros urbanos de Mesoamérica a partir del siglo VI a. C.</p>
+                <h2 class="inicio-subtitulo">Gobierno y lengua</h2>
+                <p class="texto">El pueblo chorotega se regía por un consejo de ancianos y un jefe electo. En tiempos de guerra se designaba a un hombre para que actuara como líder militar. Se enfrentaban con frecuencia a los pueblos vecinos; vestían ropa de algodón y combatían con arco, flechas y espadas de madera con filos de pedernal.</p>
+                <p class="texto">Según los registros españoles, hablaban una lengua de la familia otomangue, la misma a la que pertenecen las de los mixtecos y los zapotecos del sur de México; su pariente más cercano es el chiapaneco. El mangue dejó de hablarse en el siglo XIX, pero su huella sigue presente en nombres de lugares de la región, como Diriá, Diriomo y Nindirí.</p>
             </div>
 
-            <img src="{{ url_for('static', filename='assets/img/petroglifo.png') }}" alt="Petroglifo Ancestral" class="inicio-img img-borde shadow">
+            <div class="inicio-fusion">
+                <img src="{{ url_for('static', filename='assets/img/petroglifo.png') }}" alt="Petroglifo con espirales y líneas talladas en una roca" class="inicio-img inicio-img--objeto">
+            </div>
         </div>
     </section>
 
+
+    <!-- LO NUEVO EN ANCESTRA: lo último que se agregó a cada sección (cambia solo cada vez que se sube algo) -->
+    <section class="seccion container inicio-nuevo" id="nuevo">
+        <h2 class="titulo">Lo nuevo en Ancestra</h2>
+        <div class="in-grid">
+
+            <div class="in-columna">
+                <h3 class="inicio-subtitulo">En Memorias</h3>
+                {% for a in nuevos_documentos %}
+                {# a: (id_archivo, nombre, descripcion, url, categoria_id, tipo, fecha_creacion, fecha_modificacion, administrador_id, estado) #}
+                <a class="in-doc" href="{{ url_for('static', filename=a[3].split('static/')[1]) }}" target="_blank" rel="noopener">
+                    <span class="in-portada">
+                        {% if a[0] in portadas %}<img src="{{ url_for('static', filename=portadas[a[0]]) }}" alt="" loading="lazy">{% endif %}
+                    </span>
+                    <span class="in-texto">
+                        <strong>{{ a[1] }}</strong>
+                        {% if autores_de.get(a[0]) %}<span>Por: {{ autores_de[a[0]] | join(', ') }}</span>{% endif %}
+                        {% if a[6] %}<span class="in-fecha">Agregado el {{ a[6].strftime('%d/%m/%Y') }}</span>{% endif %}
+                    </span>
+                </a>
+                {% else %}
+                <p class="in-vacio">Muy pronto habrá documentos aquí.</p>
+                {% endfor %}
+                <a class="in-mas" href="{{ url_for('biblioteca') }}">Ver todas las memorias</a>
+            </div>
+
+            <div class="in-columna">
+                <h3 class="inicio-subtitulo">En Vestigio</h3>
+                {% if nuevas_imagenes %}
+                <div class="in-fotos">
+                    {% for f in nuevas_imagenes %}
+                    {% set ruta = url_for('static', filename=f[3].split('static/')[1]) %}
+                    <a class="in-foto" href="{{ url_for('galeria') }}" title="{{ f[1] }}">
+                        {% if f[5] == 'video' %}
+                        <video src="{{ ruta }}" muted preload="metadata" aria-label="{{ f[1] }}"></video>
+                        <span class="in-video" aria-hidden="true">▶</span>
+                        {% else %}
+                        <img src="{{ ruta }}" alt="{{ f[1] }}" loading="lazy">
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                <p class="in-pie">{{ nuevas_imagenes[0][1] }}{% if nuevas_imagenes | length > 1 %} y más{% endif %}</p>
+                {% else %}
+                <p class="in-vacio">Muy pronto habrá imágenes y videos aquí.</p>
+                {% endif %}
+                <a class="in-mas" href="{{ url_for('galeria') }}">Ver toda la galería</a>
+            </div>
+
+            <div class="in-columna">
+                <h3 class="inicio-subtitulo">En Huellas</h3>
+                {% for l in nuevos_lugares %}
+                {# l: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id, estado, contacto, latitud, longitud) #}
+                <a class="in-lugar" href="{{ url_for('mapa') }}">
+                    <span class="in-pin" aria-hidden="true">📍</span>
+                    <span class="in-texto">
+                        <strong>{{ l[1] }}</strong>
+                        {% if l[3] %}<span>{{ l[3] }}</span>{% endif %}
+                    </span>
+                </a>
+                {% else %}
+                <p class="in-vacio">Muy pronto habrá lugares en el mapa.</p>
+                {% endfor %}
+                <a class="in-mas" href="{{ url_for('mapa') }}">Ver el mapa</a>
+            </div>
+
+        </div>
+    </section>
+
+    {% if not session.get('persona_id') %}
+    <!-- INVITACIÓN: solo la ven quienes no han iniciado sesión -->
+    <section class="seccion container inicio-invitacion" aria-labelledby="invitacion-titulo">
+        <h2 class="titulo" id="invitacion-titulo">Aprende y enseña con Ancestra</h2>
+        <div class="iv-grid">
+            <div class="iv-tarjeta">
+                <h3>¿Eres docente?</h3>
+                <p>Crea evaluaciones con tus propias preguntas sobre la cultura mangue, compártelas con un código y revisa los resultados de tus estudiantes.</p>
+                <a class="iv-boton" href="{{ url_for('registro', tipo='docente') }}">Crear cuenta de docente</a>
+            </div>
+            <div class="iv-tarjeta">
+                <h3>¿Eres estudiante?</h3>
+                <p>Escribe el código que te dio tu docente, responde la evaluación y consulta tus resultados cuando quieras.</p>
+                <a class="iv-boton" href="{{ url_for('registro', tipo='estudiante') }}">Crear cuenta de estudiante</a>
+            </div>
+        </div>
+        <p class="iv-ingresar">¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Inicia sesión</a></p>
+    </section>
+    {% endif %}
 </main>
 
 <!-- FOOTER -->
@@ -89,13 +299,13 @@ header-home
         <div class="footer-redes">
             <h3 class="footer-titulo">Síguenos</h3>
             <ul class="lista-redes">
-                <li><a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i> Facebook</a></li>
-                <li><a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i> Instagram</a></li>
-                <li><a href="https://tiktok.com" target="_blank"><i class="fab fa-tiktok"></i> Tiktok</a></li>
-                <li><a href="https://youtube.com" target="_blank"><i class="fab fa-youtube"></i> YouTube</a></li>
+                <li><a href="https://facebook.com" target="_blank" rel="noopener"><i class="fab fa-facebook" aria-hidden="true"></i> Facebook</a></li>
+                <li><a href="https://instagram.com" target="_blank" rel="noopener"><i class="fab fa-instagram" aria-hidden="true"></i> Instagram</a></li>
+                <li><a href="https://tiktok.com" target="_blank" rel="noopener"><i class="fab fa-tiktok" aria-hidden="true"></i> TikTok</a></li>
+                <li><a href="https://youtube.com" target="_blank" rel="noopener"><i class="fab fa-youtube" aria-hidden="true"></i> YouTube</a></li>
             </ul>
         </div>
-        
+
         <!-- Logo -->
         <div class="footer-logo">
             <div class="fondo-logo">
@@ -103,7 +313,168 @@ header-home
             </div>
         </div>
     </div>
-    
+
     <div class="borde-footer"></div>
 </footer>
+{% endblock %}
+
+{% block js %}
+<script>
+    // ===== Buscador del inicio =====
+    // 1) Busca entre los temas de esta página (por su título, sus palabras clave y su texto).
+    // 2) Pide al servidor lo que coincide en Memorias, Vestigio y Huellas.
+    (function () {
+        const formulario = document.getElementById('ib-form');
+        const campo = document.getElementById('ib-texto');
+        const caja = document.getElementById('ib-resultados');
+        const RUTAS = {
+            buscar: "{{ url_for('buscar') }}",
+            memorias: "{{ url_for('biblioteca') }}",
+            vestigio: "{{ url_for('galeria') }}",
+            huellas: "{{ url_for('mapa') }}"
+        };
+        const sinTildes = function (t) { return (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+
+        // Los temas de la página, con todo su texto ya preparado para buscar
+        const temas = Array.from(document.querySelectorAll('[data-tema]')).map(function (el) {
+            return { el: el, titulo: el.dataset.tema, texto: sinTildes(el.dataset.tema + ' ' + el.dataset.palabras + ' ' + el.textContent) };
+        });
+
+        function palabrasDe(consulta) {
+            return sinTildes(consulta).split(/\s+/).filter(function (p) { return p.length >= 3; });
+        }
+
+        function crear(etiqueta, clase, texto) {
+            const el = document.createElement(etiqueta);
+            if (clase) el.className = clase;
+            if (texto) el.textContent = texto;
+            return el;
+        }
+
+        function grupo(titulo, enlaceTexto, enlaceRuta) {
+            const g = crear('div', 'ib-grupo');
+            const h = crear('h3', '', titulo);
+            if (enlaceTexto) {
+                const a = crear('a', '', enlaceTexto);
+                a.href = enlaceRuta;
+                h.appendChild(a);
+            }
+            g.appendChild(h);
+            return g;
+        }
+
+        function irATema(tema) {
+            const suave = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            tema.el.scrollIntoView({ behavior: suave ? 'smooth' : 'auto', block: 'start' });
+            tema.el.classList.remove('inicio-resaltado');
+            void tema.el.offsetWidth;                  // reinicia la animación si se vuelve a elegir el mismo tema
+            tema.el.classList.add('inicio-resaltado');
+        }
+
+        let pedido = null;
+        async function buscar(consulta) {
+            const palabras = palabrasDe(consulta);
+            if (!palabras.length) { caja.hidden = true; caja.textContent = ''; return; }
+
+            // Temas de esta página: deben aparecer todas las palabras
+            const temasEncontrados = temas.filter(function (t) {
+                return palabras.every(function (p) { return t.texto.includes(p); });
+            });
+
+            // Lo del resto de la plataforma
+            if (pedido) pedido.abort();
+            pedido = new AbortController();
+            let datos = { documentos: [], imagenes: [], lugares: [], total_documentos: 0, total_imagenes: 0, total_lugares: 0 };
+            try {
+                const respuesta = await fetch(RUTAS.buscar + '?q=' + encodeURIComponent(consulta), { signal: pedido.signal });
+                if (respuesta.ok) datos = await respuesta.json();
+            } catch (error) {
+                if (error.name === 'AbortError') return;     // llegó una búsqueda más nueva
+            }
+
+            caja.textContent = '';
+            const q = encodeURIComponent(consulta);
+
+            if (temasEncontrados.length) {
+                const g = grupo('En esta página');
+                const lista = crear('div', 'ib-temas');
+                temasEncontrados.forEach(function (t) {
+                    const b = crear('button', 'ib-tema', t.titulo);
+                    b.type = 'button';
+                    b.addEventListener('click', function () { irATema(t); });
+                    lista.appendChild(b);
+                });
+                g.appendChild(lista);
+                caja.appendChild(g);
+            }
+
+            if (datos.documentos.length) {
+                const g = grupo('En Memorias', 'Ver ' + (datos.total_documentos > datos.documentos.length ? 'los ' + datos.total_documentos : 'en Memorias'), RUTAS.memorias + '?q=' + q);
+                const lista = crear('div', 'ib-docs');
+                datos.documentos.forEach(function (d) {
+                    const a = crear('a', 'ib-doc');
+                    a.href = d.url; a.target = '_blank'; a.rel = 'noopener';
+                    if (d.portada) { const img = crear('img'); img.src = d.portada; img.alt = ''; img.loading = 'lazy'; a.appendChild(img); }
+                    else a.appendChild(crear('span', 'sin-portada'));
+                    const texto = crear('span');
+                    texto.appendChild(crear('strong', '', d.nombre));
+                    if (d.autores) texto.appendChild(crear('small', '', 'Por: ' + d.autores));
+                    a.appendChild(texto);
+                    lista.appendChild(a);
+                });
+                g.appendChild(lista);
+                caja.appendChild(g);
+            }
+
+            if (datos.imagenes.length) {
+                const g = grupo('En Vestigio', 'Ver ' + (datos.total_imagenes > datos.imagenes.length ? 'las ' + datos.total_imagenes : 'en Vestigio'), RUTAS.vestigio + '?q=' + q);
+                const lista = crear('div', 'ib-fotos');
+                datos.imagenes.forEach(function (f) {
+                    const a = crear('a', 'ib-foto');
+                    a.href = RUTAS.vestigio + '?q=' + q; a.title = f.nombre;
+                    const media = crear(f.tipo === 'video' ? 'video' : 'img');
+                    media.src = f.url;
+                    if (f.tipo === 'video') { media.muted = true; media.preload = 'metadata'; media.setAttribute('aria-label', f.nombre); }
+                    else { media.alt = f.nombre; media.loading = 'lazy'; }
+                    a.appendChild(media);
+                    lista.appendChild(a);
+                });
+                g.appendChild(lista);
+                caja.appendChild(g);
+            }
+
+            if (datos.lugares.length) {
+                const g = grupo('En Huellas', 'Ver el mapa', RUTAS.huellas);
+                datos.lugares.forEach(function (l) {
+                    const a = crear('a', 'ib-lugar');
+                    a.href = l.enlace;
+                    a.appendChild(crear('span', '', '📍'));
+                    const texto = crear('span');
+                    texto.appendChild(crear('strong', '', l.nombre));
+                    if (l.direccion) texto.appendChild(crear('small', '', l.direccion));
+                    a.appendChild(texto);
+                    g.appendChild(a);
+                });
+                caja.appendChild(g);
+            }
+
+            if (!caja.children.length) {
+                caja.appendChild(crear('p', 'ib-nada', 'No encontramos nada con «' + consulta.trim() + '». Prueba con otra palabra, como cerámica, maíz, lengua o Masaya.'));
+            }
+            caja.hidden = false;
+        }
+
+        // Busca mientras se escribe (con una pequeña pausa) y también al presionar "Buscar"
+        let espera = null;
+        campo.addEventListener('input', function () {
+            clearTimeout(espera);
+            espera = setTimeout(function () { buscar(campo.value); }, 300);
+        });
+        formulario.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearTimeout(espera);
+            buscar(campo.value);
+        });
+    })();
+</script>
 {% endblock %}

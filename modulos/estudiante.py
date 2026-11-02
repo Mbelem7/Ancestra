@@ -2,25 +2,45 @@ from app import db
 from sqlalchemy import text
 
 
-def insertar_estudiante(persona_id, estado):
+# Los datos nuevos del registro (nivel, centro de estudio, municipio y departamento) van SIEMPRE al final
+# de cada consulta, para que las posiciones que ya se usan (e[0], e[1]... e[8]) no cambien.
+# Los estudiantes que se registraron antes de este cambio tienen esos datos vacíos (None).
+
+_UBICACION = """
+            LEFT JOIN municipio mu ON mu.id_municipio = e.municipio_id
+            LEFT JOIN departamento de ON de.id_departamento = mu.departamento_id
+"""
+
+
+def insertar_estudiante(persona_id, estado, nivel_educativo=None,
+                        centro_estudio=None, municipio_id=None):
 
     resultado = db.session.execute(
         text("""
             INSERT INTO estudiante
             (
                 persona_id,
-                estado
+                estado,
+                nivel_educativo,
+                centro_estudio,
+                municipio_id
             )
             VALUES
             (
                 :persona_id,
-                :estado
+                :estado,
+                :nivel_educativo,
+                :centro_estudio,
+                :municipio_id
             )
             RETURNING id_estudiante
         """),
         {
             'persona_id': persona_id,
-            'estado': estado
+            'estado': estado,
+            'nivel_educativo': nivel_educativo,
+            'centro_estudio': centro_estudio,
+            'municipio_id': municipio_id
         }
     )
 
@@ -32,9 +52,12 @@ def insertar_estudiante(persona_id, estado):
 
 
 def obtener_estudiantes():
+    # Devuelve: (id_estudiante, estado, id_persona, nombre_1, nombre_2, apellido_1, apellido_2,
+    #            fecha_nacimiento, correo,
+    #            nivel_educativo, centro_estudio, municipio, departamento)
 
     resultado = db.session.execute(
-        text("""
+        text(f"""
             SELECT
                 e.id_estudiante,
                 e.estado,
@@ -44,9 +67,14 @@ def obtener_estudiantes():
                 p.apellido_1,
                 p.apellido_2,
                 p.fecha_nacimiento,
-                p.correo
+                p.correo,
+                e.nivel_educativo,
+                e.centro_estudio,
+                mu.nombre,
+                de.nombre
             FROM estudiante e
             INNER JOIN persona p ON p.id_persona = e.persona_id
+            {_UBICACION}
         """)
     )
 
@@ -56,9 +84,10 @@ def obtener_estudiantes():
 
 
 def obtener_un_estudiante(id_estudiante):
+    # Devuelve las mismas columnas que obtener_estudiantes()
 
     resultado = db.session.execute(
-        text("""
+        text(f"""
             SELECT
                 e.id_estudiante,
                 e.estado,
@@ -68,9 +97,14 @@ def obtener_un_estudiante(id_estudiante):
                 p.apellido_1,
                 p.apellido_2,
                 p.fecha_nacimiento,
-                p.correo
+                p.correo,
+                e.nivel_educativo,
+                e.centro_estudio,
+                mu.nombre,
+                de.nombre
             FROM estudiante e
             INNER JOIN persona p ON p.id_persona = e.persona_id
+            {_UBICACION}
             WHERE e.id_estudiante = :id_estudiante
         """),
         {
@@ -121,6 +155,7 @@ def actualizar_estado_estudiante(id_estudiante, estado):
     )
 
     db.session.commit()
+
 
 def contar_estudiantes_activos():
     # Cuántos estudiantes tienen su registro y su cuenta activos

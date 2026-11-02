@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, session, jsonify, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
@@ -71,6 +71,8 @@ from modulos.estudiante import *
 from modulos.lugares import *
 from modulos.ruta import *
 from modulos.administrador import *
+from modulos.ubicacion import *
+from modulos.bitacora import *
 from modulos import seguridad
 import random
 import unicodedata
@@ -178,10 +180,27 @@ def puede_crear_plantillas(f):
 
 ########################################################################
 #REGISTRO
+# Niveles educativos: el valor que se guarda y cómo se muestra (los mismos del CHECK de la base de datos)
+NIVELES_EDUCATIVOS = [
+    ('primaria', 'Primaria'),
+    ('secundaria', 'Secundaria'),
+    ('tecnico', 'Técnico'),
+    ('universidad', 'Universidad'),
+    ('otro', 'Otro'),
+]
+app.jinja_env.globals['NIVELES_EDUCATIVOS'] = NIVELES_EDUCATIVOS
+
+
+def datos_ubicacion():
+    # Lo que necesita el formulario de registro para las listas de departamento y municipio
+    return {'departamentos': obtener_departamentos(), 'municipios': obtener_municipios()}
+
+
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'GET':
-        return render_template('registro.html', datos={})
+        tipo = request.args.get('tipo')
+        return render_template('registro.html', datos={'tipo': tipo} if tipo in ('docente', 'estudiante') else {}, **datos_ubicacion())
 
     tipo = request.form.get('tipo', '')
     nombre_1 = request.form.get('nombre_1', '').strip()
@@ -192,6 +211,13 @@ def registro():
     correo = request.form.get('correo', '').strip().lower()
     contrasena = request.form.get('contrasena', '')
     confirmar = request.form.get('confirmar', '')
+
+    # Datos nuevos: dónde enseña o estudia (norma de datos mínimos: solo lo necesario para identificar la cuenta)
+    nivel_educativo = request.form.get('nivel_educativo', '')
+    centro = ' '.join(request.form.get('centro', '').split())
+    area = ' '.join(request.form.get('area', '').split())
+    municipio_texto = request.form.get('municipio_id', '')
+    acepta_privacidad = request.form.get('acepta_privacidad') == 'si'
 
     #VALIDACIONES
     erroresR = []
@@ -219,6 +245,23 @@ def registro():
     elif obtener_persona_por_correo(correo):
         erroresR.append("Ya existe una cuenta con ese correo.")
 
+    # Centro educativo
+    es_docente = tipo == 'docente'
+    if nivel_educativo not in [valor for valor, _ in NIVELES_EDUCATIVOS]:
+        erroresR.append("Elige el nivel en el que enseñas." if es_docente else "Elige el nivel que estudias.")
+    if not centro or len(centro) > 150:
+        erroresR.append(("El centro de trabajo" if es_docente else "El centro de estudio")
+                        + " es obligatorio y no debe exceder los 150 caracteres.")
+    if es_docente and len(area) > 100:
+        erroresR.append("El área o asignatura no debe exceder los 100 caracteres.")
+
+    municipio_id = int(municipio_texto) if municipio_texto.isdigit() else None
+    if not municipio_id or not obtener_un_municipio(municipio_id):
+        erroresR.append("Elige tu departamento y tu municipio.")
+
+    if not acepta_privacidad:
+        erroresR.append("Para crear tu cuenta debes aceptar cómo usamos tus datos.")
+
      # Norma 2.1: complejidad de la contraseña (2.1.1) y que no esté en filtraciones conocidas (2.1.3)
     if contrasena != confirmar:
         erroresR.append("Las contraseñas no coinciden.")
@@ -232,62 +275,118 @@ def registro():
             erroresR.append(mensaje_filtracion)
 
     if erroresR:
-        return render_template('registro.html', erroresR=erroresR, datos=request.form)
-    
+        return render_template('registro.html', erroresR=erroresR, datos=request.form, **datos_ubicacion())
+
     ahora = datetime.now()
     id_persona = insertar_persona(
         nombre_1, nombre_2 or None, apellido_1, apellido_2 or None,
         fecha_nacimiento, correo, tipo, 'activo',
-        generate_password_hash(contrasena), ahora, ahora
+        generate_password_hash(contrasena), ahora, ahora,
+        fecha_consentimiento=ahora
     )
 
     # Si falla la creación del perfil, se deshace la persona para no dejar una cuenta a medias
     try:
-        if tipo == 'docente':
-            insertar_docente(id_persona, 'pendiente')
+        if es_docente:
+            insertar_docente(id_persona, 'pendiente', nivel_educativo, centro, area or None, municipio_id)
         else:
-            id_estudiante = insertar_estudiante(id_persona, 'activo')
+            id_estudiante = insertar_estudiante(id_persona, 'activo', nivel_educativo, centro, municipio_id)
     except Exception as error:
         print("No se pudo crear el perfil:", error)
         db.session.rollback()
         eliminar_persona(id_persona)
-        return render_template('registro.html', erroresR=["No se pudo crear tu cuenta. Intenta de nuevo."], datos=request.form)
+        return render_template('registro.html', erroresR=["No se pudo crear tu cuenta. Intenta de nuevo."],
+                               datos=request.form, **datos_ubicacion())
 
-    if tipo == 'docente':
+    if es_docente:
         return redirect(url_for('login', aviso='docente_pendiente'))
 
     iniciar_sesion(id_persona, nombre_1, apellido_1, 'estudiante', id_estudiante)
     return redirect(url_for('index'))
-
 ########################################################################
+#LOGIN
+# ======================= BLOQUE A =======================
+ 
+#BITÁCORA DE ACCESOS Y BLOQUEO POR INTENTOS
+# Rama 1 · Política 3 · Control 3.1.1: cada inicio de sesión, intento fallido, bloqueo y cierre queda registrado.
+# Rama 1 · Política 2 · Control 2.3.1: tras INTENTOS_MAXIMOS fallos seguidos con el mismo correo, se bloquea por MINUTOS_BLOQUEO.
+INTENTOS_MAXIMOS = 5
+MINUTOS_BLOQUEO = 15
+ 
+def ip_del_cliente():
+    # En Render la app está detrás de un proxy: la IP real llega en X-Forwarded-For (la primera de la lista)
+    reenviada = request.headers.get('X-Forwarded-For', '')
+    return (reenviada.split(',')[0].strip() or request.remote_addr or '')[:45]
+ 
+ 
+def registrar_acceso(persona_id, correo, evento):
+    # Si la bitácora falla, el inicio de sesión sigue funcionando: solo se avisa en la terminal
+    try:
+        insertar_evento_bitacora(
+            persona_id, (correo or '')[:100] or None, evento,
+            ip_del_cliente(), (request.user_agent.string or '')[:255], datetime.now()
+        )
+    except Exception as error:
+        print("No se pudo registrar en la bitácora:", error)
+        db.session.rollback()
+ 
+ 
+def minutos_de_bloqueo(correo):
+    # Cuántos minutos le faltan a ese correo para poder intentar de nuevo (0 si no está bloqueado)
+    ahora = datetime.now()
+    fallidos = obtener_fallidos_recientes(correo, ahora - timedelta(minutes=MINUTOS_BLOQUEO), INTENTOS_MAXIMOS)
+    if len(fallidos) < INTENTOS_MAXIMOS:
+        return 0
+    # Se desbloquea cuando el más antiguo de esos intentos sale de la ventana de tiempo
+    restante = (fallidos[-1] + timedelta(minutes=MINUTOS_BLOQUEO) - ahora).total_seconds()
+    return int(-(-restante // 60)) if restante > 0 else 0       # redondeado hacia arriba
+ 
+ 
+def mensaje_de_bloqueo(minutos):
+    return (f"Hubo demasiados intentos fallidos con este correo. Por seguridad, espera "
+            f"{minutos} {'minuto' if minutos == 1 else 'minutos'} e inténtalo de nuevo.")
+ 
+ 
 #LOGIN
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     siguiente = request.args.get('next') or request.form.get('next') or ''
-
+ 
     if request.method == 'GET':
         return render_template('login.html', aviso=AVISOS_LOGIN.get(request.args.get('aviso')), siguiente=siguiente)
-
+ 
     correo = request.form.get('correo', '').strip().lower()
     contrasena = request.form.get('contrasena', '')
-
+ 
+    # Control 2.3.1: si este correo ya acumuló demasiados intentos fallidos, ni siquiera se revisa la contraseña
+    minutos = minutos_de_bloqueo(correo)
+    if minutos:
+        return render_template('login.html', error=mensaje_de_bloqueo(minutos), siguiente=siguiente, correo=correo)
+ 
     persona = obtener_persona_por_correo(correo)
     # persona: (id_persona, nombre_1, apellido_1, correo, tipo, estado, contraseña)
-
+ 
     # El mismo mensaje si el correo no existe o la contraseña está mal, para no dar pistas
     if not persona or not persona[6] or not check_password_hash(persona[6], contrasena):
+        registrar_acceso(persona[0] if persona else None, correo, 'intento_fallido')
+        minutos = minutos_de_bloqueo(correo)
+        if minutos:
+            registrar_acceso(persona[0] if persona else None, correo, 'bloqueo')
+            return render_template('login.html', error=mensaje_de_bloqueo(minutos), siguiente=siguiente, correo=correo)
         return render_template('login.html', error="Correo o contraseña incorrectos.", siguiente=siguiente, correo=correo)
-
+ 
     if persona[5] != 'activo':
+        registrar_acceso(persona[0], correo, 'cuenta_inactiva')
         return render_template('login.html', error="Tu cuenta está desactivada. Habla con un administrador.", siguiente=siguiente, correo=correo)
-
+ 
     rol_id = id_del_rol(persona[0], persona[4])
     if rol_id is None:
         return render_template('login.html', error="Tu cuenta no tiene un perfil asignado. Habla con un administrador.", siguiente=siguiente, correo=correo)
-
+ 
     iniciar_sesion(persona[0], persona[1], persona[2], persona[4], rol_id)
     session['correo'] = persona[3]
-
+    registrar_acceso(persona[0], correo, 'inicio_sesion')
+ 
     # Norma 2.1: toda contraseña caduca y debe cumplir la complejidad actual; si no, debe cambiarla antes de seguir
     ultimo_cambio = persona[8] or persona[7] or datetime.now()
     session['contrasena_vence'] = seguridad.vencimiento(ultimo_cambio).isoformat()
@@ -297,15 +396,18 @@ def login():
         session['debe_cambiar_contrasena'] = 'no_cumple'
     if session.get('debe_cambiar_contrasena'):
         return redirect(url_for('cambiar_contrasena'))
-
+ 
     return redirect(destino_seguro(siguiente) or url_for('index'))
-
-
+ 
+ 
 #LOGOUT
 @app.route('/logout')
 def logout():
+    if 'persona_id' in session:
+        registrar_acceso(session['persona_id'], session.get('correo'), 'cierre_sesion')
     session.clear()
     return redirect(url_for('index'))
+ 
 
 ########################################################################
 #NORMA DE CONTRASEÑAS (2.1): complejidad, caducidad y filtraciones conocidas
@@ -397,33 +499,47 @@ def notificar_caducidad():
     print(f"Avisos de caducidad: {enviados} enviados, {sin_enviar} sin enviar.")
 
 #ADMIN - APROBAR DOCENTES
+#ADMIN - APROBAR DOCENTES Y TABLERO
+from collections import Counter
+ 
 # Colores de cada tipo de juego en las gráficas (los mismos de las piezas de puzzle)
 COLORES_TIPO = {'verdadero_falso': '#FFC565', 'seleccion_multiple': '#BECC29', 'completar': '#10C6D9', 'union': '#F22C0C'}
 NOMBRES_CORTOS = {'verdadero_falso': 'V/F', 'seleccion_multiple': 'Múltiple', 'completar': 'Completar', 'union': 'Unir'}
-
-
-def repartir_por_tipo(conteo):
-    # conteo: {tipo: cantidad}. Devuelve (filas, total): una fila por cada tipo de juego (también los que
-    # tienen 0) con su porcentaje entero, que siempre suma 100, y los datos para dibujar el pastel.
-    total = sum(conteo.get(tipo, 0) for tipo in JUEGOS_DISPONIBLES)
+ 
+# Colores de cada nivel educativo en las gráficas. "sin_dato" son las cuentas creadas antes de que el registro pidiera el nivel
+COLORES_NIVEL = {'primaria': '#FFA105', 'secundaria': '#10C6D9', 'tecnico': '#BECC29', 'universidad': '#F22C0C', 'otro': '#9d9696'}
+CATEGORIAS_NIVEL = [(valor, nombre, COLORES_NIVEL[valor]) for valor, nombre in NIVELES_EDUCATIVOS] \
+                   + [('sin_dato', 'Sin dato (cuenta anterior)', '#d9d9d9')]
+ 
+ 
+def nivel_de(valor):
+    # El nivel guardado, o 'sin_dato' si la cuenta es de antes de que se pidiera
+    return valor if valor in COLORES_NIVEL else 'sin_dato'
+ 
+ 
+def repartir_en_pastel(conteo, categorias):
+    # conteo: {clave: cantidad}. categorias: [(clave, nombre, color)], en el orden en que se muestran.
+    # Devuelve (filas, total): una fila por categoría (también las que tienen 0) con su porcentaje entero,
+    # que siempre suma 100, y los datos para dibujar el pastel.
+    total = sum(conteo.get(clave, 0) for clave, _, _ in categorias)
     filas = []
-    for tipo in JUEGOS_DISPONIBLES:
-        cantidad = conteo.get(tipo, 0)
+    for clave, nombre, color in categorias:
+        cantidad = conteo.get(clave, 0)
         filas.append({
-            'tipo': tipo,
-            'nombre': NOMBRES_TIPO[tipo],
+            'tipo': clave,
+            'nombre': nombre,
             'cantidad': cantidad,
             'exacto': cantidad * 100 / total if total else 0,
-            'color': COLORES_TIPO[tipo]
+            'color': color
         })
-
+ 
     # Porcentajes enteros que suman 100 (los que faltan se reparten entre los de mayor decimal)
     for fila in filas:
         fila['porcentaje'] = int(fila['exacto'])
     faltan = 100 - sum(fila['porcentaje'] for fila in filas) if total else 0
     for fila in sorted(filas, key=lambda f: f['exacto'] - int(f['exacto']), reverse=True)[:faltan]:
         fila['porcentaje'] += 1
-
+ 
     # Dónde empieza y cuánto mide cada rebanada (el círculo completo mide 100; se deja un huequito entre rebanadas)
     con_datos = sum(1 for fila in filas if fila['cantidad'])
     espacio = 0.8 if con_datos > 1 else 0
@@ -432,22 +548,82 @@ def repartir_por_tipo(conteo):
         fila['dash'] = round(max(fila['exacto'] - espacio, 0.3), 3) if fila['cantidad'] else 0
         fila['desfase'] = round(25 - acumulado, 3)      # 25 = empezar arriba y avanzar hacia la derecha
         acumulado += fila['exacto']
-
+ 
     return filas, total
+ 
+ 
+def repartir_por_tipo(conteo):
+    # El pastel de plantillas por tipo de juego
+    return repartir_en_pastel(conteo, [(t, NOMBRES_TIPO[t], COLORES_TIPO[t]) for t in JUEGOS_DISPONIBLES])
+ 
+ 
+def barras_por_departamento(nombres):
+    # nombres: el departamento de cada persona (None si no lo indicó).
+    # Devuelve una barra por departamento, de mayor a menor, con su ancho relativo al mayor.
+    conteo = Counter(nombre or 'Sin dato (cuenta anterior)' for nombre in nombres)
+    maximo = max(conteo.values(), default=0)
+    return [{'nombre': nombre, 'cantidad': cantidad, 'ancho': round(cantidad * 100 / maximo) if maximo else 0}
+            for nombre, cantidad in conteo.most_common()]
 
-
+#ADMIN - BITÁCORA DE ACCESOS (para la revisión semanal del control 3.1.1)
+EVENTOS_BITACORA = {
+    'inicio_sesion': 'Inicio de sesión',
+    'intento_fallido': 'Intento fallido',
+    'bloqueo': 'Bloqueo por intentos',
+    'cuenta_inactiva': 'Cuenta desactivada',
+    'cierre_sesion': 'Cierre de sesión',
+}
+ 
+ 
+def navegador_corto(agente):
+    # "Chrome en Windows", "Safari en iPhone"... a partir del texto largo que manda el navegador
+    agente = agente or ''
+    navegador = next((nombre for nombre, clave in (('Edge', 'Edg/'), ('Opera', 'OPR/'), ('Chrome', 'Chrome/'),
+                                                   ('Firefox', 'Firefox/'), ('Safari', 'Safari/')) if clave in agente), 'Otro')
+    sistema = next((nombre for nombre, clave in (('Android', 'Android'), ('iPhone', 'iPhone'), ('iPad', 'iPad'),
+                                                 ('Windows', 'Windows'), ('Mac', 'Mac OS'), ('Linux', 'Linux')) if clave in agente), '')
+    return f"{navegador} en {sistema}" if sistema else navegador
+ 
+ 
+@app.route('/admin/bitacora')
+@rol_requerido('administrador')
+def admin_bitacora():
+    evento = request.args.get('evento', '')
+    if evento not in EVENTOS_BITACORA:
+        evento = ''
+    correo = request.args.get('correo', '').strip()[:100]
+ 
+    filas = obtener_bitacora(300, evento or None, correo or None)
+    # fila: (id_bitacora, fecha, evento, correo, ip, navegador, nombre_1, apellido_1, tipo)
+    registros = [{
+        'fecha': f[1],
+        'evento': f[2],
+        'nombre_evento': EVENTOS_BITACORA.get(f[2], f[2]),
+        'correo': f[3],
+        'ip': f[4],
+        'navegador': navegador_corto(f[5]),
+        'persona': f"{f[6]} {f[7]}" if f[6] else None,
+        'tipo': f[8]
+    } for f in filas]
+ 
+    resumen = dict(resumen_bitacora(datetime.now() - timedelta(days=7)))
+    return render_template('admin_bitacora.html', registros=registros, resumen=resumen,
+                           eventos=EVENTOS_BITACORA, evento=evento, correo=correo,
+                           intentos_maximos=INTENTOS_MAXIMOS, minutos_bloqueo=MINUTOS_BLOQUEO)
+ 
 @app.route('/admin/docentes')
 @rol_requerido('administrador')
 def admin_docentes():
     docentes = obtener_docentes()
     # d: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1, apellido_2,
-    #     fecha_nacimiento, correo, estado)
+    #     fecha_nacimiento, correo, estado, nivel_educativo, centro_trabajo, area, municipio, departamento)
     orden = {'pendiente': 0, 'rechazado': 1, 'verificado': 2}
     docentes = sorted(docentes, key=lambda d: orden.get(d[1], 3))
-
+ 
     # Cuántas plantillas creó cada docente y de qué tipo: {id_docente: {'total': n, 'tipos': [...]}}
+    plantillas_por_docente = contar_plantillas_por_docente()
     por_docente = {}
-    for docente_id, tipo, cantidad in contar_plantillas_por_docente():
+    for docente_id, tipo, cantidad in plantillas_por_docente:
         por_docente.setdefault(docente_id, {})[tipo] = cantidad
     plantillas_de = {}
     for docente_id, tipos in por_docente.items():
@@ -456,14 +632,37 @@ def admin_docentes():
             'tipos': [{'tipo': t, 'nombre': NOMBRES_TIPO[t], 'corto': NOMBRES_CORTOS[t], 'cantidad': tipos[t]}
                       for t in JUEGOS_DISPONIBLES if t in tipos]
         }
-
+ 
     # El pastel: qué tipo de plantilla se crea más
     pastel, total_plantillas = repartir_por_tipo(dict(contar_plantillas_por_tipo()))
     mas_creadas = []
     if total_plantillas:
         maximo = max(fila['cantidad'] for fila in pastel)
         mas_creadas = [fila for fila in pastel if fila['cantidad'] == maximo]
-
+ 
+    # ---- Docentes por nivel (se cuentan los aprobados y los pendientes; los rechazados no son demanda real) ----
+    docentes_validos = [d for d in docentes if d[1] != 'rechazado']
+    pastel_docentes, total_docentes = repartir_en_pastel(
+        Counter(nivel_de(d[10]) for d in docentes_validos), CATEGORIAS_NIVEL)
+ 
+    # ---- Plantillas según el nivel del docente que las creó (las del administrador no cuentan aquí) ----
+    nivel_del_docente = {d[0]: nivel_de(d[10]) for d in docentes}
+    plantillas_por_nivel = Counter()
+    for docente_id, tipo, cantidad in plantillas_por_docente:
+        if docente_id is not None:
+            plantillas_por_nivel[nivel_del_docente.get(docente_id, 'sin_dato')] += cantidad
+    pastel_plantillas_nivel, total_plantillas_docentes = repartir_en_pastel(plantillas_por_nivel, CATEGORIAS_NIVEL)
+ 
+    # ---- Estudiantes activos por nivel y por departamento ----
+    estudiantes = [e for e in obtener_estudiantes() if e[1] == 'activo']
+    # e: (id_estudiante, estado, id_persona, nombre_1, nombre_2, apellido_1, apellido_2, fecha_nacimiento, correo,
+    #     nivel_educativo, centro_estudio, municipio, departamento)
+    pastel_estudiantes, total_estudiantes = repartir_en_pastel(
+        Counter(nivel_de(e[9]) for e in estudiantes), CATEGORIAS_NIVEL)
+ 
+    barras_docentes = barras_por_departamento(d[14] for d in docentes_validos)
+    barras_estudiantes = barras_por_departamento(e[12] for e in estudiantes)
+ 
     resumen = {
         'docentes_activos': sum(1 for d in docentes if d[1] == 'verificado' and d[9] == 'activo'),
         'docentes_pendientes': sum(1 for d in docentes if d[1] == 'pendiente'),
@@ -471,9 +670,13 @@ def admin_docentes():
         'plantillas': total_plantillas
     }
     return render_template('admin_docentes.html', docentes=docentes, plantillas_de=plantillas_de,
-                           pastel=pastel, mas_creadas=mas_creadas, resumen=resumen)
+                           pastel=pastel, mas_creadas=mas_creadas, resumen=resumen,
+                           pastel_docentes=pastel_docentes, total_docentes=total_docentes,
+                           pastel_plantillas_nivel=pastel_plantillas_nivel, total_plantillas_docentes=total_plantillas_docentes,
+                           pastel_estudiantes=pastel_estudiantes, total_estudiantes=total_estudiantes,
+                           barras_docentes=barras_docentes, barras_estudiantes=barras_estudiantes)
 
-
+ 
 @app.route('/admin/docentes/<int:id_docente>/estado', methods=['POST'])
 @rol_requerido('administrador')
 def admin_docente_estado(id_docente):
@@ -509,9 +712,86 @@ def admin_docente_detalle(id_docente):
 
 ########################################################################
 # PÁGINA PRINCIPAL
+def mas_recientes(filas, indice_fecha, cantidad):
+    # Los registros más nuevos primero (los que no tienen fecha van al final)
+    return sorted(filas, key=lambda f: f[indice_fecha] or datetime.min, reverse=True)[:cantidad]
+
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    # "Lo nuevo en Ancestra": lo último que se agregó a cada sección (solo lo activo: lo inactivo no se muestra)
+    nuevos_documentos = mas_recientes(obtener_archivos_biblioteca(), 6, 3)
+    nuevas_imagenes = mas_recientes(obtener_archivos_galeria(), 6, 3)
+    nuevos_lugares = mas_recientes(obtener_lugares(), 4, 2)
+
+    portadas = {}
+    for archivo in nuevos_documentos:
+        if archivo[3] and archivo[3].lower().endswith('.pdf'):
+            portada = generar_portada(archivo[3])
+            if portada:
+                portadas[archivo[0]] = portada.split('static/')[1]
+
+    autores_de = {}
+    for archivo_id, nombre in obtener_autores_de_archivos([a[0] for a in nuevos_documentos]):
+        autores_de.setdefault(archivo_id, []).append(nombre)
+
+    return render_template("index.html", nuevos_documentos=nuevos_documentos, nuevas_imagenes=nuevas_imagenes,
+                           nuevos_lugares=nuevos_lugares, portadas=portadas, autores_de=autores_de)
+
+
+#BUSCADOR DEL INICIO: busca en Memorias, Vestigio y Huellas (los temas de la página los busca el navegador)
+def normalizar_busqueda(texto):
+    # Sin mayúsculas ni tildes, para que "ceramica" encuentre "Cerámica"
+    texto = unicodedata.normalize('NFD', str(texto or '').lower())
+    return ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
+
+
+@app.route('/buscar')
+def buscar():
+    consulta = normalizar_busqueda(request.args.get('q', ''))[:100]
+    palabras = [p for p in consulta.split() if len(p) >= 3]      # "de", "la", "el"... no cuentan
+    if not palabras:
+        return jsonify({'documentos': [], 'imagenes': [], 'lugares': [],
+                        'total_documentos': 0, 'total_imagenes': 0, 'total_lugares': 0})
+
+    def coincide(*textos):
+        # Deben aparecer TODAS las palabras buscadas, en cualquiera de los textos
+        junto = normalizar_busqueda(' '.join(str(t) for t in textos if t))
+        return all(p in junto for p in palabras)
+
+    categorias = {c[0]: c[1] for c in mostrar_categorias()}
+
+    # Memorias: por título, descripción, tipo, categoría y autores (solo lo activo)
+    archivos = obtener_archivos_biblioteca()
+    autores_de = {}
+    for archivo_id, nombre in obtener_autores_de_archivos([a[0] for a in archivos]):
+        autores_de.setdefault(archivo_id, []).append(nombre)
+    documentos = [a for a in archivos
+                  if coincide(a[1], a[2], a[5], categorias.get(a[4]), ' '.join(autores_de.get(a[0], [])))]
+    lista_documentos = []
+    for a in documentos[:4]:
+        portada = generar_portada(a[3]) if a[3] and a[3].lower().endswith('.pdf') else None
+        lista_documentos.append({
+            'nombre': a[1],
+            'autores': ', '.join(autores_de.get(a[0], [])),
+            'url': url_for('static', filename=a[3].split('static/')[1]),
+            'portada': url_for('static', filename=portada.split('static/')[1]) if portada else None
+        })
+
+    # Vestigio: por título, descripción y álbum
+    imagenes = [f for f in obtener_archivos_galeria() if coincide(f[1], f[2], categorias.get(f[4]))]
+    lista_imagenes = [{'nombre': f[1], 'tipo': f[5], 'url': url_for('static', filename=f[3].split('static/')[1])}
+                      for f in imagenes[:6]]
+
+    # Huellas: por nombre, descripción y dirección
+    lugares = [l for l in obtener_lugares() if coincide(l[1], l[2], l[3])]
+    lista_lugares = [{'nombre': l[1], 'direccion': l[3], 'enlace': url_for('mapa')} for l in lugares[:4]]
+
+    return jsonify({
+        'documentos': lista_documentos, 'total_documentos': len(documentos),
+        'imagenes': lista_imagenes, 'total_imagenes': len(imagenes),
+        'lugares': lista_lugares, 'total_lugares': len(lugares)
+    })
 
 ########################################################################
 # RUTAS DE APOYO Y FUNCIONES AUXILIARES
@@ -677,7 +957,7 @@ def biblioteca():
     for archivo_id, nombre in obtener_autores_de_archivos([a[0] for a in archivos]):
         autores_de.setdefault(archivo_id, []).append(nombre)
         
-    return render_template('biblioteca.html', libritos=archivos, categ=categorias, portadas=portadas)
+    return render_template('biblioteca.html', libritos=archivos, categ=categorias, portadas=portadas, autores_de=autores_de)
  
 #AGREGAR UN NUEVO DOCUMENTO
 @app.route('/crear-documento', methods=['GET', 'POST'])
@@ -1913,61 +2193,3 @@ def jugar_resultado(id_plantilla):
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-    
-# from sqlalchemy.pool import NullPool
-
-
-# 1. Obtener las variables
-USER = os.getenv("user")
-PASSWORD = os.getenv("password")
-HOST = os.getenv("host")
-PORT = os.getenv("port")
-DBNAME = os.getenv("dbname")
-
-# 2. Construir la URL de conexión de Supabase
-DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
-
-# 3. Pasársela a la configuración de Flask
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-class Lugar(db.Model):
-    # Asegurate de que el nombre coincida con tu tabla (LUGAR en mayúscula según la imagen)
-    __tablename__ = 'LUGAR' 
-    
-    id_lugar = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String, nullable=True)
-    descripcion = db.Column(db.String, nullable=True)
-    direccion = db.Column(db.String, nullable=True)
-    contacto = db.Column(db.Integer, nullable=True)
-    
-    # Manejo de fechas automáticas delegadas a PostgreSQL
-    fecha_creacion = db.Column(db.DateTime, server_default=db.func.now())
-    
-    # Fíjate cómo vinculamos la variable de Python con la columna que tiene espacios en Supabase
-    fecha_modificacion = db.Column('fecha modificacion', db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
-    administrador_id = None
-
-    def __repr__(self):
-        return f'<Lugar {self.nombre}>'
-
-@app.route('/test-db')
-def test_db():
-    # Creamos un nuevo objeto usando los campos exactos de tu tabla
-    nuevo_lugar = Lugar(
-        nombre="Plaza de Magdalena",
-        descripcion="Barrio histórico de la comunidad de Monimbó.",
-        direccion="De la iglesia San Jerónimo 2c al sur",
-        contacto=88888888,
-        administrador_id=1  # Suponiendo que el admin con ID 1 existe
-    )
-    
-    try:
-        db.session.add(nuevo_lugar)
-        db.session.commit()
-        return "¡Lugar guardado con éxito en Supabase, rey! Andá a revisar la tabla LUGAR."
-    except Exception as e:
-        db.session.rollback()
-        return f"Falló el guardado: {e}"

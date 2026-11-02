@@ -39,6 +39,9 @@
                         {% if session.get('correo') %}<span class="usuario-correo">{{ session.get('correo') }}</span>{% endif %}
                     </div>
                 </div>
+                {% if session.get('tipo') == 'administrador' %}
+                <a href="{{ url_for('admin_bitacora') }}" class="usuario-opcion" role="menuitem">🛡 Bitácora de accesos</a>
+                {% endif %}
                 <a href="/cambiar-contrasena" class="usuario-opcion" role="menuitem">🔑 Cambiar contraseña</a>
                 <a href="{{ url_for('logout') }}" class="usuario-opcion salir" role="menuitem">↪ Cerrar sesión</a>
             </div>

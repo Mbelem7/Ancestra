@@ -339,6 +339,8 @@ header-biblioteca
 
         const tarjetas = Array.from(rejilla.querySelectorAll('.tarjeta-biblioteca'));
         const texto = document.getElementById('bq-texto');
+        const buscadoDesdeInicio = new URLSearchParams(location.search).get('q');
+        if (buscadoDesdeInicio) texto.value = buscadoDesdeInicio;
         const categoria = document.getElementById('bq-categoria');
         const tipo = document.getElementById('bq-tipo');
         const fecha = document.getElementById('bq-fecha');

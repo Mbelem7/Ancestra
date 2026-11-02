@@ -20,6 +20,7 @@
         background: #fff; color: #222; border: 2px solid #c9d6b0; border-radius: 10px;
     }
     .auth-input:focus { outline: none; border-color: #5a7a1e; }
+    .auth-input:disabled { background: #f1f1ee; color: #888; cursor: not-allowed; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
 
@@ -44,12 +45,25 @@
     .requisitos li.cumple::before { content: '✔'; color: #3d5a10; }
     .mostrar { display: inline-block; margin-top: 10px; font-size: 0.88rem; color: #444; cursor: pointer; }
     .tarjeta-auth button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Cada parte del formulario con su título, para que no sea una sola lista larga de campos */
+    .bloque-form { margin-top: 26px; padding-top: 18px; border-top: 1px solid #e3e8d6; }
+    .bloque-form > h3 { margin: 0; font-size: 1.05rem; color: #3d5a10; }
+    .bloque-form > .ayuda { margin: 4px 0 0; }
+
+    /* Cómo usamos los datos y la casilla para aceptarlo */
+    .privacidad { margin: 0; padding: 12px 16px; background: #fff; border: 2px solid #c9d6b0; border-radius: 10px; font-size: 0.9rem; line-height: 1.5; color: #333; }
+    .privacidad summary { cursor: pointer; font-weight: 700; color: #3d5a10; }
+    .privacidad ul { margin: 10px 0 4px; padding-left: 20px; }
+    .privacidad li + li { margin-top: 4px; }
+    .acepto { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-size: 0.92rem; cursor: pointer; }
+    .acepto input { margin-top: 3px; accent-color: #5a7a1e; width: 18px; height: 18px; flex: 0 0 auto; }
 </style>
 {% endblock %}
 
 {% block titulo_header %}
-<h1>Crear Cuenta</h1>
-<h2>Se parte de nuestras raices</h2>
+<h1>Crear cuenta</h1>
+<h2>Sé parte de nuestras raíces</h2>
 {% endblock %}
 
 {% block clase_header %}
@@ -58,6 +72,7 @@ header-login
 
 {% block body %}
 {% set d = datos or {} %}
+{% set es_docente = d.get('tipo') == 'docente' %}
 <div class="auth-escena">
   <div class="auth-layout auth-layout--registro">
     {% include '_auth_info.html' %}
@@ -67,23 +82,25 @@ header-login
         <p class="sub">Solo te tomará un minuto.</p>
 
         {% if erroresR %}
-        <div class="mensaje-error">
+        <div class="mensaje-error" role="alert">
             <ul>{% for e in erroresR %}<li>{{ e }}</li>{% endfor %}</ul>
         </div>
         {% endif %}
 
         <form action="{{ url_for('registro') }}" method="POST">
 
+            <!-- ===== Tipo de cuenta ===== -->
             <label class="etiqueta">Soy...</label>
             <div class="opciones-tipo">
-                <label><input type="radio" name="tipo" value="estudiante" {% if d.get('tipo', 'estudiante') == 'estudiante' %}checked{% endif %}>Estudiante</label>
-                <label><input type="radio" name="tipo" value="docente" {% if d.get('tipo') == 'docente' %}checked{% endif %}>Docente</label>
+                <label><input type="radio" name="tipo" value="estudiante" {% if not es_docente %}checked{% endif %}>Estudiante</label>
+                <label><input type="radio" name="tipo" value="docente" {% if es_docente %}checked{% endif %}>Docente</label>
             </div>
-            <div class="nota-docente" id="nota-docente" {% if d.get('tipo') != 'docente' %}hidden{% endif %}>
+            <div class="nota-docente" id="nota-docente" {% if not es_docente %}hidden{% endif %}>
                 Un administrador revisará tu cuenta antes de que puedas crear plantillas.
                 Mientras tanto podrás iniciar sesión.
             </div>
 
+            <!-- ===== Datos personales ===== -->
             <div class="grid-2">
                 <div>
                     <label class="etiqueta" for="nombre_1">Primer nombre</label>
@@ -109,27 +126,100 @@ header-login
             <label class="etiqueta" for="correo">Correo</label>
             <input type="email" id="correo" name="correo" class="auth-input" maxlength="100" value="{{ d.get('correo', '') }}" autocomplete="email" required>
 
-            <div class="grid-2">
-                <div>
-                    <label class="etiqueta" for="contrasena">Contraseña</label>
-                    <input type="password" id="contrasena" name="contrasena" class="auth-input" autocomplete="new-password" required>
+            <!-- ===== Centro educativo (cambia el texto según sea docente o estudiante) ===== -->
+            <div class="bloque-form">
+                <h3 data-docente="¿Dónde enseñas?" data-estudiante="¿Dónde estudias?">{{ '¿Dónde enseñas?' if es_docente else '¿Dónde estudias?' }}</h3>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="etiqueta" for="nivel_educativo" data-docente="Nivel en el que enseñas" data-estudiante="Nivel que estudias">{{ 'Nivel en el que enseñas' if es_docente else 'Nivel que estudias' }}</label>
+                        <select id="nivel_educativo" name="nivel_educativo" class="auth-input" required>
+                            <option value="" disabled {% if not d.get('nivel_educativo') %}selected{% endif %}>Elige uno...</option>
+                            {% for valor, texto in NIVELES_EDUCATIVOS %}
+                            <option value="{{ valor }}" {% if d.get('nivel_educativo') == valor %}selected{% endif %}>{{ texto }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="etiqueta" for="centro" data-docente="Centro de trabajo" data-estudiante="Centro de estudio">{{ 'Centro de trabajo' if es_docente else 'Centro de estudio' }}</label>
+                        <input type="text" id="centro" name="centro" class="auth-input" maxlength="150" value="{{ d.get('centro', '') }}"
+                               placeholder="Nombre del colegio o la universidad" required>
+                    </div>
                 </div>
-                <div>
-                    <label class="etiqueta" for="confirmar">Repite la contraseña</label>
-                    <input type="password" id="confirmar" name="confirmar" class="auth-input" autocomplete="new-password" required>
+
+                <div id="grupo-area" {% if not es_docente %}hidden{% endif %}>
+                    <label class="etiqueta" for="area">Área o asignatura <span class="ayuda">(opcional)</span></label>
+                    <input type="text" id="area" name="area" class="auth-input" maxlength="100" value="{{ d.get('area', '') }}"
+                           placeholder="Por ejemplo: Historia, Lengua y Literatura, Ciencias Sociales">
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="etiqueta" for="departamento">Departamento o región</label>
+                        <select id="departamento" name="departamento" class="auth-input" required>
+                            <option value="" disabled {% if not d.get('departamento') %}selected{% endif %}>Elige uno...</option>
+                            {% for dep in departamentos %}
+                            {# dep: (id_departamento, nombre, tipo) #}
+                            <option value="{{ dep[0] }}" {% if d.get('departamento') == dep[0] | string %}selected{% endif %}>{{ dep[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="etiqueta" for="municipio_id">Municipio</label>
+                        <select id="municipio_id" name="municipio_id" class="auth-input" required>
+                            <option value="" data-vacio>Primero elige el departamento</option>
+                            {% for mu in municipios %}
+                            {# mu: (id_municipio, nombre, departamento_id) #}
+                            <option value="{{ mu[0] }}" data-departamento="{{ mu[2] }}" {% if d.get('municipio_id') == mu[0] | string %}selected{% endif %}>{{ mu[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <ul class="requisitos" id="requisitos" aria-live="polite">
-                <li data-regla="longitud"><span>Al menos <span id="num-longitud">{{ (norma_contrasena or {}).get('longitud', 12) }}</span> caracteres</span></li>
-                <li data-regla="mayuscula">Una letra mayúscula</li>
-                <li data-regla="minuscula">Una letra minúscula</li>
-                <li data-regla="numero">Un número</li>
-                <li data-regla="simbolo">Un símbolo (por ejemplo ! ? # $ %)</li>
-                <li data-regla="personal">No contiene tu nombre ni parte de tu correo</li>
-                <li data-regla="coinciden">Las dos contraseñas coinciden</li>
-            </ul>
-            <label class="mostrar"><input type="checkbox" id="mostrar"> Mostrar las contraseñas</label>
+            <!-- ===== Contraseña ===== -->
+            <div class="bloque-form">
+                <h3>Tu contraseña</h3>
+                <div class="grid-2">
+                    <div>
+                        <label class="etiqueta" for="contrasena">Contraseña</label>
+                        <input type="password" id="contrasena" name="contrasena" class="auth-input" autocomplete="new-password" required>
+                    </div>
+                    <div>
+                        <label class="etiqueta" for="confirmar">Repite la contraseña</label>
+                        <input type="password" id="confirmar" name="confirmar" class="auth-input" autocomplete="new-password" required>
+                    </div>
+                </div>
+
+                <ul class="requisitos" id="requisitos" aria-live="polite">
+                    <li data-regla="longitud"><span>Al menos <span id="num-longitud">{{ (norma_contrasena or {}).get('longitud', 12) }}</span> caracteres</span></li>
+                    <li data-regla="mayuscula">Una letra mayúscula</li>
+                    <li data-regla="minuscula">Una letra minúscula</li>
+                    <li data-regla="numero">Un número</li>
+                    <li data-regla="simbolo">Un símbolo (por ejemplo ! ? # $ %)</li>
+                    <li data-regla="personal">No contiene tu nombre ni parte de tu correo</li>
+                    <li data-regla="coinciden">Las dos contraseñas coinciden</li>
+                </ul>
+                <label class="mostrar"><input type="checkbox" id="mostrar"> Mostrar las contraseñas</label>
+            </div>
+
+            <!-- ===== Privacidad ===== -->
+            <div class="bloque-form">
+                <details class="privacidad">
+                    <summary>¿Qué hacemos con tus datos?</summary>
+                    <ul>
+                        <li>Pedimos solo lo necesario para identificar tu cuenta: tu nombre, tu fecha de nacimiento, tu correo y dónde enseñas o estudias.</li>
+                        <li>Los usamos para que inicies sesión, para que un administrador verifique las cuentas de docentes y para conocer, en números generales y sin nombres, desde dónde se usa Ancestra.</li>
+                        <li>Solo los administradores de la Fundación Memorias Ancestrales de Nicaragua pueden verlos. No los vendemos ni los compartimos con nadie.</li>
+                        <li>Puedes pedir a la Fundación que corrija tus datos o que desactive tu cuenta cuando quieras.</li>
+                        <li>Si eres menor de edad, pide a tu madre, padre o tutor que lea esto contigo antes de aceptar.</li>
+                    </ul>
+                </details>
+                <label class="acepto">
+                    <input type="checkbox" name="acepta_privacidad" value="si" {% if d.get('acepta_privacidad') == 'si' %}checked{% endif %} required>
+                    <span>He leído cómo se usan mis datos y lo acepto.</span>
+                </label>
+            </div>
 
             <div class="acciones">
                 <button type="submit" class="btn-guardar" id="boton-crear">Crear cuenta</button>
@@ -139,16 +229,48 @@ header-login
         <a href="{{ url_for('login') }}" class="enlace">¿Ya tienes cuenta? Inicia sesión</a>
         {% include '_auth_piezas.html' %}
     </div>
-</div>
+  </div>
 </div>
 
 <script>
-    // Muestra el aviso de aprobación solo cuando se elige "Docente"
-    document.querySelectorAll('input[name="tipo"]').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-            document.getElementById('nota-docente').hidden = (radio.value !== 'docente' || !radio.checked);
+    // Docente o estudiante: el aviso de aprobación, el campo de área y los textos del centro educativo
+    (function () {
+        const textos = document.querySelectorAll('[data-docente][data-estudiante]');
+        function aplicarTipo() {
+            const docente = document.querySelector('input[name="tipo"]:checked').value === 'docente';
+            document.getElementById('nota-docente').hidden = !docente;
+            document.getElementById('grupo-area').hidden = !docente;
+            textos.forEach(function (elemento) {
+                elemento.textContent = docente ? elemento.dataset.docente : elemento.dataset.estudiante;
+            });
+        }
+        document.querySelectorAll('input[name="tipo"]').forEach(function (radio) {
+            radio.addEventListener('change', aplicarTipo);
         });
-    });
+    })();
+
+    // Municipio: solo se muestran los del departamento elegido
+    (function () {
+        const departamento = document.getElementById('departamento');
+        const municipio = document.getElementById('municipio_id');
+        const vacio = municipio.querySelector('option[data-vacio]');
+        const todos = Array.from(municipio.querySelectorAll('option[data-departamento]'));
+
+        function filtrar() {
+            const elegido = municipio.value;
+            todos.forEach(function (opcion) { opcion.remove(); });
+            const delDepartamento = todos.filter(function (opcion) { return opcion.dataset.departamento === departamento.value; });
+            delDepartamento.forEach(function (opcion) { municipio.appendChild(opcion); });
+
+            municipio.disabled = !departamento.value;
+            vacio.textContent = departamento.value ? 'Elige tu municipio' : 'Primero elige el departamento';
+            // Si el municipio que estaba elegido no es de este departamento, se vuelve a la opción vacía
+            municipio.value = delDepartamento.some(function (o) { return o.value === elegido; }) ? elegido : '';
+        }
+
+        departamento.addEventListener('change', filtrar);
+        filtrar();
+    })();
 
     // Norma de contraseñas: la lista se va marcando mientras escribes (el servidor vuelve a revisar todo)
     (function () {
