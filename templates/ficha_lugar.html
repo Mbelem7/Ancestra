@@ -68,7 +68,7 @@ header-mapa
 {% block body %}
 {# lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id, estado,
            contacto, latitud, longitud, resena, horario, municipio_id, municipio, departamento, id_departamento)
-   foto: (id_archivo, nombre, url, tipo)   fuente: (id_autor, nombre, tipo, origen, descripcion) #}
+   foto: (id_lugar_foto, url, autor, fecha_creacion)   fuente: (id_autor, nombre, tipo, origen, descripcion) #}
 {% set telefono = (lugar[8] | string) if lugar[8] else '' %}
 <div class="container content">
   <div class="fl-columna">
@@ -124,10 +124,11 @@ header-mapa
             {% if fotos %}
             <div class="fl-fotos">
                 {% for f in fotos %}
-                {% set ruta = url_for('static', filename=f[2].split('static/')[1]) %}
+                {# f: (id_lugar_foto, url, autor, fecha_creacion) #}
+                {% set ruta = url_for('static', filename=f[1].split('static/')[1]) %}
                 <figure class="fl-foto">
-                    <a href="{{ ruta }}" target="_blank" rel="noopener"><img src="{{ ruta }}" alt="{{ f[1] }}" loading="lazy"></a>
-                    <figcaption>{{ f[1] }}{% if autores_foto.get(f[0]) %}<small>Foto: {{ autores_foto[f[0]] | join(', ') }}</small>{% endif %}</figcaption>
+                    <a href="{{ ruta }}" target="_blank" rel="noopener"><img src="{{ ruta }}" alt="Foto de {{ lugar[1] }}" loading="lazy"></a>
+                    {% if f[2] %}<figcaption><small>Foto: {{ f[2] }}</small></figcaption>{% endif %}
                 </figure>
                 {% endfor %}
             </div>

@@ -73,6 +73,7 @@ from modulos.ruta import *
 from modulos.administrador import *
 from modulos.ubicacion import *
 from modulos.bitacora import *
+from modulos.configuracion import *
 from modulos import seguridad
 import random
 import unicodedata
@@ -310,8 +311,31 @@ def registro():
 #BITÁCORA DE ACCESOS Y BLOQUEO POR INTENTOS
 # Rama 1 · Política 3 · Control 3.1.1: cada inicio de sesión, intento fallido, bloqueo y cierre queda registrado.
 # Rama 1 · Política 2 · Control 2.3.1: tras INTENTOS_MAXIMOS fallos seguidos con el mismo correo, se bloquea por MINUTOS_BLOQUEO.
-INTENTOS_MAXIMOS = 5
-MINUTOS_BLOQUEO = 15
+
+# Valores por defecto y límites de los parámetros del bloqueo. El administrador los cambia desde la bitácora;
+# los límites existen para que la protección no se pueda desactivar (por ejemplo, con 1000 intentos o 0 minutos).
+PARAMETROS_BLOQUEO = {
+    'intentos_maximos': {'nombre': 'Intentos fallidos antes del bloqueo', 'defecto': 5, 'minimo': 3, 'maximo': 10},
+    'minutos_bloqueo': {'nombre': 'Minutos de bloqueo', 'defecto': 15, 'minimo': 5, 'maximo': 60},
+}
+ 
+ 
+def parametros_de_bloqueo():
+    # (intentos_maximos, minutos_bloqueo) guardados por el administrador. Si la tabla no existe o el valor
+    # guardado no es válido, se usan los valores por defecto: el inicio de sesión nunca se queda sin protección.
+    try:
+        guardado = obtener_configuracion()
+    except Exception as error:
+        print("No se pudo leer la configuración:", error)
+        db.session.rollback()
+        guardado = {}
+    valores = {}
+    for clave, regla in PARAMETROS_BLOQUEO.items():
+        texto = str(guardado.get(clave, ''))
+        valor = int(texto) if texto.isdigit() else regla['defecto']
+        valores[clave] = valor if regla['minimo'] <= valor <= regla['maximo'] else regla['defecto']
+    return valores['intentos_maximos'], valores['minutos_bloqueo']
+ 
  
 def ip_del_cliente():
     # En Render la app está detrás de un proxy: la IP real llega en X-Forwarded-For (la primera de la lista)
@@ -329,16 +353,39 @@ def registrar_acceso(persona_id, correo, evento):
     except Exception as error:
         print("No se pudo registrar en la bitácora:", error)
         db.session.rollback()
+
+
+def registrar_cambio(tabla, registro, accion, detalle=None):
+    # Control 3.1.2: guarda quién hizo el cambio (con su correo y su IP), cuándo y qué cambió.
+    # Si falla, el cambio ya quedó guardado en su tabla: solo se avisa en la terminal
+    try:
+        insertar_auditoria(tabla, str(registro), accion, detalle, session.get('persona_id'),
+                           session.get('correo'), ip_del_cliente(), datetime.now())
+    except Exception as error:
+        print("No se pudo registrar en la auditoría:", error)
+        db.session.rollback()
+ 
+ 
+def describir_cambios(antes, despues):
+    # antes y despues: {'Nombre del campo': valor}. Devuelve qué cambió, por ejemplo:
+    # "Nombre; Estado: activo → inactivo" (el estado se muestra completo; los textos largos, solo su nombre)
+    partes = []
+    for campo, valor_nuevo in despues.items():
+        valor_viejo = antes.get(campo)
+        if str(valor_viejo if valor_viejo is not None else '') != str(valor_nuevo if valor_nuevo is not None else ''):
+            partes.append(f"{campo}: {valor_viejo} → {valor_nuevo}" if campo in ('Estado', 'Verificación') else campo)
+    return '; '.join(partes) or 'Se guardó sin cambios en los datos'
  
  
 def minutos_de_bloqueo(correo):
     # Cuántos minutos le faltan a ese correo para poder intentar de nuevo (0 si no está bloqueado)
+    intentos_maximos, minutos_bloqueo = parametros_de_bloqueo()
     ahora = datetime.now()
-    fallidos = obtener_fallidos_recientes(correo, ahora - timedelta(minutes=MINUTOS_BLOQUEO), INTENTOS_MAXIMOS)
-    if len(fallidos) < INTENTOS_MAXIMOS:
+    fallidos = obtener_fallidos_recientes(correo, ahora - timedelta(minutes=minutos_bloqueo), intentos_maximos)
+    if len(fallidos) < intentos_maximos:
         return 0
     # Se desbloquea cuando el más antiguo de esos intentos sale de la ventana de tiempo
-    restante = (fallidos[-1] + timedelta(minutes=MINUTOS_BLOQUEO) - ahora).total_seconds()
+    restante = (fallidos[-1] + timedelta(minutes=minutos_bloqueo) - ahora).total_seconds()
     return int(-(-restante // 60)) if restante > 0 else 0       # redondeado hacia arriba
  
  
@@ -584,7 +631,7 @@ def navegador_corto(agente):
                                                  ('Windows', 'Windows'), ('Mac', 'Mac OS'), ('Linux', 'Linux')) if clave in agente), '')
     return f"{navegador} en {sistema}" if sistema else navegador
  
- 
+
 @app.route('/admin/bitacora')
 @rol_requerido('administrador')
 def admin_bitacora():
@@ -606,10 +653,47 @@ def admin_bitacora():
         'tipo': f[8]
     } for f in filas]
  
+    intentos_maximos, minutos_bloqueo = parametros_de_bloqueo()
+    try:
+        cambios = obtener_auditoria('configuracion', 10)
+        cambios_contenido = obtener_auditoria_reciente(100)
+        # cambio: (fecha, registro, accion, detalle, correo, ip, nombre_1, apellido_1)
+    except Exception as error:
+        print("No se pudo leer la auditoría:", error)
+        db.session.rollback()
+        cambios = []
+        cambios_contenido = []
+ 
     resumen = dict(resumen_bitacora(datetime.now() - timedelta(days=7)))
     return render_template('admin_bitacora.html', registros=registros, resumen=resumen,
                            eventos=EVENTOS_BITACORA, evento=evento, correo=correo,
-                           intentos_maximos=INTENTOS_MAXIMOS, minutos_bloqueo=MINUTOS_BLOQUEO)
+                           intentos_maximos=intentos_maximos, minutos_bloqueo=minutos_bloqueo,
+                           parametros=PARAMETROS_BLOQUEO, cambios=cambios, cambios_contenido=cambios_contenido,
+                           aviso=request.args.get('aviso'))
+ 
+ 
+#ADMIN - CAMBIAR LOS PARÁMETROS DEL BLOQUEO (cada cambio queda en la auditoría con el correo y la IP de quien lo hizo)
+@app.route('/admin/bitacora/configuracion', methods=['POST'])
+@rol_requerido('administrador')
+def admin_configuracion_bloqueo():
+    actuales = dict(zip(('intentos_maximos', 'minutos_bloqueo'), parametros_de_bloqueo()))
+    ahora = datetime.now()
+    cambiados = 0
+ 
+    for clave, regla in PARAMETROS_BLOQUEO.items():
+        texto = request.form.get(clave, '').strip()
+        if not texto.isdigit() or not regla['minimo'] <= int(texto) <= regla['maximo']:
+            return redirect(url_for('admin_bitacora', aviso='invalido'))
+        nuevo = int(texto)
+        if nuevo != actuales[clave]:
+            actualizar_configuracion(clave, str(nuevo), ahora)
+            insertar_auditoria('configuracion', clave, 'editar',
+                               f"{regla['nombre']}: de {actuales[clave]} a {nuevo}",
+                               session.get('persona_id'), session.get('correo'), ip_del_cliente(), ahora)
+            cambiados += 1
+ 
+    return redirect(url_for('admin_bitacora', aviso='guardado' if cambiados else 'sin_cambios'))
+
  
 @app.route('/admin/docentes')
 @rol_requerido('administrador')
@@ -681,8 +765,12 @@ def admin_docentes():
 @rol_requerido('administrador')
 def admin_docente_estado(id_docente):
     nuevo_estado = request.form.get('estado')
-    if nuevo_estado in ('pendiente', 'verificado', 'rechazado') and obtener_un_docente(id_docente):
+    docente = obtener_un_docente(id_docente)
+    # docente: (id_docente, estado_verificacion, id_persona, nombre_1, nombre_2, apellido_1, apellido_2, fecha_nacimiento, correo, ...)
+    if nuevo_estado in ('pendiente', 'verificado', 'rechazado') and docente and docente[1] != nuevo_estado:
         actualizar_estado_verificacion(id_docente, nuevo_estado)
+        registrar_cambio('docente', id_docente, 'cambiar_estado',
+                         f"{docente[3]} {docente[5]} ({docente[8]}) · Verificación: {docente[1]} → {nuevo_estado}")
     return redirect(url_for('admin_docentes'))
 
 @app.route('/admin/docentes/<int:id_docente>')
@@ -1016,6 +1104,7 @@ def crear_documento():
             estado
         )
         guardar_autores(id_archivo, autores)
+        registrar_cambio('archivo', id_archivo, 'crear', f"Documento «{nombre}»")
         return redirect(url_for('biblioteca'))
     
  
@@ -1081,6 +1170,11 @@ def editar_documento(id_archivo):
         )
         eliminar_autores_de_archivo(id_archivo)
         guardar_autores(id_archivo, autores)
+        registrar_cambio('archivo', id_archivo, 'editar', describir_cambios(
+            {'Nombre': archivo[1], 'Descripción': archivo[2], 'Tipo': archivo[5], 'Categoría': archivo[4],
+             'Archivo PDF': archivo[3], 'Estado': archivo[9]},
+            {'Nombre': nombre, 'Descripción': descripcion, 'Tipo': tipo, 'Categoría': categoria,
+             'Archivo PDF': URLfile, 'Estado': estado}))
         return redirect(url_for('biblioteca'))
     else:
         archivo = obtener_un_archivo(id_archivo)
@@ -1158,7 +1252,7 @@ def crear_imagen():
         URLfile = f"{app.config['UPLOAD_FOLDER_IMG']}/{filename}"
  
         print(nombre, descripcion, URLfile, categoria, tipo, fecha_creacion, fecha_modificacion, propietario_id, estado)
-        insertar_archivo(
+        id_archivo = insertar_archivo(
             nombre,
             descripcion,
             URLfile,
@@ -1169,6 +1263,7 @@ def crear_imagen():
             propietario_id,
             estado
         )
+        registrar_cambio('archivo', id_archivo, 'crear', f"Imagen o video «{nombre}»")
         return redirect(url_for('galeria'))
  
     return render_template('crear_imagen.html')
@@ -1228,6 +1323,11 @@ def editar_imagen(id_archivo):
             administrador_id,
             estado
         )
+        registrar_cambio('archivo', id_archivo, 'editar', describir_cambios(
+            {'Nombre': archivo[1], 'Descripción': archivo[2], 'Tipo': archivo[5], 'Categoría': archivo[4],
+             'Archivo': archivo[3], 'Estado': archivo[9]},
+            {'Nombre': nombre, 'Descripción': descripcion, 'Tipo': tipo, 'Categoría': categoria,
+             'Archivo': URLfile, 'Estado': estado}))
         return redirect(url_for('galeria'))
     else:
         archivo = obtener_un_archivo(id_archivo)
@@ -1256,10 +1356,11 @@ def buscar_imagen():
     return jsonify(imagenes)
 
 ##############################################################################
+
 #MAPA
 # lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id,
 #         estado, contacto, latitud, longitud, resena, horario, municipio_id, municipio, departamento, id_departamento)
-
+ 
 @app.route('/huellas')
 def mapa():
     es_admin = session.get('tipo') == 'administrador'
@@ -1279,8 +1380,8 @@ def mapa():
         for l in lugares if l[9] is not None and l[10] is not None
     ]
     return render_template('mapa.html', puntos=puntos, es_admin=es_admin)
-
-
+ 
+ 
 #FICHA DE UN LUGAR: toda su información, sus fotos, sus fuentes y cómo llegar
 @app.route('/huellas/<int:id_lugar>')
 def ficha_lugar(id_lugar):
@@ -1289,66 +1390,91 @@ def ficha_lugar(id_lugar):
     # Un lugar inactivo es un dato histórico: solo el administrador lo puede abrir
     if not lugar or (lugar[7] != 'activo' and not es_admin):
         return redirect(url_for('mapa'))
-
-    fotos = obtener_fotos_de_lugar(id_lugar)
-    # foto: (id_archivo, nombre, url, tipo)
-    autores_foto = {}
-    for archivo_id, nombre in obtener_autores_de_archivos([f[0] for f in fotos]):
-        autores_foto.setdefault(archivo_id, []).append(nombre)
-
-    return render_template('ficha_lugar.html', lugar=lugar, fotos=fotos, autores_foto=autores_foto,
+ 
+    fotos = obtener_fotos_lugar(id_lugar)
+    # foto: (id_lugar_foto, url, autor, fecha_creacion)
+ 
+    return render_template('ficha_lugar.html', lugar=lugar, fotos=fotos,
                            fuentes=obtener_autores_de_lugar(id_lugar), es_admin=es_admin,
                            nombres_tipo_autor=dict(TIPOS_AUTOR), nombres_origen_autor=dict(ORIGENES_AUTOR))
-
-
+ 
+ 
 #DATOS DE APOYO PARA LOS FORMULARIOS DE LUGARES
-def imagenes_para_lugares():
-    # Las imágenes activas de la galería (sin videos), para elegir las fotos de un lugar
-    return [f for f in obtener_archivos_galeria() if f[5] == 'imagen']
-
-
+# Fotos propias de los lugares: se guardan en su propia carpeta y no van a la galería
+UPLOAD_FOLDER_LUGARES = 'static/assets/img/lugares'
+EXTENSIONES_FOTO_LUGAR = {'png', 'jpg', 'jpeg', 'webp'}
+FOTOS_POR_ENVIO = 8
+ 
+ 
 def datos_formulario_lugar(lugar=None):
     # Todo lo que necesita el formulario de crear o editar un lugar
     return {
         'departamentos': obtener_departamentos(),
         'municipios': obtener_municipios(),
         'ubicacion_actual': {'departamento': lugar[16], 'municipio': lugar[13]} if lugar else {},
-        'fotos_galeria': imagenes_para_lugares(),
-        'fotos_elegidas': [f[0] for f in obtener_fotos_de_lugar(lugar[0], solo_activos=False)] if lugar else [],
+        'fotos_actuales': obtener_fotos_lugar(lugar[0]) if lugar else [],
         'autores_existentes': obtener_autores(),
         'autores_actuales': obtener_autores_de_lugar(lugar[0]) if lugar else []
     }
-
-
+ 
+ 
 def leer_lugar_del_formulario(erroresL):
     # Lee y valida los campos de la ficha ampliada. Agrega a erroresL lo que esté mal.
     resena = request.form.get('resena', '').strip()
     horario = ' '.join(request.form.get('horario', '').split())
     municipio_texto = request.form.get('municipio_id', '')
-
+ 
     if len(resena) > 3000:
         erroresL.append("La reseña no debe exceder los 3000 caracteres.")
     if len(horario) > 150:
         erroresL.append("El horario no debe exceder los 150 caracteres.")
-
+ 
     municipio_id = None
     if municipio_texto:
         municipio_id = int(municipio_texto) if municipio_texto.isdigit() else None
         if not municipio_id or not obtener_un_municipio(municipio_id):
             erroresL.append("Elige un municipio válido.")
-
-    # Solo se aceptan imágenes activas de la galería
-    validas = {f[0] for f in imagenes_para_lugares()}
-    fotos = []
-    for valor in request.form.getlist('fotos'):
-        if valor.isdigit() and int(valor) in validas and int(valor) not in fotos:
-            fotos.append(int(valor))
-    if len(fotos) > 12:
-        erroresL.append("Elige como máximo 12 fotos.")
-
-    return {'resena': resena or None, 'horario': horario or None, 'municipio_id': municipio_id, 'fotos': fotos}
-
-
+ 
+    # Fotos nuevas: solo imágenes, y con su autor (fuente verificada)
+    fotos_nuevas = [f for f in request.files.getlist('fotos_nuevas') if f and f.filename]
+    if len(fotos_nuevas) > FOTOS_POR_ENVIO:
+        erroresL.append(f"Sube como máximo {FOTOS_POR_ENVIO} fotos a la vez.")
+    for foto in fotos_nuevas:
+        extension = foto.filename.rsplit('.', 1)[1].lower() if '.' in foto.filename else ''
+        if extension not in EXTENSIONES_FOTO_LUGAR:
+            erroresL.append(f"«{foto.filename}» no es una imagen válida (PNG, JPG o WEBP).")
+ 
+    autor_foto = None
+    if fotos_nuevas:
+        nombre_autor = ' '.join(request.form.get('foto_autor_nombre', '').split())
+        tipo_autor = request.form.get('foto_autor_tipo', '')
+        origen_autor = request.form.get('foto_autor_origen', '')
+        if not nombre_autor or len(nombre_autor) > 100:
+            erroresL.append("Indica quién tomó las fotos o de dónde salieron (hasta 100 caracteres).")
+        if tipo_autor not in [v for v, _ in TIPOS_AUTOR] or origen_autor not in [v for v, _ in ORIGENES_AUTOR]:
+            erroresL.append("Elige el tipo y el origen del autor de las fotos.")
+        autor_foto = {'nombre': nombre_autor, 'tipo': tipo_autor, 'origen': origen_autor}
+ 
+    fotos_quitar = [int(v) for v in request.form.getlist('fotos_quitar') if v.isdigit()]
+ 
+    return {'resena': resena or None, 'horario': horario or None, 'municipio_id': municipio_id,
+            'fotos_nuevas': fotos_nuevas, 'autor_foto': autor_foto, 'fotos_quitar': fotos_quitar}
+ 
+ 
+def guardar_fotos_nuevas(id_lugar, fotos, autor):
+    # Guarda cada foto en static/assets/img/lugares y la registra con su autor
+    if not fotos:
+        return
+    os.makedirs(UPLOAD_FOLDER_LUGARES, exist_ok=True)
+    ahora = datetime.now()
+    existente = obtener_autor_por_nombre(autor['nombre'])
+    id_autor = existente[0] if existente else insertar_autor(autor['nombre'], autor['tipo'], autor['origen'], None, ahora, ahora)
+    for foto in fotos:
+        nombre = nombre_archivo_unico(foto.filename)
+        foto.save(os.path.join(UPLOAD_FOLDER_LUGARES, nombre))
+        insertar_foto_lugar(id_lugar, f"{UPLOAD_FOLDER_LUGARES}/{nombre}", id_autor, session.get('rol_id'), ahora)
+ 
+ 
 def guardar_autores_lugar(id_lugar, autores):
     # Igual que guardar_autores() de los documentos, pero para las fuentes de un lugar
     ahora = datetime.now()
@@ -1356,8 +1482,8 @@ def guardar_autores_lugar(id_lugar, autores):
         existente = obtener_autor_por_nombre(autor['nombre'])
         id_autor = existente[0] if existente else insertar_autor(autor['nombre'], autor['tipo'], autor['origen'], None, ahora, ahora)
         insertar_lugar_autor(id_lugar, id_autor)
-
-
+ 
+ 
 def validar_datos_basicos_lugar(nombre, descripcion, direccion, contacto, latitud, longitud):
     erroresL = []
     if not nombre or len(nombre) > 100:
@@ -1371,41 +1497,43 @@ def validar_datos_basicos_lugar(nombre, descripcion, direccion, contacto, latitu
     if not coordenadas_validas(latitud, longitud):
         erroresL.append("Debes marcar la ubicación del local en el mapa.")
     return erroresL
-
-
+ 
+ 
 #CREAR LUGAR
 @app.route('/crear-local', methods=['GET', 'POST'])
 @rol_requerido('administrador')
 def crear_local():
     if request.method == 'GET':
         return render_template('crear_local.html', **datos_formulario_lugar())
-
+ 
     nombre = request.form.get('nombre')
     descripcion = request.form.get('descripcion')
     direccion = request.form.get('direccion')
     contacto = request.form.get('contacto')
     latitud = request.form.get('latitud')
     longitud = request.form.get('longitud')
-
+ 
     #VALIDACIONES
     erroresL = validar_datos_basicos_lugar(nombre, descripcion, direccion, contacto, latitud, longitud)
     extra = leer_lugar_del_formulario(erroresL)
     autores, errores_autores = leer_autores_del_formulario(obligatorio=False)
     erroresL += errores_autores
-
+ 
     if erroresL:
         return render_template('crear_local.html', erroresL=erroresL, **datos_formulario_lugar())
-
+ 
     ahora = datetime.now()
     id_lugar = insertar_lugar(
         nombre, descripcion, direccion, ahora, ahora, session.get('rol_id'), 'activo', contacto,
         latitud, longitud, extra['resena'], extra['horario'], extra['municipio_id']
     )
-    guardar_fotos_de_lugar(id_lugar, extra['fotos'])
+    guardar_fotos_nuevas(id_lugar, extra['fotos_nuevas'], extra['autor_foto'])
     guardar_autores_lugar(id_lugar, autores)
+    registrar_cambio('lugar', id_lugar, 'crear', f"Lugar «{nombre}»"
+                     + (f" con {len(extra['fotos_nuevas'])} foto(s)" if extra['fotos_nuevas'] else ''))
     return redirect(url_for('ficha_lugar', id_lugar=id_lugar))
-
-
+ 
+ 
 #EDITAR LUGAR
 @app.route('/editar-lugar/<int:id_lugar>', methods=["GET", "POST"])
 @rol_requerido('administrador')
@@ -1413,10 +1541,10 @@ def editar_lugar(id_lugar):
     lugar = obtener_un_lugar(id_lugar)
     if not lugar:
         return redirect(url_for('mapa'))
-
+ 
     if request.method == 'GET':
         return render_template("editar_lugar.html", lugar=lugar, **datos_formulario_lugar(lugar))
-
+ 
     nombre = request.form.get('nombre')
     descripcion = request.form.get('descripcion')
     direccion = request.form.get('direccion')
@@ -1424,7 +1552,7 @@ def editar_lugar(id_lugar):
     estado = request.form.get('estado', 'activo')
     latitud = request.form.get('latitud')
     longitud = request.form.get('longitud')
-
+ 
     #VALIDACIONES
     erroresL = validar_datos_basicos_lugar(nombre, descripcion, direccion, contacto, latitud, longitud)
     if estado not in ('activo', 'inactivo'):
@@ -1432,17 +1560,31 @@ def editar_lugar(id_lugar):
     extra = leer_lugar_del_formulario(erroresL)
     autores, errores_autores = leer_autores_del_formulario(obligatorio=False)
     erroresL += errores_autores
-
+ 
     if erroresL:
         return render_template("editar_lugar.html", lugar=lugar, erroresL=erroresL, **datos_formulario_lugar(lugar))
-
+ 
     actualizar_lugar(
         id_lugar, nombre, descripcion, direccion, datetime.now(), lugar[6] or session.get('rol_id'),
         estado, contacto, latitud, longitud, extra['resena'], extra['horario'], extra['municipio_id']
     )
-    guardar_fotos_de_lugar(id_lugar, extra['fotos'])
+    desactivar_fotos_lugar(id_lugar, extra['fotos_quitar'])
+    guardar_fotos_nuevas(id_lugar, extra['fotos_nuevas'], extra['autor_foto'])
     eliminar_autores_de_lugar(id_lugar)
     guardar_autores_lugar(id_lugar, autores)
+    detalle = describir_cambios(
+        {'Nombre': lugar[1], 'Descripción': lugar[2], 'Dirección': lugar[3], 'Teléfono': lugar[8],
+         'Ubicación en el mapa': f"{float(lugar[9]):.5f}, {float(lugar[10]):.5f}" if lugar[9] is not None else '',
+         'Reseña': lugar[11], 'Horario': lugar[12], 'Municipio': lugar[13], 'Estado': lugar[7]},
+        {'Nombre': nombre, 'Descripción': descripcion, 'Dirección': direccion, 'Teléfono': contacto,
+         'Ubicación en el mapa': f"{float(latitud):.5f}, {float(longitud):.5f}",
+         'Reseña': extra['resena'], 'Horario': extra['horario'], 'Municipio': extra['municipio_id'], 'Estado': estado})
+    if extra['fotos_nuevas']:
+        detalle += f"; {len(extra['fotos_nuevas'])} foto(s) nueva(s)"
+    if extra['fotos_quitar']:
+        detalle += f"; {len(extra['fotos_quitar'])} foto(s) quitada(s)"
+    registrar_cambio('lugar', id_lugar, 'editar', detalle)
+
     return redirect(url_for('ficha_lugar', id_lugar=id_lugar))
 
 #BUSCAR LUGAR
@@ -1792,6 +1934,8 @@ def cambiar_estado_plantilla(id_plantilla):
     nuevo_estado = request.form.get('estado')
     if nuevo_estado == 'inactivo' or (nuevo_estado == 'activo' and es_admin):
         cambiar_estado_juego(plantilla[4], nuevo_estado, datetime.now())
+        registrar_cambio('plantilla', id_plantilla, 'cambiar_estado',
+                         'Borrada (pasó a inactiva)' if nuevo_estado == 'inactivo' else 'Reactivada')
     return redirect(url_for('mis_plantillas'))
 
 #VER UNA PLANTILLA CON SUS PREGUNTAS Y RESPUESTAS

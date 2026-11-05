@@ -45,6 +45,28 @@
     .bi-evento.bloqueo, .bi-evento.cuenta_inactiva { background: #fdeceb; color: #8E0404; box-shadow: inset 0 0 0 2px #F22C0C; }
     .bi-vacio { text-align: center; margin: 24px 0; color: #555; }
     .bi-nota { margin: 10px 0 0; font-size: 0.82rem; color: #555; }
+
+    /* Configuración del bloqueo */
+    .bi-config { margin: 0 0 22px; padding: 18px 20px; background: #fafcf6; border: 2px solid #c9d6b0; border-radius: 16px; }
+    .bi-config h2 { margin: 0 0 4px; font-size: 1.1rem; color: #2f4a0c; }
+    .bi-config > p { margin: 0 0 14px; font-size: 0.88rem; color: #555; }
+    .bi-config form { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    .bi-config label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; font-weight: 700; }
+    .bi-config input { width: 120px; padding: 8px 10px; border: 2px solid #c9d6b0; border-radius: 10px; font-family: inherit; font-size: 1rem; }
+    .bi-config small { font-weight: 400; color: #666; }
+    .bi-aviso { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; }
+    .bi-aviso.bien { background: #eef4e2; color: #2f4a0c; }
+    .bi-aviso.mal { background: #fdf0ee; color: #7b241c; }
+    .bi-historial { margin: 16px 0 0; padding: 0; list-style: none; border-top: 1px solid #e3e8d6; }
+    .bi-historial li { padding: 8px 0; border-bottom: 1px solid #eef1e4; font-size: 0.85rem; line-height: 1.45; }
+    .bi-historial .quien { display: block; color: #555; font-size: 0.8rem; }
+
+    /* Cambios en el contenido (auditoría) */
+    .bi-titulo { margin: 30px 0 4px; font-size: 1.2rem; color: #2f4a0c; }
+    .bi-subtitulo { margin: 0 0 12px; font-size: 0.88rem; color: #555; }
+    .bi-que { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; background: #eef4e2; color: #2f4a0c; }
+    .bi-que.cambiar_estado { background: #fff4d6; color: #7a5b00; }
+    .bi-que.crear { background: #f5f8e6; color: #4d5c0b; box-shadow: inset 0 0 0 2px #BECC29; }
 </style>
 {% endblock %}
 
@@ -65,8 +87,40 @@ header-docentes
     <p class="bi-intro">
         Cada inicio de sesión, intento fallido, bloqueo y cierre de sesión queda registrado aquí.
         Después de {{ intentos_maximos }} intentos fallidos seguidos con el mismo correo, la plataforma lo bloquea durante {{ minutos_bloqueo }} minutos.
-
     </p>
+
+    <!-- Configuración del bloqueo (con límites, para que la protección no se pueda desactivar) -->
+    <section class="bi-config" aria-labelledby="config-titulo">
+        <h2 id="config-titulo">Configuración del bloqueo</h2>
+        <p>Cada cambio queda registrado con el correo y la IP de quien lo hizo.</p>
+
+        {% if aviso == 'guardado' %}<p class="bi-aviso bien" role="status">✔ Configuración guardada.</p>
+        {% elif aviso == 'sin_cambios' %}<p class="bi-aviso bien" role="status">No había cambios que guardar.</p>
+        {% elif aviso == 'invalido' %}<p class="bi-aviso mal" role="alert">Revisa los valores: deben estar dentro de los límites indicados.</p>{% endif %}
+
+        <form method="POST" action="{{ url_for('admin_configuracion_bloqueo') }}">
+            <label>{{ parametros.intentos_maximos.nombre }}
+                <input type="number" name="intentos_maximos" value="{{ intentos_maximos }}" min="{{ parametros.intentos_maximos.minimo }}" max="{{ parametros.intentos_maximos.maximo }}" required>
+                <small>Entre {{ parametros.intentos_maximos.minimo }} y {{ parametros.intentos_maximos.maximo }}</small>
+            </label>
+            <label>{{ parametros.minutos_bloqueo.nombre }}
+                <input type="number" name="minutos_bloqueo" value="{{ minutos_bloqueo }}" min="{{ parametros.minutos_bloqueo.minimo }}" max="{{ parametros.minutos_bloqueo.maximo }}" required>
+                <small>Entre {{ parametros.minutos_bloqueo.minimo }} y {{ parametros.minutos_bloqueo.maximo }}</small>
+            </label>
+            <button type="submit" class="bi-boton">Guardar</button>
+        </form>
+
+        {% if cambios %}
+        <ul class="bi-historial">
+            {% for c in cambios %}
+            {# c: (fecha, registro, accion, detalle, correo, ip, nombre_1, apellido_1) #}
+            <li>{{ c[3] }}
+                <span class="quien">{{ c[0].strftime('%d/%m/%Y %H:%M') }} · {% if c[6] %}{{ c[6] }} {{ c[7] }} · {% endif %}{{ c[4] or 'sin correo' }} · IP {{ c[5] or '—' }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </section>
 
     <!-- Resumen de los últimos 7 días -->
     <div class="bi-resumen">
@@ -119,6 +173,36 @@ header-docentes
         <p class="bi-nota">Se muestran los {{ registros | length }} registros más recientes{% if evento or correo %} que coinciden con el filtro{% endif %} (máximo 300).</p>
         {% else %}
         <div class="bi-vacio">{% if evento or correo %}No hay registros con ese filtro.{% else %}Todavía no hay registros en la bitácora.{% endif %}</div>
+        {% endif %}
+    </div>
+
+    <!-- Cambios en el contenido: quién creó, editó o cambió el estado de cada cosa (auditoría) -->
+    {% set nombres_tabla = {'archivo': 'Memorias / Vestigio', 'lugar': 'Huellas', 'plantilla': 'Plantilla', 'docente': 'Docente'} %}
+    {% set nombres_accion = {'crear': 'Creó', 'editar': 'Editó', 'cambiar_estado': 'Cambió el estado'} %}
+    <h2 class="bi-titulo">Cambios en el contenido</h2>
+    <p class="bi-subtitulo">Quién creó, editó o cambió el estado de documentos, imágenes, lugares, plantillas y docentes.</p>
+    <div class="bi-tabla-caja">
+        {% if cambios_contenido %}
+        <table class="bi-tabla">
+            <thead>
+                <tr><th>Fecha y hora</th><th>Qué hizo</th><th>Dónde</th><th>Detalle</th><th>Quién</th></tr>
+            </thead>
+            <tbody>
+                {% for c in cambios_contenido %}
+                {# c: (fecha, tabla, registro, accion, detalle, correo, ip, nombre_1, apellido_1) #}
+                <tr>
+                    <td>{{ c[0].strftime('%d/%m/%Y') }}<span class="secundario">{{ c[0].strftime('%H:%M:%S') }}</span></td>
+                    <td><span class="bi-que {{ c[3] }}">{{ nombres_accion.get(c[3], c[3]) }}</span></td>
+                    <td>{{ nombres_tabla.get(c[1], c[1]) }}<span class="secundario">N.° {{ c[2] }}</span></td>
+                    <td>{{ c[4] or '—' }}</td>
+                    <td>{% if c[7] %}{{ c[7] }} {{ c[8] }}{% else %}—{% endif %}<span class="secundario">{{ c[5] or 'sin correo' }} · IP {{ c[6] or '—' }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="bi-nota">Se muestran los {{ cambios_contenido | length }} cambios más recientes (máximo 100).</p>
+        {% else %}
+        <div class="bi-vacio">Todavía no hay cambios registrados. Aparecerán aquí cuando se cree o edite algo.</div>
         {% endif %}
     </div>
 

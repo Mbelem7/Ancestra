@@ -1,6 +1,6 @@
 {# Formulario de un lugar, el mismo para crear y para editar.
    Necesita: lugar (None al crear), accion, titulo, subtitulo, texto_boton, erroresL,
-   departamentos, municipios, ubicacion_actual, fotos_galeria, fotos_elegidas, autores_existentes, autores_actuales.
+   departamentos, municipios, ubicacion_actual, fotos_actuales, autores_existentes, autores_actuales.
    lugar: (id_lugar, nombre, descripcion, direccion, fecha_creacion, fecha_modificacion, administrador_id, estado,
            contacto, latitud, longitud, resena, horario, municipio_id, municipio, departamento, id_departamento) #}
 {% macro valor(i) %}{{ lugar[i] if lugar and lugar[i] is not none else '' }}{% endmacro %}
@@ -40,18 +40,21 @@
     .fm-ubicacion.lista { background: #eef4e2; color: #2f4a0c; font-weight: 700; }
     .fm-ubicacion .coordenadas { margin-left: auto; font-weight: 400; font-size: 0.8rem; color: #555; }
 
-    /* Fotos de la galería: se marcan con un clic */
-    .fm-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 340px; overflow-y: auto; padding: 4px; }
-    .fm-foto { position: relative; display: block; margin: 0; cursor: pointer; }
-    .fm-foto input { position: absolute; opacity: 0; pointer-events: none; }
+    /* Fotos del lugar: las que ya tiene (con opción de quitarlas) y las nuevas por subir */
+    .fm-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 0 0 16px; }
+    .fm-foto { position: relative; display: block; margin: 0; }
     .fm-foto img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; border: 3px solid transparent; }
-    .fm-foto span { display: block; margin-top: 4px; font-size: 0.78rem; line-height: 1.25; color: #444; overflow-wrap: anywhere; }
-    .fm-foto input:checked + img { border-color: #5a7a1e; box-shadow: 0 0 0 3px rgba(90, 122, 30, 0.25); }
-    .fm-foto .marca { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; background: #5a7a1e; color: #fff; font-size: 0.85rem; line-height: 24px; text-align: center; display: none; }
-    .fm-foto input:checked ~ .marca { display: block; }
-    .fm-foto input:focus-visible + img { outline: 3px solid #5a7a1e; outline-offset: 2px; }
-    .fm-contador-fotos { display: block; margin-top: 8px; font-size: 0.85rem; color: #2f4a0c; font-weight: 700; }
-    .fm-sin-fotos { margin: 0; padding: 12px 14px; background: #f4f4f4; border-radius: 10px; color: #555; font-size: 0.9rem; }
+    .fm-foto small { display: block; margin-top: 4px; font-size: 0.75rem; color: #555; overflow-wrap: anywhere; }
+    .fm-quitar-foto { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 0.8rem; font-weight: 700; color: #a93226; cursor: pointer; }
+    .fm-foto:has(input:checked) img { border-color: #c0392b; opacity: 0.45; }
+    .fm-subir { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 20px 16px; text-align: center; background: #fafafa; border: 3px dashed #bdbdbd; border-radius: 14px; position: relative; }
+    .fm-subir:hover { background: #f3f8e6; border-color: #5a7a1e; }
+    .fm-subir input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .fm-subir small { color: #666; }
+    .fm-previa { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+    .fm-previa img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; }
+    .fm-autor-foto { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 12px; }
+    @media (max-width: 560px) { .fm-autor-foto { grid-template-columns: minmax(0, 1fr); } }
 
     /* Botones */
     .fm-acciones { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 14px; margin-top: 28px; padding-top: 22px; border-top: 1px solid #ececec; }
@@ -67,7 +70,7 @@
 
     <a href="{{ url_for('ficha_lugar', id_lugar=lugar[0]) if lugar else url_for('mapa') }}" class="fm-volver">← {{ 'Volver a la ficha' if lugar else 'Volver al mapa' }}</a>
 
-    <form action="{{ accion }}" method="POST" id="form-local" class="fm-tarjeta">
+    <form action="{{ accion }}" method="POST" enctype="multipart/form-data" id="form-local" class="fm-tarjeta">
         <h2 class="fm-titulo">{{ titulo }}</h2>
         <p class="fm-sub">{{ subtitulo }}</p>
 
@@ -164,23 +167,43 @@
         <!-- ===== Fotos ===== -->
         <div class="fm-bloque">
             <h3>Fotos del lugar</h3>
-            <p>Elige las fotos de la galería que muestran este lugar. Así cada foto conserva su autor. Si falta alguna, súbela primero en Vestigio.</p>
-            {% if fotos_galeria %}
+            <p>Estas fotos solo aparecen en la ficha del lugar; no se agregan a la galería.</p>
+
+            {% if fotos_actuales %}
+            <span class="fm-etiqueta">Fotos actuales</span>
             <div class="fm-fotos">
-                {% for f in fotos_galeria %}
-                {# f: (id_archivo, nombre, descripcion, url, ...) #}
-                <label class="fm-foto">
-                    <input type="checkbox" name="fotos" value="{{ f[0] }}" {% if f[0] in fotos_elegidas %}checked{% endif %}>
-                    <img src="{{ url_for('static', filename=f[3].split('static/')[1]) }}" alt="" loading="lazy">
-                    <span class="marca" aria-hidden="true">✔</span>
-                    <span>{{ f[1] }}</span>
-                </label>
+                {% for f in fotos_actuales %}
+                {# f: (id_lugar_foto, url, autor, fecha_creacion) #}
+                <div class="fm-foto">
+                    <img src="{{ url_for('static', filename=f[1].split('static/')[1]) }}" alt="" loading="lazy">
+                    {% if f[2] %}<small>Foto: {{ f[2] }}</small>{% endif %}
+                    <label class="fm-quitar-foto"><input type="checkbox" name="fotos_quitar" value="{{ f[0] }}"> Quitar</label>
+                </div>
                 {% endfor %}
             </div>
-            <span class="fm-contador-fotos" id="contador-fotos"></span>
-            {% else %}
-            <p class="fm-sin-fotos">Todavía no hay imágenes en la galería.</p>
             {% endif %}
+
+            <span class="fm-etiqueta">{{ 'Agregar fotos' if fotos_actuales else 'Subir fotos' }} <span class="opcional">(opcional, hasta 8 a la vez)</span></span>
+            <div class="fm-subir">
+                <strong>Haz clic para elegir fotos</strong>
+                <small>PNG, JPG o WEBP</small>
+                <input type="file" id="fotos_nuevas" name="fotos_nuevas" accept=".png,.jpg,.jpeg,.webp" multiple aria-label="Fotos del lugar">
+            </div>
+            <div class="fm-previa" id="previa-fotos"></div>
+
+            <div id="autor-fotos" hidden>
+                <span class="fm-etiqueta" style="margin-top: 14px;">¿Quién tomó estas fotos o de dónde salieron?</span>
+                <div class="fm-autor-foto">
+                    <input type="text" name="foto_autor_nombre" class="fm-campo" list="lista-autores" maxlength="100" placeholder="Nombre de la persona o institución" aria-label="Autor de las fotos" autocomplete="off">
+                    <select name="foto_autor_tipo" class="fm-campo" aria-label="Tipo de autor">
+                        {% for valor, texto in TIPOS_AUTOR %}<option value="{{ valor }}">{{ texto }}</option>{% endfor %}
+                    </select>
+                    <select name="foto_autor_origen" class="fm-campo" aria-label="Origen del autor">
+                        {% for valor, texto in ORIGENES_AUTOR %}<option value="{{ valor }}">{{ texto }}</option>{% endfor %}
+                    </select>
+                </div>
+                <span class="fm-ayuda">Se guarda como autor de todas las fotos que subas ahora.</span>
+            </div>
         </div>
 
         <!-- ===== Fuentes ===== -->
@@ -274,16 +297,23 @@
         filtrar();
     })();
 
-    // ===== Cuántas fotos van elegidas =====
+    // ===== Fotos nuevas: vista previa, y el autor se pide solo si se eligió alguna =====
     (function () {
-        const contador = document.getElementById('contador-fotos');
-        if (!contador) return;
-        const casillas = document.querySelectorAll('input[name="fotos"]');
-        function contar() {
-            const n = Array.from(casillas).filter(function (c) { return c.checked; }).length;
-            contador.textContent = n === 0 ? 'Ninguna foto elegida' : (n === 1 ? '1 foto elegida' : n + ' fotos elegidas') + (n > 12 ? ' (máximo 12)' : '');
-        }
-        casillas.forEach(function (c) { c.addEventListener('change', contar); });
-        contar();
+        const entrada = document.getElementById('fotos_nuevas');
+        const previa = document.getElementById('previa-fotos');
+        const autor = document.getElementById('autor-fotos');
+        const nombreAutor = autor.querySelector('[name="foto_autor_nombre"]');
+        entrada.addEventListener('change', function () {
+            previa.textContent = '';
+            Array.from(entrada.files).slice(0, 8).forEach(function (archivo) {
+                const img = document.createElement('img');
+                img.alt = archivo.name;
+                img.src = URL.createObjectURL(archivo);
+                previa.appendChild(img);
+            });
+            const hayFotos = entrada.files.length > 0;
+            autor.hidden = !hayFotos;
+            nombreAutor.required = hayFotos;
+        });
     })();
 </script>

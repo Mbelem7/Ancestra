@@ -1,5 +1,5 @@
 from app import db
-from sqlalchemy import text
+from sqlalchemy import text, bindparam
 
 
 # Columnas de un lugar. Las de la ficha ampliada (reseña, horario y ubicación) van AL FINAL,
@@ -204,25 +204,25 @@ def actualizar_lugar(
 
 
 # ======================================================================
-# Fotos del lugar (tabla lugar_archivo): se eligen de la galería
+# Fotos propias del lugar (tabla lugar_foto): se suben en el formulario del lugar y no van a la galería
 # ======================================================================
 
-def obtener_fotos_de_lugar(lugar_id, solo_activos=True):
-    # Devuelve: (id_archivo, nombre, url, tipo)
-    filtro_estado = "AND a.estado = 'activo'" if solo_activos else ""
+def obtener_fotos_lugar(lugar_id):
+    # Las fotos activas del lugar, con el autor de cada una.
+    # Devuelve: (id_lugar_foto, url, autor, fecha_creacion)
 
     resultado = db.session.execute(
-        text(f"""
+        text("""
             SELECT
-                a.id_archivo,
+                f.id_lugar_foto,
+                f.url,
                 a.nombre,
-                a.url,
-                a.tipo
-            FROM lugar_archivo la
-            INNER JOIN archivo a ON a.id_archivo = la.archivo_id
-            WHERE la.lugar_id = :lugar_id
-            {filtro_estado}
-            ORDER BY la.id_lugar_archivo
+                f.fecha_creacion
+            FROM lugar_foto f
+            LEFT JOIN autor a ON a.id_autor = f.autor_id
+            WHERE f.lugar_id = :lugar_id
+              AND f.estado = 'activo'
+            ORDER BY f.id_lugar_foto
         """),
         {
             'lugar_id': lugar_id
@@ -232,22 +232,42 @@ def obtener_fotos_de_lugar(lugar_id, solo_activos=True):
     return resultado.fetchall()
 
 
-def guardar_fotos_de_lugar(lugar_id, ids_archivos):
-    # Reemplaza las fotos del lugar por las elegidas en el formulario (solo se borran las relaciones;
-    # las imágenes siguen en la galería)
+def insertar_foto_lugar(lugar_id, url, autor_id, administrador_id, fecha_creacion):
 
     db.session.execute(
-        text("DELETE FROM lugar_archivo WHERE lugar_id = :lugar_id"),
-        {'lugar_id': lugar_id}
+        text("""
+            INSERT INTO lugar_foto (lugar_id, url, autor_id, administrador_id, estado, fecha_creacion)
+            VALUES (:lugar_id, :url, :autor_id, :administrador_id, 'activo', :fecha_creacion)
+        """),
+        {
+            'lugar_id': lugar_id,
+            'url': url,
+            'autor_id': autor_id,
+            'administrador_id': administrador_id,
+            'fecha_creacion': fecha_creacion
+        }
     )
-    for archivo_id in ids_archivos:
-        db.session.execute(
-            text("""
-                INSERT INTO lugar_archivo (lugar_id, archivo_id)
-                VALUES (:lugar_id, :archivo_id)
-            """),
-            {'lugar_id': lugar_id, 'archivo_id': archivo_id}
-        )
+
+    db.session.commit()
+
+
+def desactivar_fotos_lugar(lugar_id, ids_fotos):
+    # "Quitar" una foto no la borra: pasa a inactiva y queda como dato histórico
+    if not ids_fotos:
+        return
+
+    db.session.execute(
+        text("""
+            UPDATE lugar_foto
+            SET estado = 'inactivo'
+            WHERE lugar_id = :lugar_id
+              AND id_lugar_foto IN :ids
+        """).bindparams(bindparam('ids', expanding=True)),
+        {
+            'lugar_id': lugar_id,
+            'ids': list(ids_fotos)
+        }
+    )
 
     db.session.commit()
 
