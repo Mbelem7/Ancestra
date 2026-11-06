@@ -94,7 +94,8 @@ header-mapa
     }
 
     // Masaya, Nicaragua (centro inicial del mapa)
-    const mapa = L.map('mapa').setView([11.9744, -86.0942], 14);
+    const mapa = L.map('mapa', { zoomControl: false }).setView([11.9744, -86.0942], 14);
+    L.control.zoom({ position: 'bottomright' }).addTo(mapa);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -121,7 +122,13 @@ header-mapa
 
     const marcadores = lugares.map(function (l) {
         const marcador = L.marker([l.lat, l.lng], { opacity: l.activo ? 1 : 0.55 }).addTo(mapa);   // los inactivos se ven atenuados
-        return marcador.bindPopup(contenidoGlobo(l), { className: 'mp-globo', minWidth: 230, maxWidth: 300 });
+        const ancho = document.getElementById('mapa').clientWidth;      // en celular el mapa es angosto
+        return marcador.bindPopup(contenidoGlobo(l), {
+            className: 'mp-globo',
+            minWidth: Math.min(230, ancho - 80),
+            maxWidth: Math.min(300, ancho - 50),
+            autoPanPadding: [16, 16]
+        });
     });
 
     // Si ya hay lugares, el mapa se ajusta para mostrarlos todos

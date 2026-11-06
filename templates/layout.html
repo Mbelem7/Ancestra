@@ -14,6 +14,7 @@
     {% block title %} {% endblock %}
     {% block css %} {% endblock %}
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/compacto.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/responsive.css') }}">
 </head>
 <body>
     <!-- Cuenta (esquina superior derecha, fuera de la navegación): quién eres, cambiar contraseña y cerrar sesión -->
@@ -63,7 +64,10 @@
         </div>
 
             <div class="contenedor-header" style="display: flex; justify-content: center; z-index: 10; margin-top: auto;">
-                <nav class="nav-principal-home" style="display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 5px;"> 
+                <button type="button" class="menu-boton" id="menu-boton" aria-expanded="false" aria-controls="menu-principal">
+                    <span class="menu-icono" aria-hidden="true"></span> Menú
+                </button>
+                <nav class="nav-principal-home" id="menu-principal" style="display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 5px;">
                 
                 <!-- Enlaces Públicos -->
                     <a href="{{ url_for('index') }}" class="nav-link-home {% if request.endpoint == 'index' %}active{% endif %}">Inicio</a>
@@ -115,6 +119,24 @@
     </div>
 
     <script>
+    // Menú hamburguesa (celular y tablet): se abre con el botón y se cierra al elegir una opción, con Esc o tocando afuera
+    (function () {
+        const boton = document.getElementById('menu-boton');
+        const menu = document.getElementById('menu-principal');
+        if (!boton || !menu) return;
+        function cerrar() { menu.classList.remove('abierto'); boton.setAttribute('aria-expanded', 'false'); }
+        boton.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const abrir = !menu.classList.contains('abierto');
+            menu.classList.toggle('abierto', abrir);
+            boton.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        });
+        menu.addEventListener('click', function (e) { if (e.target.closest('a')) cerrar(); });
+        document.addEventListener('click', function (e) { if (!menu.contains(e.target)) cerrar(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+    })();
+    
+
     // Menú de la cuenta: se abre al hacer clic y se cierra al hacer clic afuera, con Esc o al mover la página
     (function () {
         const boton = document.getElementById('usuario-boton');

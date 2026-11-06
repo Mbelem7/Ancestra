@@ -31,24 +31,6 @@
         margin: 0;
     }
 
-    .bib-cabecera .bq {
-        position: relative;
-        flex: 0 1 380px;
-        margin: 0;
-    }
-
-    /* El panel de filtros se abre flotando debajo del buscador, para no apretarlo en la columna */
-    .bib-cabecera .bq-filtros {
-        position: absolute;
-        right: 0;
-        top: calc(100% + 8px);
-        z-index: 20;
-        width: min(560px, 90vw);
-        background: #fff;
-        border-radius: 14px;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-    }
-
     .bib .bq-estado {
         margin: 0 0 24px;
     }
@@ -198,11 +180,7 @@ header-biblioteca
     que no está en la lista, también se ofrece #}
     {% set tipos_conocidos = TIPOS_DOCUMENTO | map(attribute=0) | list %}
 
-    <!-- Título y buscador en la misma fila -->
-    <div class="bib-cabecera">
-        <h2 class="bib-titulo" id="titulo-lista">¡Escoge uno y empieza a aprender!</h2>
-
-        {% if libritos %}
+      {% if libritos %}
         <form class="bq" id="buscador" role="search" onsubmit="return false;">
             <div class="bq-barra">
                 <div class="bq-campo">
@@ -261,6 +239,10 @@ header-biblioteca
             </div>
         </form>
         {% endif %}
+
+    <!-- Título y buscador en la misma fila -->
+    <div class="bib-cabecera">
+        <h2 class="bib-titulo" id="titulo-lista">¡Escoge uno y empieza a aprender!</h2>
     </div>
 
     {% if libritos %}

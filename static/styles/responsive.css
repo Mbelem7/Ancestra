@@ -1,0 +1,131 @@
+/* =====================================================================
+   ANCESTRA · responsive.css
+   Ajustes para celular y tablet. Se carga al final (después de compacto.css), así que gana sobre los demás estilos.
+   Algunas reglas llevan !important porque la barra de navegación tiene estilos escritos directo en el HTML (style="...").
+   ===================================================================== */
+
+/* Nunca se puede mover la página hacia los lados */
+html, body { overflow-x: hidden; }
+
+/* ---------- El botón del menú (solo existe en celular y tablet) ---------- */
+.menu-boton { display: none; }
+
+/* Mientras el visor de fotos está abierto (en Vestigio o en la ficha de un lugar),
+   el menú y la cuenta se esconden para no tapar la imagen */
+body:has(.gal-visor:not([hidden])) .contenedor-header,
+body:has(.gal-visor:not([hidden])) .usuario-esquina,
+body:has(.fl-visor:not([hidden])) .contenedor-header,
+body:has(.fl-visor:not([hidden])) .usuario-esquina { visibility: hidden; }
+
+
+/* =====================================================================
+   MEMORIAS: la portada mantiene su forma de libro (antes se estiraba al abrir "Ver más")
+   ===================================================================== */
+.bib-portada { align-self: flex-start; height: auto; }
+
+
+/* =====================================================================
+   TABLET Y CELULAR (hasta 900 px de ancho)
+   ===================================================================== */
+@media (max-width: 900px) {
+
+    /* ---------- Menú hamburguesa ---------- */
+    .contenedor-header { position: relative; }
+
+    .menu-boton {
+        display: inline-flex; align-items: center; gap: 10px;
+        margin: 0 auto; padding: 10px 22px;
+        background: #BECC29; color: #2b3306;
+        border: none; border-radius: 26px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+        font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer;
+    }
+    .menu-boton:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+    /* Las tres rayitas, que se convierten en una X al abrir */
+    .menu-icono, .menu-icono::before, .menu-icono::after {
+        display: block; width: 20px; height: 2px; background: currentColor; border-radius: 2px;
+        transition: transform 0.2s, background 0.2s;
+    }
+    .menu-icono { position: relative; }
+    .menu-icono::before, .menu-icono::after { content: ''; position: absolute; left: 0; }
+    .menu-icono::before { top: -6px; }
+    .menu-icono::after { top: 6px; }
+    .menu-boton[aria-expanded="true"] .menu-icono { background: transparent; }
+    .menu-boton[aria-expanded="true"] .menu-icono::before { transform: translateY(6px) rotate(45deg); }
+    .menu-boton[aria-expanded="true"] .menu-icono::after { transform: translateY(-6px) rotate(-45deg); }
+
+    /* Cerrado: los enlaces no se ven */
+    .nav-principal-home { display: none !important; }
+
+    /* Abierto: lista vertical que flota sobre la página (no empuja el contenido) */
+    .nav-principal-home.abierto {
+        display: flex !important; flex-direction: column !important; align-items: stretch !important;
+        flex-wrap: nowrap !important; gap: 4px !important;
+        position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+        z-index: 3000; width: min(320px, 90vw); padding: 10px;
+        background: #BECC29; border-radius: 18px; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
+    }
+    .nav-principal-home.abierto .nav-link-home {
+        display: block; width: 100%; box-sizing: border-box; margin: 0;
+        padding: 12px 16px; border-radius: 12px; text-align: center; font-size: 1rem;
+    }
+
+    /* Los títulos del encabezado, más pequeños para que quepan */
+    .header h1 { font-size: clamp(2.2rem, 10vw, 3.4rem); line-height: 1.1; }
+    .header h2 { font-size: clamp(0.85rem, 3.6vw, 1.1rem); }
+}
+
+
+/* =====================================================================
+   CELULAR (hasta 640 px de ancho)
+   ===================================================================== */
+@media (max-width: 640px) {
+
+    /* ---------- Inicio: espacio para que el título del buscador no quede debajo del botón del menú ---------- */
+    .fondo-principal .seccion.inicio-buscador { padding-top: 28px; }
+
+    /* ---------- Memorias: cada documento con la portada arriba y el texto debajo ---------- */
+    .bib .tarjeta-biblioteca { flex-direction: column; align-items: center; gap: 14px; }
+    .bib-portada { flex: 0 0 auto; width: 150px; align-self: center; }
+    .bib-contenido { width: 100%; }
+    .bib-contenido .titulo-documento, .bib-autor { text-align: center; }
+    .bib-descripcion { text-align: left; }
+    .bib-estado { align-self: center; }
+    .bib-ver-mas { align-self: center; }
+    .bib .grid-biblioteca { gap: 40px; }
+    .bib-cabecera .bq { flex: 1 1 100%; }
+
+    /* ---------- Vestigio: los álbumes en dos columnas que caben en la pantalla ---------- */
+    .albumes-container {
+        display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 18px 14px !important; width: 100% !important; overflow: visible !important;
+        flex-wrap: wrap !important;
+    }
+    .albumes-container .album-card { width: auto !important; min-width: 0 !important; max-width: none !important; margin: 0 !important; }
+    .albumes-container .collage-grid { width: 100% !important; max-width: 100% !important; }
+    .albumes-container .collage-item img,
+    .albumes-container .collage-item video { max-width: 100%; }
+    .albumes-container .album-titulo { font-size: 0.9rem; overflow-wrap: anywhere; }
+
+    /* ---------- Huellas: la tarjeta del lugar, más compacta ---------- */
+    .mp-tarjeta { padding: 14px 16px; }
+    .mp-titulo { font-size: 1rem; }
+    .mp-descripcion { margin: 8px 0 10px; font-size: 0.85rem; }
+    .mapa-contenedor #mapa { min-height: 70vh !important; }
+
+        /* ---------- Crear: las cuatro fichas una debajo de otra, con el texto a la izquierda y la pieza a la derecha ---------- */
+    .opciones-grid {
+        display: grid !important; grid-template-columns: minmax(0, 1fr) !important;
+        gap: 14px !important; width: 100% !important; max-width: 420px; margin: 0 auto !important;
+    }
+    .opciones-grid .opcion-card {
+        display: flex !important; flex-direction: row !important; align-items: center !important;
+        justify-content: space-between !important; gap: 12px;
+        width: auto !important; height: auto !important; min-height: 96px; aspect-ratio: auto !important;
+        margin: 0 !important; padding: 14px 18px !important; box-sizing: border-box;
+    }
+    .opciones-grid .opcion-card span {
+        font-size: 1.35rem !important; line-height: 1.2; text-align: left; overflow-wrap: normal; word-break: normal;
+    }
+    .opciones-grid .opcion-card svg { flex: 0 0 auto; width: 64px !important; height: 64px !important; }
+}
