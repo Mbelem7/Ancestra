@@ -120,7 +120,7 @@ header-galeria
             <div class="fm-zona" id="zona">
                 <span class="icono" aria-hidden="true">🖼️</span>
                 <span class="texto"><strong>Haz clic para elegir</strong> o arrastra el archivo aquí</span>
-                <span class="formatos">PNG, JPG, SVG, MP4 o WEBM</span>
+                <span class="formatos">Imágenes PNG, JPG o SVG (hasta 5 MB) · Videos MP4 o WEBM (hasta 50 MB)</span>
                 <input type="file" id="URL" name="URL" class="fm-archivo" accept=".png,.jpg,.jpeg,.svg,.mp4,.webm" aria-label="Archivo" required>
             </div>
             <div class="fm-aviso" id="aviso-archivo" role="alert" hidden></div>
@@ -140,6 +140,8 @@ header-galeria
             <label class="fm-etiqueta" for="nombre">Título</label>
             <input type="text" id="nombre" name="nombre" class="fm-campo" maxlength="100" placeholder="Ej: Danza de las Inditas" required>
         </div>
+        <!-- Campo: Autor o fuente (opcional: muchas fotos antiguas no tienen autor conocido) -->
+        {% with autores_obligatorio=false %}{% include '_campo_autores.html' %}{% endwith %}
 
         <div class="fm-fila">
             <!-- Campo: Categoría (Álbum) - viene de la tabla categorias -->

@@ -52,7 +52,7 @@
     @media (prefers-reduced-motion: reduce) { .inicio-resaltado { animation: none; outline: 4px solid #FFA105; } }
 
     /* ---------- Lo nuevo en Ancestra ---------- */
-    .fondo-principal .seccion.inicio-nuevo { margin-top: 70px; }      /* deja pasar el borde del papel roto de arriba */
+    .fondo-principal .seccion.inicio-nuevo { margin-top: 70px; padding-bottom: 70px; }      /* arriba deja pasar el papel roto; abajo, espacio antes del footer */
     .in-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
     .in-columna { display: flex; flex-direction: column; gap: 12px; }
     .in-columna .inicio-subtitulo { margin: 0; }
@@ -212,9 +212,9 @@ header-home
                 <h3 class="inicio-subtitulo">En Memorias</h3>
                 {% for a in nuevos_documentos %}
                 {# a: (id_archivo, nombre, descripcion, url, categoria_id, tipo, fecha_creacion, fecha_modificacion, administrador_id, estado) #}
-                <a class="in-doc" href="{{ url_for('static', filename=a[3].split('static/')[1]) }}" target="_blank" rel="noopener">
+                <a class="in-doc" href="{{ url_archivo(a[3]) }}" target="_blank" rel="noopener">
                     <span class="in-portada">
-                        {% if a[0] in portadas %}<img src="{{ url_for('static', filename=portadas[a[0]]) }}" alt="" loading="lazy">{% endif %}
+                        {% if a[0] in portadas %}<img src="{{ url_archivo(portadas[a[0]]) }}" alt="" loading="lazy">{% endif %}
                     </span>
                     <span class="in-texto">
                         <strong>{{ a[1] }}</strong>
@@ -233,7 +233,7 @@ header-home
                 {% if nuevas_imagenes %}
                 <div class="in-fotos">
                     {% for f in nuevas_imagenes %}
-                    {% set ruta = url_for('static', filename=f[3].split('static/')[1]) %}
+                    {% set ruta = url_archivo(f[3]) %}
                     <a class="in-foto" href="{{ url_for('galeria') }}" title="{{ f[1] }}">
                         {% if f[5] == 'video' %}
                         <video src="{{ ruta }}" muted preload="metadata" aria-label="{{ f[1] }}"></video>

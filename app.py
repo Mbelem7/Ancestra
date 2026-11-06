@@ -74,6 +74,7 @@ from modulos.administrador import *
 from modulos.ubicacion import *
 from modulos.bitacora import *
 from modulos.configuracion import *
+from modulos import almacenamiento
 from modulos import seguridad
 import random
 import unicodedata
@@ -817,7 +818,7 @@ def index():
         if archivo[3] and archivo[3].lower().endswith('.pdf'):
             portada = generar_portada(archivo[3])
             if portada:
-                portadas[archivo[0]] = portada.split('static/')[1]
+                portadas[archivo[0]] = portada
 
     autores_de = {}
     for archivo_id, nombre in obtener_autores_de_archivos([a[0] for a in nuevos_documentos]):
@@ -862,13 +863,13 @@ def buscar():
         lista_documentos.append({
             'nombre': a[1],
             'autores': ', '.join(autores_de.get(a[0], [])),
-            'url': url_for('static', filename=a[3].split('static/')[1]),
-            'portada': url_for('static', filename=portada.split('static/')[1]) if portada else None
+            'url': url_archivo(a[3]),
+            'portada': url_archivo(portada) if portada else None
         })
 
     # Vestigio: por título, descripción y álbum
     imagenes = [f for f in obtener_archivos_galeria() if coincide(f[1], f[2], categorias.get(f[4]))]
-    lista_imagenes = [{'nombre': f[1], 'tipo': f[5], 'url': url_for('static', filename=f[3].split('static/')[1])}
+    lista_imagenes = [{'nombre': f[1], 'tipo': f[5], 'url': url_archivo(f[3])}
                       for f in imagenes[:6]]
 
     # Huellas: por nombre, descripción y dirección
@@ -975,15 +976,58 @@ def nombre_archivo_unico(nombre_original):
     base = secure_filename(nombre_original.rsplit('.', 1)[0]) or 'archivo'
     return f"{uuid.uuid4().hex[:8]}_{base}.{extension}"
 
-# PORTADA DE UN PDF: imagen de su primera página, guardada en la subcarpeta "portadas" con el mismo nombre
+# Peso máximo de cada archivo, en MB (Supabase gratuito acepta hasta 50 MB por archivo)
+LIMITES_MB = {'documento': 20, 'imagen': 5, 'video': 50, 'foto_lugar': 5}
+# Límite de todo lo que se envía en un formulario: así un archivo enorme no llega a ocupar el servidor
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+ 
+ 
+def tamano_mb(archivo):
+    # Cuánto pesa un archivo subido, sin leerlo completo
+    archivo.stream.seek(0, os.SEEK_END)
+    tamano = archivo.stream.tell()
+    archivo.stream.seek(0)
+    return tamano / 1048576
+ 
+ 
+def error_de_tamano(archivo, clase):
+    # Mensaje de error si el archivo pesa más de lo permitido para su clase; None si está bien
+    if not archivo or not archivo.filename:
+        return None
+    peso = tamano_mb(archivo)
+    if peso > LIMITES_MB[clase]:
+        return f"«{archivo.filename}» pesa {peso:.1f} MB y el máximo es {LIMITES_MB[clase]} MB."
+    return None
+ 
+ 
+def guardar_documento(archivo):
+    # Guarda el PDF y su portada (en Storage o en static). Devuelve lo que se guarda en la base de datos
+    nombre = nombre_archivo_unico(archivo.filename)
+    datos = archivo.read()
+    ruta = almacenamiento.guardar(datos, 'docs', nombre, 'application/pdf')
+    portada = almacenamiento.portada_de_pdf(datos)
+    if portada:
+        almacenamiento.guardar(portada, 'docs/portadas', os.path.splitext(nombre)[0] + '.jpg', 'image/jpeg')
+    return ruta
+ 
+ 
+def guardar_imagen(archivo, carpeta='img'):
+    # Guarda una imagen o un video (carpeta 'img') o una foto de lugar (carpeta 'lugares')
+    return almacenamiento.guardar(archivo.read(), carpeta, nombre_archivo_unico(archivo.filename))
+ 
+ 
+# PORTADA DE UN PDF: imagen de su primera página, en la subcarpeta "portadas" con el mismo nombre
 def ruta_portada(url_pdf):
     carpeta, nombre = os.path.split(url_pdf)
     return os.path.join(carpeta, 'portadas', os.path.splitext(nombre)[0] + '.jpg').replace('\\', '/')
-
-
+ 
+ 
 def generar_portada(url_pdf):
-    """Crea la portada si todavía no existe. Devuelve su ruta, o None si no se pudo (PDF dañado, etc.)."""
+    """Devuelve la ruta de la portada, o None si no se pudo. En Storage la portada se crea al subir el PDF;
+    en los PDF guardados en static se crea aquí si falta (por ejemplo, los subidos antes de este cambio)."""
     destino = ruta_portada(url_pdf)
+    if almacenamiento.es_remota(url_pdf):
+        return destino
     if os.path.exists(destino):
         return destino
     try:
@@ -996,6 +1040,18 @@ def generar_portada(url_pdf):
     except Exception as error:
         print('No se pudo generar la portada de', url_pdf, '-', error)
         return None
+ 
+ 
+def url_archivo(ruta):
+    # La dirección para mostrar un archivo: el enlace de Storage tal cual, o la ruta de static convertida
+    if not ruta:
+        return ''
+    if almacenamiento.es_remota(ruta):
+        return ruta
+    return url_for('static', filename=ruta.split('static/', 1)[1]) if 'static/' in ruta else ruta
+ 
+ 
+app.jinja_env.globals['url_archivo'] = url_archivo
 
 #CODIGO DE ACCESO PARA LOS JUEGOS
 def generar_codigo_acceso():
@@ -1038,7 +1094,7 @@ def biblioteca():
         if archivo[3] and archivo[3].lower().endswith('.pdf'):
             portada = generar_portada(archivo[3])
             if portada:
-                portadas[archivo[0]] = portada.split('static/')[1]
+                portadas[archivo[0]] = portada
 
     # Los autores de cada documento, para mostrarlos y para poder buscar por ellos: {id_archivo: [nombres]}
     autores_de = {}
@@ -1052,135 +1108,111 @@ def biblioteca():
 @rol_requerido('administrador')
 def crear_documento():
     if request.method == 'GET':
-        categorias = mostrar_categorias()
-        return render_template('crear_documento.html', categ=categorias, **datos_autores())
-    elif request.method == 'POST':
-        nombre = request.form.get('nombre')
-        descripcion = request.form.get('descripcion')
-        file = request.files.get('URL')
-        tipo = request.form.get('tipo')
-        categoria = request.form.get('categoria')
-        propietario_id = session.get('rol_id')
-        estado = 'activo'
-        fecha_creacion = datetime.now()
-        fecha_modificacion = datetime.now()
+        return render_template('crear_documento.html', categ=mostrar_categorias(), **datos_autores())
  
-        #VALIDACIONES
-        erroresD = []
-        if not nombre or len(nombre) > 100:
-            erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
-        if not descripcion or len(descripcion) > 500:
-            erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
-        if not tipo:
-            erroresD.append("El tipo de archivo es obligatorio.")
-        if not categoria:
-            erroresD.append("Debe seleccionar una categoría.")
-        if not file or not allowed_file_documento(file.filename):
-            erroresD.append("El archivo es obligatorio y debe ser un tipo permitido PDF.")
-        
-        autores, errores_autores = leer_autores_del_formulario(obligatorio=True)
-        erroresD += errores_autores
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    file = request.files.get('URL')
+    tipo = request.form.get('tipo')
+    categoria = request.form.get('categoria')
+    ahora = datetime.now()
  
-        if erroresD:
-            categorias = mostrar_categorias()
-            return render_template('crear_documento.html', erroresD=erroresD, categ=categorias, **datos_autores())
+    #VALIDACIONES
+    erroresD = []
+    if not nombre or len(nombre) > 100:
+        erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
+    if not descripcion or len(descripcion) > 500:
+        erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
+    if not tipo:
+        erroresD.append("El tipo de archivo es obligatorio.")
+    if not categoria:
+        erroresD.append("Debe seleccionar una categoría.")
+    if not file or not allowed_file_documento(file.filename):
+        erroresD.append("El archivo es obligatorio y debe ser un tipo permitido PDF.")
+    else:
+        erroresD += [e for e in [error_de_tamano(file, 'documento')] if e]
+    autores, errores_autores = leer_autores_del_formulario(obligatorio=True)
+    erroresD += errores_autores
  
-        filename = nombre_archivo_unico(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER_DOCS'], filename)
-        file.save(filepath)
-        URLfile = f"{app.config['UPLOAD_FOLDER_DOCS']}/{filename}"
-        generar_portada(URLfile)
+    if not erroresD:
+        try:
+            URLfile = guardar_documento(file)
+        except Exception as error:
+            print("No se pudo guardar el documento:", error)
+            erroresD.append("No se pudo guardar el archivo. Intenta de nuevo en un momento.")
  
-        print(nombre, descripcion, URLfile, categoria, tipo, fecha_creacion, fecha_modificacion, propietario_id, estado)
-        id_archivo = insertar_archivo(
-            nombre,
-            descripcion,
-            URLfile,
-            categoria,
-            tipo,
-            fecha_creacion,
-            fecha_modificacion,
-            propietario_id,
-            estado
-        )
-        guardar_autores(id_archivo, autores)
-        registrar_cambio('archivo', id_archivo, 'crear', f"Documento «{nombre}»")
-        return redirect(url_for('biblioteca'))
-    
+    if erroresD:
+        return render_template('crear_documento.html', erroresD=erroresD, categ=mostrar_categorias(), **datos_autores())
  
-    return render_template('crear_documento.html')
+    id_archivo = insertar_archivo(nombre, descripcion, URLfile, categoria, tipo, ahora, ahora,
+                                  session.get('rol_id'), 'activo')
+    guardar_autores(id_archivo, autores)
+    registrar_cambio('archivo', id_archivo, 'crear', f"Documento «{nombre}»")
+    return redirect(url_for('biblioteca'))
  
+
 #EDITAR DOCUMENTO
 @app.route('/documentos/editar/<int:id_archivo>', methods=["GET", "POST"])
 @rol_requerido('administrador')
 def editar_documento(id_archivo):
-    if request.method == "POST":
-        archivo = obtener_un_archivo(id_archivo)
-        # archivo: (id_archivo, nombre, descripcion, URL, categoria_id, tipo,
-        #           fecha_creacion, fecha_modificacion, administrador_id, estado)
-        nombre = request.form.get('nombre')
-        descripcion = request.form.get('descripcion')
-        tipo = request.form.get('tipo')
-        categoria = request.form.get('categoria')
-        estado = request.form.get('estado', 'activo')
-        file = request.files.get('URL')
- 
-        #VALIDACIONES
-        erroresD = []
-        if not nombre or len(nombre) > 100:
-            erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
-        if not descripcion or len(descripcion) > 500:
-            erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
-        if not tipo:
-            erroresD.append("El tipo de archivo es obligatorio.")
-        if not categoria:
-            erroresD.append("Debe seleccionar una categoría.")
-        if file and file.filename and not allowed_file_documento(file.filename):
-            erroresD.append("El archivo debe ser un tipo permitido PDF.")
-        autores, errores_autores = leer_autores_del_formulario(obligatorio=True)
-        erroresD += errores_autores
- 
-        if erroresD:
-            categorias = mostrar_categorias()
-            return render_template("editar_documento.html", archivo=archivo, categ=categorias, erroresD=erroresD, **datos_autores(id_archivo))
- 
-        # Si no suben un archivo nuevo, se mantiene la URL que ya tenía
-        if file and file.filename and allowed_file_documento(file.filename):
-            filename = nombre_archivo_unico(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER_DOCS'], filename)
-            file.save(filepath)
-            URLfile = f"{app.config['UPLOAD_FOLDER_DOCS']}/{filename}"
-            generar_portada(URLfile)
-        else:
-            URLfile = archivo[3]
- 
-        fecha_modificacion = datetime.now()
-        administrador_id = archivo[8] or session.get('rol_id') 
- 
-        actualizar_archivo(
-            id_archivo,
-            nombre,
-            descripcion,
-            URLfile,
-            categoria,
-            tipo,
-            fecha_modificacion,
-            administrador_id,
-            estado
-        )
-        eliminar_autores_de_archivo(id_archivo)
-        guardar_autores(id_archivo, autores)
-        registrar_cambio('archivo', id_archivo, 'editar', describir_cambios(
-            {'Nombre': archivo[1], 'Descripción': archivo[2], 'Tipo': archivo[5], 'Categoría': archivo[4],
-             'Archivo PDF': archivo[3], 'Estado': archivo[9]},
-            {'Nombre': nombre, 'Descripción': descripcion, 'Tipo': tipo, 'Categoría': categoria,
-             'Archivo PDF': URLfile, 'Estado': estado}))
+    archivo = obtener_un_archivo(id_archivo)
+    # archivo: (id_archivo, nombre, descripcion, URL, categoria_id, tipo,
+    #           fecha_creacion, fecha_modificacion, administrador_id, estado)
+    if not archivo:
         return redirect(url_for('biblioteca'))
-    else:
-        archivo = obtener_un_archivo(id_archivo)
-        categorias = mostrar_categorias()
-        return render_template("editar_documento.html", archivo=archivo, categ=categorias, **datos_autores(id_archivo))
  
+    if request.method == 'GET':
+        return render_template("editar_documento.html", archivo=archivo, categ=mostrar_categorias(), **datos_autores(id_archivo))
+ 
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    tipo = request.form.get('tipo')
+    categoria = request.form.get('categoria')
+    estado = request.form.get('estado', 'activo')
+    file = request.files.get('URL')
+    hay_archivo_nuevo = bool(file and file.filename)
+ 
+    #VALIDACIONES
+    erroresD = []
+    if not nombre or len(nombre) > 100:
+        erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
+    if not descripcion or len(descripcion) > 500:
+        erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
+    if not tipo:
+        erroresD.append("El tipo de archivo es obligatorio.")
+    if not categoria:
+        erroresD.append("Debe seleccionar una categoría.")
+    if hay_archivo_nuevo and not allowed_file_documento(file.filename):
+        erroresD.append("El archivo debe ser un tipo permitido PDF.")
+    elif hay_archivo_nuevo:
+        erroresD += [e for e in [error_de_tamano(file, 'documento')] if e]
+    autores, errores_autores = leer_autores_del_formulario(obligatorio=True)
+    erroresD += errores_autores
+ 
+    # Si no suben un archivo nuevo, se mantiene el que ya tenía
+    URLfile = archivo[3]
+    if not erroresD and hay_archivo_nuevo:
+        try:
+            URLfile = guardar_documento(file)
+        except Exception as error:
+            print("No se pudo guardar el documento:", error)
+            erroresD.append("No se pudo guardar el archivo nuevo. Intenta de nuevo en un momento.")
+ 
+    if erroresD:
+        return render_template("editar_documento.html", archivo=archivo, categ=mostrar_categorias(),
+                               erroresD=erroresD, **datos_autores(id_archivo))
+ 
+    actualizar_archivo(id_archivo, nombre, descripcion, URLfile, categoria, tipo, datetime.now(),
+                       archivo[8] or session.get('rol_id'), estado)
+    eliminar_autores_de_archivo(id_archivo)
+    guardar_autores(id_archivo, autores)
+    registrar_cambio('archivo', id_archivo, 'editar', describir_cambios(
+        {'Nombre': archivo[1], 'Descripción': archivo[2], 'Tipo': archivo[5], 'Categoría': archivo[4],
+         'Archivo PDF': archivo[3], 'Estado': archivo[9]},
+        {'Nombre': nombre, 'Descripción': descripcion, 'Tipo': tipo, 'Categoría': categoria,
+         'Archivo PDF': URLfile, 'Estado': estado}))
+    return redirect(url_for('biblioteca'))
+
 #BUSCAR DOCUMENTO
 @app.route('/buscar_documento')
 def buscar_documento():
@@ -1208,132 +1240,129 @@ def buscar_documento():
 def galeria():
     es_admin = session.get('tipo') == 'administrador'
     imagenes = obtener_archivos_galeria(solo_activos=not es_admin)    # el administrador también ve los inactivos
-    categorias = mostrar_categorias()
-    return render_template('galeria.html', imag=imagenes, categ=categorias)
+    # Los autores de cada imagen o video, para mostrarlos en el visor y para buscar por ellos
+    autores_de = {}
+    for archivo_id, nombre in obtener_autores_de_archivos([f[0] for f in imagenes]):
+        autores_de.setdefault(archivo_id, []).append(nombre)
+    return render_template('galeria.html', imag=imagenes, categ=mostrar_categorias(), autores_de=autores_de)
+ 
+ 
+def clase_de_media(nombre_archivo):
+    # 'video' o 'imagen', según la extensión (para aplicar el límite de peso que corresponde)
+    return 'video' if nombre_archivo.rsplit('.', 1)[-1].lower() in ('mp4', 'webm') else 'imagen'
+ 
  
 #AGREGAR IMAGEN
 @app.route('/crear-imagen', methods=['GET', 'POST'])
 @rol_requerido('administrador')
 def crear_imagen():
     if request.method == 'GET':
-        categorias = mostrar_categorias()
-        return render_template('crear_imagen.html', categ=categorias)
-    elif request.method == 'POST':
-        nombre = request.form.get('nombre')
-        descripcion = request.form.get('descripcion')
-        file = request.files.get('URL')
-        tipo = request.form.get('tipo')
-        categoria = request.form.get('categoria')
-        propietario_id = session.get('rol_id')
-        estado = 'activo'
-        fecha_creacion = datetime.now()
-        fecha_modificacion = datetime.now()
+        return render_template('crear_imagen.html', categ=mostrar_categorias(), **datos_autores())
  
-        #VALIDACIONES
-        erroresD = []
-        if not nombre or len(nombre) > 100:
-            erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
-        if not descripcion or len(descripcion) > 500:
-            erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
-        if not tipo:
-            erroresD.append("El tipo de archivo es obligatorio.")
-        if not categoria:
-            erroresD.append("Debe seleccionar una categoría.")
-        if not file or not allowed_file(file.filename):
-            erroresD.append("El archivo es obligatorio y debe ser PNG, JPG, SVG, MP4 o WEBM.")
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    file = request.files.get('URL')
+    tipo = request.form.get('tipo')
+    categoria = request.form.get('categoria')
+    ahora = datetime.now()
  
-        if erroresD:
-            categorias = mostrar_categorias()
-            return render_template('crear_imagen.html', erroresD=erroresD, categ=categorias)
+    #VALIDACIONES
+    erroresD = []
+    if not nombre or len(nombre) > 100:
+        erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
+    if not descripcion or len(descripcion) > 500:
+        erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
+    if not tipo:
+        erroresD.append("El tipo de archivo es obligatorio.")
+    if not categoria:
+        erroresD.append("Debe seleccionar una categoría.")
+    if not file or not allowed_file(file.filename):
+        erroresD.append("El archivo es obligatorio y debe ser PNG, JPG, SVG, MP4 o WEBM.")
+    else:
+        erroresD += [e for e in [error_de_tamano(file, clase_de_media(file.filename))] if e]
+    # En imágenes el autor es opcional: muchas fotos antiguas no tienen autor conocido
+    autores, errores_autores = leer_autores_del_formulario(obligatorio=False)
+    erroresD += errores_autores
  
-        filename = nombre_archivo_unico(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER_IMG'], filename)
-        file.save(filepath)
-        URLfile = f"{app.config['UPLOAD_FOLDER_IMG']}/{filename}"
+    if not erroresD:
+        try:
+            URLfile = guardar_imagen(file)
+        except Exception as error:
+            print("No se pudo guardar la imagen:", error)
+            erroresD.append("No se pudo guardar el archivo. Intenta de nuevo en un momento.")
  
-        print(nombre, descripcion, URLfile, categoria, tipo, fecha_creacion, fecha_modificacion, propietario_id, estado)
-        id_archivo = insertar_archivo(
-            nombre,
-            descripcion,
-            URLfile,
-            categoria,
-            tipo,
-            fecha_creacion,
-            fecha_modificacion,
-            propietario_id,
-            estado
-        )
-        registrar_cambio('archivo', id_archivo, 'crear', f"Imagen o video «{nombre}»")
-        return redirect(url_for('galeria'))
+    if erroresD:
+        return render_template('crear_imagen.html', erroresD=erroresD, categ=mostrar_categorias(), **datos_autores())
  
-    return render_template('crear_imagen.html')
+    id_archivo = insertar_archivo(nombre, descripcion, URLfile, categoria, tipo, ahora, ahora,
+                                  session.get('rol_id'), 'activo')
+    guardar_autores(id_archivo, autores)
+    registrar_cambio('archivo', id_archivo, 'crear', f"Imagen o video «{nombre}»")
+    return redirect(url_for('galeria'))
+ 
  
 #EDITAR IMAGEN
 @app.route('/galeria/editar/<int:id_archivo>', methods=["GET", "POST"])
 @rol_requerido('administrador')
 def editar_imagen(id_archivo):
-    if request.method == "POST":
-        archivo = obtener_un_archivo(id_archivo)
-        # archivo: (id_archivo, nombre, descripcion, URL, categoria_id, tipo,
-        #           fecha_creacion, fecha_modificacion, administrador_id, estado)
-        nombre = request.form.get('nombre')
-        descripcion = request.form.get('descripcion')
-        tipo = request.form.get('tipo')
-        categoria = request.form.get('categoria')
-        estado = request.form.get('estado', 'activo')
-        file = request.files.get('URL')
- 
-        #VALIDACIONES
-        erroresD = []
-        if not nombre or len(nombre) > 100:
-            erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
-        if not descripcion or len(descripcion) > 500:
-            erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
-        if not tipo:
-            erroresD.append("El tipo de archivo es obligatorio.")
-        if not categoria:
-            erroresD.append("Debe seleccionar una categoría.")
-        if file and file.filename and not allowed_file(file.filename):
-            erroresD.append("El archivo es obligatorio y debe ser PNG, JPG, SVG, MP4 o WEBM.")
- 
-        if erroresD:
-            categorias = mostrar_categorias()
-            return render_template("editar_imagen.html", archivo=archivo, categ=categorias, erroresD=erroresD)
- 
-        # Si no suben un archivo nuevo, se mantiene la URL que ya tenía
-        if file and file.filename and allowed_file(file.filename):
-            filename = nombre_archivo_unico(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER_IMG'], filename)
-            file.save(filepath)
-            URLfile = f"{app.config['UPLOAD_FOLDER_IMG']}/{filename}"
-        else:
-            URLfile = archivo[3]
- 
-        fecha_modificacion = datetime.now()
-        administrador_id = archivo[8] or session.get('rol_id')
- 
-        actualizar_archivo(
-            id_archivo,
-            nombre,
-            descripcion,
-            URLfile,
-            categoria,
-            tipo,
-            fecha_modificacion,
-            administrador_id,
-            estado
-        )
-        registrar_cambio('archivo', id_archivo, 'editar', describir_cambios(
-            {'Nombre': archivo[1], 'Descripción': archivo[2], 'Tipo': archivo[5], 'Categoría': archivo[4],
-             'Archivo': archivo[3], 'Estado': archivo[9]},
-            {'Nombre': nombre, 'Descripción': descripcion, 'Tipo': tipo, 'Categoría': categoria,
-             'Archivo': URLfile, 'Estado': estado}))
+    archivo = obtener_un_archivo(id_archivo)
+    # archivo: (id_archivo, nombre, descripcion, URL, categoria_id, tipo,
+    #           fecha_creacion, fecha_modificacion, administrador_id, estado)
+    if not archivo:
         return redirect(url_for('galeria'))
-    else:
-        archivo = obtener_un_archivo(id_archivo)
-        categorias = mostrar_categorias()
-        return render_template("editar_imagen.html", archivo=archivo, categ=categorias)
  
+    if request.method == 'GET':
+        return render_template("editar_imagen.html", archivo=archivo, categ=mostrar_categorias(), **datos_autores(id_archivo))
+ 
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    tipo = request.form.get('tipo')
+    categoria = request.form.get('categoria')
+    estado = request.form.get('estado', 'activo')
+    file = request.files.get('URL')
+    hay_archivo_nuevo = bool(file and file.filename)
+ 
+    #VALIDACIONES
+    erroresD = []
+    if not nombre or len(nombre) > 100:
+        erroresD.append("El nombre es obligatorio y no debe exceder los 100 caracteres.")
+    if not descripcion or len(descripcion) > 500:
+        erroresD.append("La descripción es obligatoria y no debe exceder los 500 caracteres.")
+    if not tipo:
+        erroresD.append("El tipo de archivo es obligatorio.")
+    if not categoria:
+        erroresD.append("Debe seleccionar una categoría.")
+    if hay_archivo_nuevo and not allowed_file(file.filename):
+        erroresD.append("El archivo debe ser PNG, JPG, SVG, MP4 o WEBM.")
+    elif hay_archivo_nuevo:
+        erroresD += [e for e in [error_de_tamano(file, clase_de_media(file.filename))] if e]
+    autores, errores_autores = leer_autores_del_formulario(obligatorio=False)
+    erroresD += errores_autores
+ 
+    # Si no suben un archivo nuevo, se mantiene el que ya tenía
+    URLfile = archivo[3]
+    if not erroresD and hay_archivo_nuevo:
+        try:
+            URLfile = guardar_imagen(file)
+        except Exception as error:
+            print("No se pudo guardar la imagen:", error)
+            erroresD.append("No se pudo guardar el archivo nuevo. Intenta de nuevo en un momento.")
+ 
+    if erroresD:
+        return render_template("editar_imagen.html", archivo=archivo, categ=mostrar_categorias(),
+                               erroresD=erroresD, **datos_autores(id_archivo))
+ 
+    actualizar_archivo(id_archivo, nombre, descripcion, URLfile, categoria, tipo, datetime.now(),
+                       archivo[8] or session.get('rol_id'), estado)
+    eliminar_autores_de_archivo(id_archivo)
+    guardar_autores(id_archivo, autores)
+    registrar_cambio('archivo', id_archivo, 'editar', describir_cambios(
+        {'Nombre': archivo[1], 'Descripción': archivo[2], 'Tipo': archivo[5], 'Categoría': archivo[4],
+         'Archivo': archivo[3], 'Estado': archivo[9]},
+        {'Nombre': nombre, 'Descripción': descripcion, 'Tipo': tipo, 'Categoría': categoria,
+         'Archivo': URLfile, 'Estado': estado}))
+    return redirect(url_for('galeria'))
+
 #BUSCAR IMAGEN
 @app.route('/buscar_imagen')
 def buscar_imagen():
@@ -1443,6 +1472,8 @@ def leer_lugar_del_formulario(erroresL):
         extension = foto.filename.rsplit('.', 1)[1].lower() if '.' in foto.filename else ''
         if extension not in EXTENSIONES_FOTO_LUGAR:
             erroresL.append(f"«{foto.filename}» no es una imagen válida (PNG, JPG o WEBP).")
+        elif error_de_tamano(foto, 'foto_lugar'):
+            erroresL.append(error_de_tamano(foto, 'foto_lugar'))
  
     autor_foto = None
     if fotos_nuevas:
@@ -1462,19 +1493,21 @@ def leer_lugar_del_formulario(erroresL):
  
  
 def guardar_fotos_nuevas(id_lugar, fotos, autor):
-    # Guarda cada foto en static/assets/img/lugares y la registra con su autor
+    # Guarda cada foto (en Storage o en static) y la registra con su autor
     if not fotos:
         return
-    os.makedirs(UPLOAD_FOLDER_LUGARES, exist_ok=True)
     ahora = datetime.now()
     existente = obtener_autor_por_nombre(autor['nombre'])
     id_autor = existente[0] if existente else insertar_autor(autor['nombre'], autor['tipo'], autor['origen'], None, ahora, ahora)
     for foto in fotos:
-        nombre = nombre_archivo_unico(foto.filename)
-        foto.save(os.path.join(UPLOAD_FOLDER_LUGARES, nombre))
-        insertar_foto_lugar(id_lugar, f"{UPLOAD_FOLDER_LUGARES}/{nombre}", id_autor, session.get('rol_id'), ahora)
- 
- 
+        try:
+            ruta = guardar_imagen(foto, 'lugares')
+        except Exception as error:
+            print("No se pudo guardar una foto del lugar:", error)
+            continue
+        insertar_foto_lugar(id_lugar, ruta, id_autor, session.get('rol_id'), ahora)
+
+        
 def guardar_autores_lugar(id_lugar, autores):
     # Igual que guardar_autores() de los documentos, pero para las fuentes de un lugar
     ahora = datetime.now()

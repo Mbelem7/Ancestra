@@ -175,7 +175,7 @@
                 {% for f in fotos_actuales %}
                 {# f: (id_lugar_foto, url, autor, fecha_creacion) #}
                 <div class="fm-foto">
-                    <img src="{{ url_for('static', filename=f[1].split('static/')[1]) }}" alt="" loading="lazy">
+                    <img src="{{ url_archivo(f[1]) }}" alt="" loading="lazy">
                     {% if f[2] %}<small>Foto: {{ f[2] }}</small>{% endif %}
                     <label class="fm-quitar-foto"><input type="checkbox" name="fotos_quitar" value="{{ f[0] }}"> Quitar</label>
                 </div>
@@ -186,7 +186,7 @@
             <span class="fm-etiqueta">{{ 'Agregar fotos' if fotos_actuales else 'Subir fotos' }} <span class="opcional">(opcional, hasta 8 a la vez)</span></span>
             <div class="fm-subir">
                 <strong>Haz clic para elegir fotos</strong>
-                <small>PNG, JPG o WEBP</small>
+                <small>PNG, JPG o WEBP, de hasta 5 MB cada una</small>
                 <input type="file" id="fotos_nuevas" name="fotos_nuevas" accept=".png,.jpg,.jpeg,.webp" multiple aria-label="Fotos del lugar">
             </div>
             <div class="fm-previa" id="previa-fotos"></div>

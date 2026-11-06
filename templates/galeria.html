@@ -68,6 +68,8 @@
     .gal-visor-pie { max-width: min(92vw, 760px); text-align: center; color: #fff; line-height: 1.45; }
     .gal-visor-pie strong { display: block; font-size: 1.15rem; }
     .gal-visor-pie .descripcion { display: block; margin-top: 4px; font-size: 0.92rem; color: #ddd; }
+    .gal-visor-pie .autor { display: block; margin-top: 4px; font-size: 0.85rem; font-style: italic; color: #FFC565; }
+    .gal-visor-pie .autor:empty { display: none; }
     .gal-visor-pie .contador { display: inline-block; margin-top: 8px; padding: 2px 12px; background: rgba(255, 255, 255, 0.16); border-radius: 12px; font-size: 0.8rem; }
     .gal-visor-cerrar, .gal-flecha {
         position: absolute; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0;
@@ -108,7 +110,7 @@ header-galeria
    f: (id_archivo, nombre, descripcion, url, categoria_id, tipo,
        fecha_creacion, fecha_modificacion, administrador_id, estado) #}
 {% macro media(f) %}
-    {% set ruta = url_for('static', filename=f[3].split('static/')[1]) %}
+    {% set ruta = url_archivo(f[3]) %}
     {% if f[5] == 'video' %}
     <video src="{{ ruta }}" class="media-archivo" style="width:100%; height:100%; object-fit:cover;" muted preload="metadata"></video>
     {% else %}
@@ -234,7 +236,7 @@ header-galeria
             {# Se dibujan TODOS los archivos; el JS muestra solo los de la categoría elegida #}
             {% for item in imag %}
             <figure class="gal-tarjeta{% if item[9] != 'activo' %} inactiva{% endif %}" data-categoria="{{ item[4] }}" data-titulo="{{ item[1] }}" data-descripcion="{{ item[2] or '' }}"
-                    data-album="{{ cat_nombre.get(item[4], '') }}" data-tipo="{{ item[5] }}" data-fecha="{{ item[6].strftime('%Y-%m-%d') if item[6] else '' }}"
+                    data-album="{{ cat_nombre.get(item[4], '') }}" data-autores="{{ (autores_de.get(item[0], []) if autores_de else []) | join(', ') }}" data-tipo="{{ item[5] }}" data-fecha="{{ item[6].strftime('%Y-%m-%d') if item[6] else '' }}"
                     tabindex="0" role="button" aria-label="Ampliar: {{ item[1] }}">
                 <div class="gal-marco">
                     {{ media(item) }}
@@ -267,6 +269,7 @@ header-galeria
             <div class="gal-visor-pie">
                 <strong id="visor-titulo"></strong>
                 <span class="descripcion" id="visor-descripcion"></span>
+                <span class="autor" id="visor-autor"></span>
                 <span class="contador" id="visor-contador"></span>
             </div>
         </div>
@@ -353,6 +356,7 @@ header-galeria
 
         document.getElementById('visor-titulo').textContent = tarjeta.dataset.titulo;
         document.getElementById('visor-descripcion').textContent = tarjeta.dataset.descripcion || '';
+        document.getElementById('visor-autor').textContent = tarjeta.dataset.autores ? 'Autor o fuente: ' + tarjeta.dataset.autores : '';
         document.getElementById('visor-contador').textContent = (indiceActual + 1) + ' de ' + itemsAlbum.length;
         document.getElementById('visor-anterior').disabled = indiceActual === 0;
         document.getElementById('visor-siguiente').disabled = indiceActual === itemsAlbum.length - 1;
@@ -421,7 +425,7 @@ header-galeria
 
     // Lo que se busca en cada archivo: título, descripción, álbum y tipo (sin tildes ni mayúsculas)
     todasLasTarjetas.forEach(function (t) {
-        t._buscar = Buscador.normalizar([t.dataset.titulo, t.dataset.descripcion, t.dataset.album, t.dataset.tipo].join(' '));
+        t._buscar = Buscador.normalizar([t.dataset.titulo, t.dataset.autores, t.dataset.descripcion, t.dataset.album, t.dataset.tipo].join(' '));
     });
 
     function cumpleBusqueda(t) {

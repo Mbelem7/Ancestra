@@ -41,16 +41,44 @@
 
     .fl-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
     .fl-foto { margin: 0; }
-    .fl-foto a { display: block; overflow: hidden; border-radius: 12px; }
-    .fl-foto img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 0.3s; }
-    .fl-foto a:hover img { transform: scale(1.04); }
-    .fl-foto figcaption { margin-top: 6px; font-size: 0.85rem; line-height: 1.35; color: #444; }
+        .fl-foto img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 0.3s; }
+        .fl-foto figcaption { margin-top: 6px; font-size: 0.85rem; line-height: 1.35; color: #444; }
     .fl-foto figcaption small { display: block; color: #777; }
 
     .fl-fuentes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
     .fl-fuentes li { margin: 0; padding: 10px 14px; background: #fff; border: 1px solid #ece2cb; border-radius: 10px; }
     .fl-fuentes small { color: #666; }
     .fl-vacio { margin: 0; color: #666; font-style: italic; }
+
+    /* ---------- Visor: la foto ampliada, igual que en Vestigio ---------- */
+    [hidden] { display: none !important; }
+    .fl-abrir { display: block; width: 100%; margin: 0; padding: 0; border: none; background: none; overflow: hidden; border-radius: 12px; cursor: zoom-in; }
+    .fl-abrir:focus-visible { outline: 3px solid #FFA105; outline-offset: 2px; }
+    .fl-abrir:hover img { transform: scale(1.04); }
+    .fl-visor { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center;
+                background: rgba(15, 15, 15, 0.95); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+    .fl-visor-centro { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 92vw; }
+    .fl-visor-img { display: block; max-width: min(92vw, 1200px); max-height: 76vh; width: auto; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+    .fl-visor-pie { text-align: center; color: #fff; line-height: 1.45; }
+    .fl-visor-pie .autor { display: block; font-size: 0.9rem; font-style: italic; color: #FFC565; }
+    .fl-visor-pie .autor:empty { display: none; }
+    .fl-visor-pie .contador { display: inline-block; margin-top: 8px; padding: 2px 12px; background: rgba(255, 255, 255, 0.16); border-radius: 12px; font-size: 0.8rem; }
+    .fl-visor-cerrar, .fl-flecha { position: absolute; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0;
+                width: 46px; height: 46px; border: none; border-radius: 50%; background: rgba(255, 255, 255, 0.16); color: #fff;
+                font-family: inherit; font-size: 1.6rem; line-height: 1; cursor: pointer; }
+    .fl-visor-cerrar:hover, .fl-flecha:hover:not(:disabled) { background: rgba(255, 255, 255, 0.32); }
+    .fl-visor-cerrar:focus-visible, .fl-flecha:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+    .fl-visor-cerrar { top: 18px; right: 18px; font-size: 1.3rem; }
+    .fl-flecha { top: 50%; transform: translateY(-50%); }
+    .fl-flecha.izq { left: 18px; }
+    .fl-flecha.der { right: 18px; }
+    .fl-flecha:disabled { opacity: 0.25; cursor: default; }
+    @media (max-width: 640px) {
+        .fl-flecha { top: auto; bottom: 22px; transform: none; }
+        .fl-flecha.izq { left: calc(50% - 60px); }
+        .fl-flecha.der { right: calc(50% - 60px); }
+        .fl-visor-img { max-height: 64vh; }
+    }
 
     .fl-traza { margin-top: 30px; padding: 12px 16px; background: #f4eddc; border-radius: 10px; font-size: 0.88rem; color: #5a4a2a; line-height: 1.5; }
 </style>
@@ -125,12 +153,26 @@ header-mapa
             <div class="fl-fotos">
                 {% for f in fotos %}
                 {# f: (id_lugar_foto, url, autor, fecha_creacion) #}
-                {% set ruta = url_for('static', filename=f[1].split('static/')[1]) %}
+                {% set ruta = url_archivo(f[1]) %}
                 <figure class="fl-foto">
-                    <a href="{{ ruta }}" target="_blank" rel="noopener"><img src="{{ ruta }}" alt="Foto de {{ lugar[1] }}" loading="lazy"></a>
+                    <button type="button" class="fl-abrir" data-src="{{ ruta }}" data-autor="{{ f[2] or '' }}" aria-label="Ampliar la foto {{ loop.index }} de {{ fotos | length }}"><img src="{{ ruta }}" alt="Foto de {{ lugar[1] }}" loading="lazy"></button>
                     {% if f[2] %}<figcaption><small>Foto: {{ f[2] }}</small></figcaption>{% endif %}
                 </figure>
                 {% endfor %}
+            </div>
+
+            <!-- Visor: la foto ampliada, con flechas para pasar a la siguiente (igual que en Vestigio) -->
+            <div class="fl-visor" id="visor" role="dialog" aria-modal="true" aria-label="Foto ampliada" hidden>
+                <button type="button" class="fl-visor-cerrar" id="visor-cerrar" aria-label="Cerrar">✕</button>
+                <button type="button" class="fl-flecha izq" id="visor-anterior" aria-label="Foto anterior">‹</button>
+                <div class="fl-visor-centro">
+                    <img class="fl-visor-img" id="visor-img" alt="Foto de {{ lugar[1] }}">
+                    <div class="fl-visor-pie">
+                        <span class="autor" id="visor-autor"></span>
+                        <span class="contador" id="visor-contador"></span>
+                    </div>
+                </div>
+                <button type="button" class="fl-flecha der" id="visor-siguiente" aria-label="Foto siguiente">›</button>
             </div>
             {% else %}
             <p class="fl-vacio">Este lugar todavía no tiene fotos.</p>
@@ -174,6 +216,72 @@ header-mapa
             attribution: '&copy; Colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(mapa);
         L.marker(punto).addTo(mapa).bindTooltip(caja.dataset.nombre);
+    })();
+
+    // Visor de fotos: se abre en la misma página; flechas, teclado y deslizar con el dedo para pasar de foto
+    (function () {
+        const visor = document.getElementById('visor');
+        if (!visor) return;
+        const botones = Array.from(document.querySelectorAll('.fl-abrir'));
+        const imagen = document.getElementById('visor-img');
+        const anterior = document.getElementById('visor-anterior');
+        const siguiente = document.getElementById('visor-siguiente');
+        let actual = 0;
+        let origen = null;
+
+        function pintar() {
+            const boton = botones[actual];
+            imagen.src = boton.dataset.src;
+            document.getElementById('visor-autor').textContent = boton.dataset.autor ? 'Foto: ' + boton.dataset.autor : '';
+            document.getElementById('visor-contador').textContent = (actual + 1) + ' de ' + botones.length;
+            anterior.disabled = actual === 0;
+            siguiente.disabled = actual === botones.length - 1;
+            anterior.hidden = siguiente.hidden = botones.length < 2;
+        }
+        function abrir(indice) {
+            actual = indice;
+            origen = botones[indice];
+            pintar();
+            visor.hidden = false;
+            document.body.style.overflow = 'hidden';
+            document.getElementById('visor-cerrar').focus();
+        }
+        function cerrar() {
+            if (visor.hidden) return;
+            visor.hidden = true;
+            imagen.removeAttribute('src');
+            document.body.style.overflow = '';
+            if (origen) origen.focus();
+        }
+        function mover(paso) {
+            const nuevo = actual + paso;
+            if (nuevo < 0 || nuevo >= botones.length) return;
+            actual = nuevo;
+            origen = botones[actual];
+            pintar();
+        }
+
+        botones.forEach(function (boton, indice) { boton.addEventListener('click', function () { abrir(indice); }); });
+        document.getElementById('visor-cerrar').addEventListener('click', cerrar);
+        anterior.addEventListener('click', function () { mover(-1); });
+        siguiente.addEventListener('click', function () { mover(1); });
+        visor.addEventListener('click', function (e) {
+            if (e.target === visor || e.target.classList.contains('fl-visor-centro')) cerrar();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (visor.hidden) return;
+            if (e.key === 'Escape') cerrar();
+            else if (e.key === 'ArrowLeft') mover(-1);
+            else if (e.key === 'ArrowRight') mover(1);
+        });
+        let inicioX = null;
+        visor.addEventListener('touchstart', function (e) { inicioX = e.changedTouches[0].clientX; }, { passive: true });
+        visor.addEventListener('touchend', function (e) {
+            if (inicioX === null) return;
+            const dx = e.changedTouches[0].clientX - inicioX;
+            inicioX = null;
+            if (Math.abs(dx) > 60) mover(dx < 0 ? 1 : -1);
+        }, { passive: true });
     })();
 </script>
 {% endblock %}

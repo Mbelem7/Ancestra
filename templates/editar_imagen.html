@@ -118,7 +118,7 @@ header-galeria
         <div class="fm-grupo">
             <span class="fm-etiqueta">Archivo <span class="opcional">(para cambiarlo, elige uno nuevo)</span></span>
 
-            {% set ruta = url_for('static', filename=archivo[3].split('static/')[1]) %}
+            {% set ruta = url_archivo(archivo[3]) %}
             <div class="fm-previa fm-actual">
                 <div class="fm-miniatura">
                     {% if archivo[5] == 'video' %}
@@ -137,7 +137,7 @@ header-galeria
             <div class="fm-zona" id="zona">
                 <span class="icono" aria-hidden="true">🔄</span>
                 <span class="texto"><strong>Haz clic para reemplazarlo</strong> o arrastra un archivo nuevo</span>
-                <span class="formatos">PNG, JPG, SVG, MP4 o WEBM (opcional)</span>
+                <span class="formatos">Imágenes hasta 5 MB · Videos hasta 50 MB (opcional)</span>
                 <input type="file" id="URL" name="URL" class="fm-archivo" accept=".png,.jpg,.jpeg,.svg,.mp4,.webm" aria-label="Archivo nuevo">
             </div>
             <div class="fm-aviso" id="aviso-archivo" role="alert" hidden></div>
@@ -157,6 +157,8 @@ header-galeria
             <label for="nombre" class="fm-etiqueta">Título</label>
             <input type="text" id="nombre" name="nombre" class="fm-campo" maxlength="100" value="{{ archivo[1] }}" required>
         </div>
+        <!-- Campo: Autor o fuente (opcional) -->
+        {% with autores_obligatorio=false %}{% include '_campo_autores.html' %}{% endwith %}
 
         <div class="fm-fila">
             <!-- Campo: Álbum / Categoría (viene de la tabla categorias) -->

@@ -274,7 +274,7 @@ header-biblioteca
         {% for archivo in libritos %}
         <!-- archivo: (id_archivo, nombre, descripcion, URL, categoria_id, tipo,
                        fecha_creacion, fecha_modificacion, administrador_id, estado) -->
-        {% set ruta = archivo[3].split('static/')[1] %}
+        {% set ruta = url_archivo(archivo[3]) %}
         {% set es_imagen = ruta.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')) %}
         <div class="tarjeta-biblioteca{% if archivo[9] != 'activo' %} tarjeta-inactiva{% endif %}" data-nombre="{{ archivo[1] }}" data-descripcion="{{ archivo[2] or '' }}"
             data-autores="{{ (autores_de.get(archivo[0], []) if autores_de else []) | join(' ') }}"
@@ -283,9 +283,9 @@ header-biblioteca
 
             <div class="bib-portada">
                 {% if es_imagen %}
-                <img src="{{ url_for('static', filename=ruta) }}" alt="" loading="lazy">
+                <img src="{{ ruta }}" alt="" loading="lazy">
                 {% elif portadas and archivo[0] in portadas %}
-                <img src="{{ url_for('static', filename=portadas[archivo[0]]) }}" alt="" loading="lazy">
+                <img src="{{ url_archivo(portadas[archivo[0]]) }}" alt="" loading="lazy">
                 {% else %}
                 <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -307,7 +307,7 @@ header-biblioteca
                 <p class="bib-descripcion">{{ archivo[2] or '' }}</p>
                 <button type="button" class="bib-ver-mas" aria-expanded="false" hidden>Ver más</button>
                 <div class="bib-acciones">
-                    <a href="{{ url_for('static', filename=ruta) }}" class="btn-ver" target="_blank">Ver</a>
+                    <a href="{{ ruta }}" class="btn-ver" target="_blank" rel="noopener">Ver</a>
                     {% if session.get('tipo') == 'administrador' %}
                     <a href="{{ url_for('editar_documento', id_archivo=archivo[0]) }}" class="btn-editar">✏️ Editar</a>
                     {% endif %}
