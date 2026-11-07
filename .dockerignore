@@ -4,4 +4,6 @@ __pycache__/
 *.pyc
 .git/
 .vscode/
+logs/
+crear_administrador.py
 static/assets/docs/portadas/
